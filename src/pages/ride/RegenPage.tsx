@@ -51,7 +51,7 @@ export function RegenPage() {
 
   return (
     <>
-      <BackLink to="/setup">Setup</BackLink>
+      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="Regen"
         subtitle="One-pedal riding: let go of the throttle and the motors slow you down, charging the battery, the way an electric car does."

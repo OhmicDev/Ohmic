@@ -175,6 +175,36 @@ describe('BleTransport (Bluetooth)', () => {
     expect(drops).toHaveLength(1)
   })
 
+  it('talks to a motor controller through the VESC Bluetooth module (NRF dongle), 20 bytes at a time', async () => {
+    // The dongle is a radio on the controller's UART port: the controller itself answers, and CAN goes on from it.
+    const dongle = new FakeBluetoothDevice(new MockBus(), 'VESC BLE UART')
+    const bt = new FakeBluetooth(dongle)
+    const t = await BleTransport.request({ bluetooth: bt.api })
+    await t.connect()
+    expect(t.label).toBe('VESC BLE UART')
+    const client = new VescClient(t)
+    expect((await client.getFwVersion()).hwName).toBe('SIM_75_100')
+    expect(await client.pingCan()).toEqual([2])
+    expect((await client.getValues()).controllerId).toBe(1)
+    expect((await client.getValues({ target: 2 })).controllerId).toBe(2)
+    expect(Math.max(...dongle.rx.writes)).toBeLessThanOrEqual(20)
+    client.close()
+    await t.disconnect()
+  })
+
+  it('tries again when a phone fails the first connection or service lookup', async () => {
+    const device = new FakeBluetoothDevice(new MockBus(), 'VESC BLE UART')
+    device.gatt.failConnects = 1
+    device.gatt.failServiceLookups = 1
+    const t = new BleTransport(device as unknown as BluetoothDevice)
+    await t.connect()
+    expect(device.gatt.connects).toBe(3)
+    const client = new VescClient(t)
+    expect((await client.getFwVersion()).hwName).toBe('SIM_75_100')
+    client.close()
+    await t.disconnect()
+  })
+
   it('explains a device without the VESC UART service', async () => {
     const device = new FakeBluetoothDevice(undefined, 'Headphones')
     device.hasNus = false

@@ -9,14 +9,19 @@ import { REGEN_DEFAULTS, type RegenSettings } from '../onboard/regen'
 import type { BleChunkSize } from '../transport/BleTransport'
 import type { View } from './devices'
 
+/** Flat colours, each 4.5:1 or better as text on the dark surfaces and under dark text. */
 export const ACCENTS = [
-  { name: 'Volt', value: '#3ee6ff' },
-  { name: 'Lime', value: '#b6f24a' },
-  { name: 'Amber', value: '#ffb547' },
-  { name: 'Signal', value: '#ff4d5e' },
-  { name: 'Iris', value: '#9b8cff' },
-  { name: 'Frost', value: '#e9eef5' },
+  { name: 'Blue', value: '#4c9be8' },
+  { name: 'Green', value: '#2ecc71' },
+  { name: 'Orange', value: '#f39c12' },
+  { name: 'Purple', value: '#b07ce6' },
+  { name: 'Red', value: '#ef5b4c' },
+  { name: 'Teal', value: '#1abc9c' },
+  { name: 'Graphite', value: '#c8c8c8' },
 ] as const
+
+/** The first theme's default accent: anyone still on it moves to the new default. */
+const OLD_DEFAULT_ACCENT = '#3ee6ff'
 
 /** 'system' follows the device's light or dark setting. */
 export type ThemePref = 'system' | 'dark' | 'light'
@@ -57,6 +62,8 @@ export interface LastConnection {
   kind: 'serial' | 'ble'
   name: string
   at: number
+  /** The browser's id for a Bluetooth device, to find it again without the picker. */
+  id?: string
 }
 
 interface SettingsState {
@@ -66,6 +73,8 @@ interface SettingsState {
   language: string
   /** The first-run intro was seen or skipped. */
   onboarded: boolean
+  /** The front page was seen and the app opened from it; home then opens straight to Ride. */
+  seenWelcome: boolean
   /** Developer option: keep a log of every packet to and from the controller. */
   protocolLog: boolean
   units: Units
@@ -74,6 +83,8 @@ interface SettingsState {
   bleChunkSize: BleChunkSize
   vehicle: VehicleSetup
   lastConnection: LastConnection | null
+  /** When the app opens: show Connect and reconnect to the last device if the browser allows it. */
+  autoConnect: boolean
   /** Dashboard view last picked for each local controller, by UUID. */
   deviceViews: Record<string, View>
   /** The controller (config device key) that keeps driving in single-motor mode. */
@@ -102,6 +113,8 @@ interface SettingsState {
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: string) => void
   setOnboarded: (done: boolean) => void
+  /** Leaves the front page for the app (the front page already explained it, so no intro). */
+  enterApp: () => void
   setProtocolLog: (on: boolean) => void
   setUnits: (units: Units) => void
   setPollHz: (hz: PollHz) => void
@@ -110,6 +123,7 @@ interface SettingsState {
   updateVehicle: (patch: Partial<VehicleSetup>) => void
   resetVehicle: () => void
   setLastConnection: (c: LastConnection) => void
+  setAutoConnect: (on: boolean) => void
   rememberView: (uuid: string, view: View) => void
   setSingleMotorKey: (key: string | null) => void
   setAbsSensitivity: (s: AbsSensitivity) => void
@@ -134,6 +148,7 @@ export const useSettings = create<SettingsState>()(
       theme: 'dark',
       language: 'en',
       onboarded: false,
+      seenWelcome: false,
       protocolLog: false,
       units: 'metric',
       pollHz: 10,
@@ -141,6 +156,7 @@ export const useSettings = create<SettingsState>()(
       bleChunkSize: 20,
       vehicle: DEFAULT_VEHICLE,
       lastConnection: null,
+      autoConnect: true,
       deviceViews: {},
       singleMotorKey: null,
       absSensitivity: 'normal',
@@ -160,6 +176,7 @@ export const useSettings = create<SettingsState>()(
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
       setOnboarded: (onboarded) => set({ onboarded }),
+      enterApp: () => set({ seenWelcome: true, onboarded: true }),
       setProtocolLog: (protocolLog) => set({ protocolLog }),
       setUnits: (units) => set({ units }),
       setPollHz: (pollHz) => set({ pollHz }),
@@ -168,6 +185,7 @@ export const useSettings = create<SettingsState>()(
       updateVehicle: (patch) => set((s) => ({ vehicle: { ...s.vehicle, ...patch } })),
       resetVehicle: () => set({ vehicle: DEFAULT_VEHICLE }),
       setLastConnection: (lastConnection) => set({ lastConnection }),
+      setAutoConnect: (autoConnect) => set({ autoConnect }),
       rememberView: (uuid, view) => set((s) => ({ deviceViews: { ...s.deviceViews, [uuid]: view } })),
       setSingleMotorKey: (singleMotorKey) => set({ singleMotorKey }),
       setAbsSensitivity: (absSensitivity) => set({ absSensitivity }),
@@ -191,6 +209,7 @@ export const useSettings = create<SettingsState>()(
       merge: (persisted, current) => {
         const p = { ...((persisted ?? {}) as Partial<SettingsState> & { includeCanInTotals?: unknown }) }
         delete p.includeCanInTotals // replaced by the device switcher
+        if (p.accent === OLD_DEFAULT_ACCENT) delete p.accent
         if (persisted && p.onboarded === undefined) p.onboarded = true
         return {
           ...current,

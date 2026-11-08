@@ -4,7 +4,7 @@ import { connectDemo, go } from './helpers'
 test('Setup is a main tab, and the dashboard leads a new vehicle through it step by step', async ({ page }) => {
   await connectDemo(page)
   const nav = page.getByRole('navigation', { name: 'Main' })
-  await expect(nav.getByRole('link')).toHaveText(['Ride', 'Setup', 'Live', 'AI Tune', 'More'])
+  await expect(nav.getByRole('link')).toHaveText(['Ride', 'Setup', 'Live', 'Tune', 'More'])
 
   // The dashboard offers setup first.
   await go(page, '/')
@@ -39,16 +39,23 @@ test('Setup is a main tab, and the dashboard leads a new vehicle through it step
   await expect(prompt).toHaveCount(0)
 })
 
-test('Config and its backups belong to Setup; tools and app settings to More', async ({ page }) => {
+test('Ride settings, Config and its backups belong to Tune; tools and app settings to More', async ({ page }) => {
   await connectDemo(page)
   const tab = (name: string) => page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name })
 
   const main = page.getByRole('main')
   await go(page, '/config')
-  await expect(tab('Setup')).toHaveAttribute('aria-current', 'page')
-  await main.getByRole('link', { name: 'Setup', exact: true }).click()
-  await expect(page).toHaveURL(/\/setup$/)
+  await expect(tab('Tune')).toHaveAttribute('aria-current', 'page')
+  await main.getByRole('link', { name: 'Tune', exact: true }).click()
+  await expect(page).toHaveURL(/\/tune$/)
+  await expect(main.getByRole('link', { name: /^Ride modes/ })).toBeVisible()
+  await expect(main.getByRole('link', { name: /^Backups/ })).toBeVisible()
 
+  await expect(main.getByRole('link', { name: /AI Tune/ })).toHaveCount(0)
+
+  // Setup is just the steps for a new build.
+  await tab('Setup').click()
+  await expect(main.getByRole('link', { name: /^Ride modes/ })).toHaveCount(0)
   await expect(tab('Setup')).toHaveAttribute('aria-current', 'page')
   await tab('More').click()
   await main.getByRole('link', { name: 'Settings' }).click()

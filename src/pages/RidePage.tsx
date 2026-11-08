@@ -27,7 +27,7 @@ export function RidePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="wide text-2xl font-bold tracking-tight md:text-[28px]">Ride</h1>
+        <h1 className="wide text-[26px] font-bold md:text-[28px]">Ride</h1>
         <p className="mt-1 text-sm text-muted">Connect to see speed, battery, power and temperatures live.</p>
       </div>
       {status === 'connected' && primary === null ? (
@@ -48,7 +48,9 @@ export function RidePage() {
           <span className="text-muted">Waiting for the first values…</span>
         </div>
       ) : (
-        <ConnectPanel />
+        <div className="max-w-xl">
+          <ConnectPanel />
+        </div>
       )}
     </div>
   )
@@ -115,7 +117,7 @@ function Dashboard() {
 
         {/* Hero */}
         <div className="grid gap-3 lg:grid-cols-[1.55fr_1fr]">
-          <section className="card relative overflow-hidden p-5 md:p-6" aria-label="Speed and power">
+          <section className="card relative overflow-hidden p-4 md:p-6" aria-label="Speed and power">
             <div className="flex items-center justify-between">
               <span className="label">Speed</span>
               <span className="flex items-center gap-2">
@@ -128,10 +130,10 @@ function Dashboard() {
               </span>
             </div>
             <div className="mt-1 flex items-end gap-3">
-              <span className="num glow-strong wide leading-[0.85] font-bold tracking-[-0.04em]" style={{ fontSize: 'clamp(96px, 24vw, 176px)' }} aria-live="off">
+              <span className="num glow-strong wide leading-[0.85] font-bold tracking-[-0.04em]" style={{ fontSize: 'clamp(84px, 22vw, 176px)' }} aria-live="off">
                 <TweenNumber value={speed} ms={260} />
               </span>
-              <span className="mb-3 text-lg font-medium text-muted md:mb-5">{u.speed}</span>
+              <span className="mb-2 text-lg font-medium text-muted md:mb-5">{u.speed}</span>
               <div className="mb-3 ml-auto hidden text-right sm:block md:mb-5">
                 <div className="label">Top</div>
                 <div className="num text-lg font-semibold">
@@ -139,12 +141,12 @@ function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="mt-6">
+            <div className="mt-4 md:mt-6">
               <PowerBar power={dash.power} peakDrive={trip.peakPower} peakRegen={trip.peakRegenPower} />
             </div>
           </section>
 
-          <section className="card flex flex-col justify-between gap-5 p-5 md:p-6" aria-label="Battery">
+          <section className="card flex flex-col justify-between gap-4 p-4 md:gap-5 md:p-6" aria-label="Battery">
             <div>
               <div className="flex items-center justify-between">
                 <span className="label">Battery</span>
@@ -156,7 +158,7 @@ function Dashboard() {
                 <TweenNumber
                   value={dash.soc}
                   ms={400}
-                  className={cx('num glow text-[64px] leading-none font-bold tracking-tight', dash.soc < 10 ? 'text-danger' : dash.soc < 25 ? 'text-warn' : '')}
+                  className={cx('num text-[52px] leading-none font-bold tracking-tight md:text-[64px]', dash.soc < 10 ? 'text-danger' : dash.soc < 25 ? 'text-warn' : '')}
                 />
                 <span className="text-lg text-muted">%</span>
               </div>
@@ -164,7 +166,7 @@ function Dashboard() {
                 <BatteryGauge soc={dash.soc} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 border-t border-line pt-4">
+            <div className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:pt-4">
               <div>
                 <div className="label">Range</div>
                 <div className="num mt-1 text-2xl font-semibold">
@@ -187,7 +189,7 @@ function Dashboard() {
         <RideControls />
 
         {/* Live tiles */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 md:gap-3 lg:grid-cols-4">
           <Metric
             label="Battery current"
             value={dash.currentIn}
@@ -261,7 +263,7 @@ function Dashboard() {
               </Button>
             </span>
           </div>
-          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+          <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-3 lg:grid-cols-6">
             <TripStat label="Distance" value={fmt(convertDistance(trip.distanceKm, units), 2)} unit={u.distance} />
             <TripStat label="Riding" value={fmtDuration(trip.rideSeconds)} />
             <TripStat
@@ -283,7 +285,7 @@ function Dashboard() {
           </Link>
         </p>
         {/* Room to scroll the last row clear of the wheels in the corner. */}
-        <div aria-hidden className="h-20 md:h-24" />
+        <div aria-hidden className="h-16 md:h-24" />
       </div>
       <WheelSpeeds />
     </>
@@ -294,7 +296,7 @@ function TripStat({ label, value, unit }: { label: string; value: string; unit?:
   return (
     <div>
       <dt className="label text-[9.5px]">{label}</dt>
-      <dd className="num mt-1 text-lg font-semibold">
+      <dd className="num mt-1 text-base font-semibold md:text-lg">
         {value}
         {unit && <span className="ml-1 text-xs font-normal text-muted">{unit}</span>}
       </dd>

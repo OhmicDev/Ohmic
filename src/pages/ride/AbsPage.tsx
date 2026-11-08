@@ -51,7 +51,7 @@ export function AbsPage() {
 
   return (
     <>
-      <BackLink to="/setup">Setup</BackLink>
+      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="ABS"
         subtitle="Anti-lock for motor braking. When a wheel starts to skid, that motor’s braking eases for a moment so the tyre grips again."

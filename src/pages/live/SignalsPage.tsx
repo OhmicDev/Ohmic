@@ -48,7 +48,7 @@ export function SignalsPage() {
     return (
       <div className="card p-6 md:p-8">
         <h2 className="wide text-lg font-semibold">Nothing to show yet</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">Connect a controller, or try the demo scooter, to see every value it reports, plotted live.</p>
+        <p className="mt-2 max-w-xl text-sm text-muted">Connect a controller to see every value it reports, plotted live.</p>
         <Link to="/connect" className="focus-ring mt-4 inline-flex h-10 items-center rounded-xl bg-accent px-4 text-sm font-semibold text-bg">
           Connect
         </Link>
@@ -98,8 +98,8 @@ export function SignalsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="card min-w-0 self-start p-4 md:p-5" aria-label="Chart">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+        <section className="card min-w-0 self-start p-3 md:p-5" aria-label="Chart">
+          <div className="mb-3 flex flex-wrap items-center gap-2 md:mb-4">
             <Segmented<WindowSec>
               label="Time window"
               value={view.windowSec}
@@ -115,8 +115,8 @@ export function SignalsPage() {
                   <Play className="size-4" /> Back to live
                 </Button>
               ) : (
-                <Button className="h-9" onClick={view.pause} disabled={!connected}>
-                  <Pause className="size-4" /> Pause
+                <Button className="h-9 max-sm:w-9 max-sm:px-0" onClick={view.pause} disabled={!connected}>
+                  <Pause className="size-4" /> <span className="max-sm:sr-only">Pause</span>
                 </Button>
               )}
             </div>

@@ -1,11 +1,26 @@
-import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent, redirect } from '@tanstack/react-router'
 import { ConnectPage } from './pages/ConnectPage'
 import { MorePage } from './pages/MorePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RidePage } from './pages/RidePage'
+import { WelcomePage } from './pages/WelcomePage'
+import { useSettings } from './state/settings'
 import { AppShell } from './ui/AppShell'
 
-const rootRoute = createRootRoute({ component: AppShell, notFoundComponent: NotFoundPage })
+let opened = false
+
+const rootRoute = createRootRoute({
+  component: AppShell,
+  notFoundComponent: NotFoundPage,
+  // Opening the app at its home address the first time shows the front page. Once the app was
+  // opened from it, home goes straight to Ride; links into the app always go where they point.
+  beforeLoad: ({ location, preload }) => {
+    if (preload) return
+    const first = !opened
+    opened = true
+    if (first && location.pathname === '/' && !useSettings.getState().seenWelcome) throw redirect({ to: '/welcome' })
+  },
+})
 
 const liveRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -23,7 +38,8 @@ const routeTree = rootRoute.addChildren([
   liveRoute.addChildren(liveChildren),
   createRoute({ getParentRoute: () => rootRoute, path: '/', component: RidePage }),
   createRoute({ getParentRoute: () => rootRoute, path: '/connect', component: ConnectPage }),
-  createRoute({ getParentRoute: () => rootRoute, path: '/tune', component: lazyRouteComponent(() => import('./pages/tune/TunePage'), 'TunePage') }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/welcome', component: WelcomePage }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/tune', component: lazyRouteComponent(() => import('./pages/tune/TuneHubPage'), 'TuneHubPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/config', component: lazyRouteComponent(() => import('./pages/config/ConfigPage'), 'ConfigPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/config/backups', component: lazyRouteComponent(() => import('./pages/config/BackupsPage'), 'BackupsPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/more', component: MorePage }),

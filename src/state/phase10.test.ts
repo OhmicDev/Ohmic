@@ -88,7 +88,14 @@ describe('theme', () => {
   it('keeps every accent readable on the light theme’s surfaces', () => {
     for (const a of ACCENTS) {
       const c = darken(a.value, LIGHT_ACCENT_KEEP)
-      for (const surface of ['#ffffff', '#f4f6f8', '#f3f5f8', '#e8ecf1']) expect(contrastRatio(c, surface)).toBeGreaterThanOrEqual(4.5)
+      for (const surface of ['#ffffff', '#f5f5f7', '#f2f2f4', '#e8e8ec']) expect(contrastRatio(c, surface)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('keeps every accent readable on the dark theme, as text and under the dark text of a button', () => {
+    for (const a of ACCENTS) {
+      for (const surface of ['#191919', '#202020', '#262626']) expect(contrastRatio(a.value, surface)).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio('#191919', a.value)).toBeGreaterThanOrEqual(4.5)
     }
   })
 })

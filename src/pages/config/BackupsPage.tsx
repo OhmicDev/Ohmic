@@ -326,7 +326,7 @@ export function BackupsPage() {
 
   return (
     <>
-      <BackLink to="/setup">Setup</BackLink>
+      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="Backups"
         subtitle="One is saved automatically before every write. They’re kept in this browser, on this device."

@@ -11,7 +11,7 @@ import { useTelemetry } from '../../state/telemetry'
 
 function Cell({ label, value, unit, warn }: { label: string; value: string; unit?: string; warn?: boolean }) {
   return (
-    <div className="min-w-0 px-3 py-2">
+    <div className="min-w-0 shrink-0 px-3 py-1.5 sm:py-2">
       <div className="label text-[9.5px]">{label}</div>
       <div className={cx('num mt-0.5 text-[15px] font-semibold', warn && 'text-warn')}>
         {value}
@@ -53,8 +53,9 @@ export function LiveStrip({ target }: { target: Target }) {
   const live = useSession((s) => s.status === 'connected')
 
   return (
-    <div className="card flex flex-col gap-1 p-1.5 xl:flex-row xl:items-center">
-      <div className="grid min-w-0 flex-1 grid-cols-4 sm:grid-cols-7">
+    <div className="card flex flex-col gap-1 p-1 sm:p-1.5 xl:flex-row xl:items-center">
+      {/* One row that scrolls sideways on a phone, a grid on wider screens. */}
+      <div className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] sm:grid sm:grid-cols-7">
         <Cell label="Speed" value={v ? fmt(Math.abs(speedKmh(v.rpm, vehicle)), 1) : '—'} unit="km/h" />
         <Cell label="ERPM" value={v ? fmt(v.rpm, 0) : '—'} />
         <Cell label="Battery" value={v ? fmt(v.vIn, 1) : '—'} unit="V" />
@@ -63,11 +64,11 @@ export function LiveStrip({ target }: { target: Target }) {
         <Cell label="Ctrl temp" value={v ? fmt(v.tempFet, 0) : '—'} unit="°C" warn={!!v && v.tempFet > 80} />
         <Cell label="Motor temp" value={v ? fmt(v.tempMotor, 0) : '—'} unit="°C" warn={!!v && v.tempMotor > 100} />
       </div>
-      <div className="flex flex-wrap items-center gap-2 px-2 pb-1.5 md:pb-0">
+      <div className="flex flex-wrap items-center gap-2 px-2 pb-1.5 xl:pb-0">
         <DemoPark />
         <span
           className={cx(
-            'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium',
+            'inline-flex h-7 items-center gap-2 rounded-full border px-2.5 text-xs font-medium sm:h-8 sm:px-3',
             !live ? 'border-line-strong text-muted' : block ? 'border-warn/40 bg-warn/10 text-warn' : 'border-ok/40 bg-ok/10 text-ok',
           )}
           title={block ?? undefined}

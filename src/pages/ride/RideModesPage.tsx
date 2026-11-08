@@ -41,7 +41,7 @@ export function RideModesPage() {
 
   return (
     <>
-      <BackLink to="/setup">Setup</BackLink>
+      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="Ride modes"
         subtitle="Each mode lowers a few limits on top of your controller settings. Switching is instant and works while riding; the controllers forget the mode when powered off, and your stored settings never change unless you make a mode permanent."

@@ -1,27 +1,32 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource-variable/inter/opsz.css';
 @import '@fontsource-variable/jetbrains-mono';
 
-/* Design tokens. The accent is set at runtime from the user's choice. */
+/* Design tokens. Flat charcoal surfaces and flat status colours, with macOS-style
+   rounding, hairlines and frosted bars. The accent is set at runtime from the user's choice. */
 @theme {
-  --color-bg: #05070a;
-  --color-surface: #0a0e13;
-  --color-surface-2: #0f141b;
-  --color-surface-3: #161d26;
+  --color-bg: #191919;
+  --color-surface: #202020;
+  --color-surface-2: #262626;
+  --color-surface-3: #2f2f2f;
   --color-line: rgb(255 255 255 / 0.07);
-  --color-line-strong: rgb(255 255 255 / 0.13);
-  --color-text: #eef2f6;
-  --color-muted: #8b96a4;
-  --color-faint: #7a8593;
-  --color-ok: #3ddc97;
-  --color-warn: #ffb547;
-  --color-danger: #ff4d5e;
-  --color-regen: #3ddc97;
+  --color-line-strong: rgb(255 255 255 / 0.12);
+  --color-text: #ececec;
+  --color-muted: #a8a8a8;
+  --color-faint: #929292;
+  --color-ok: #2ecc71;
+  --color-warn: #f39c12;
+  --color-danger: #ef5b4c;
+  --color-regen: #2ecc71;
 
-  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
 
-  --radius-card: 1.125rem;
+  /* macOS proportions: 8 px controls, 10 px fields and buttons, 12 px cards, 14 px sheets. */
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.875rem;
+  --radius-card: 0.75rem;
 }
 
 @theme inline {
@@ -29,49 +34,44 @@
 }
 
 :root {
-  --accent: #3ee6ff;
+  --accent: #4c9be8;
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
-  --dot: rgb(255 255 255 / 0.055);
-  --sheen-top: rgb(255 255 255 / 0.028);
-  --sheen-bottom: rgb(255 255 255 / 0.008);
-  --card-shadow: none;
-  --chart-axis: #8b96a4;
-  --chart-grid: rgb(255 255 255 / 0.055);
-  --chart-tick: rgb(255 255 255 / 0.08);
-  --chart-cursor: rgb(255 255 255 / 0.28);
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.025) inset;
+  --bar-bg: rgb(32 32 32 / 0.72);
+  --chart-axis: #a8a8a8;
+  --chart-grid: rgb(255 255 255 / 0.06);
+  --chart-tick: rgb(255 255 255 / 0.09);
+  --chart-cursor: rgb(255 255 255 / 0.3);
   --chart-cursor-soft: rgb(255 255 255 / 0.12);
   --chart-marker: rgb(255 255 255 / 0.22);
 }
 
-/* Light theme: the same tokens with light values (set by data-theme on <html>).
-   Every text colour here is 4.5:1 or better on every surface. The user's accent
-   is darkened for it in AppShell. */
+/* Light theme: macOS light, with every text colour 4.5:1 or better on every surface.
+   The user's accent is darkened for it in AppShell. */
 :root[data-theme='light'] {
   color-scheme: light;
-  --color-bg: #f4f6f8;
+  --color-bg: #f5f5f7;
   --color-surface: #ffffff;
-  --color-surface-2: #f3f5f8;
-  --color-surface-3: #e8ecf1;
-  --color-line: rgb(16 24 40 / 0.09);
-  --color-line-strong: rgb(16 24 40 / 0.17);
-  --color-text: #0e1621;
-  --color-muted: #4b5664;
-  --color-faint: #5f6a78;
+  --color-surface-2: #f2f2f4;
+  --color-surface-3: #e8e8ec;
+  --color-line: rgb(0 0 0 / 0.08);
+  --color-line-strong: rgb(0 0 0 / 0.15);
+  --color-text: #1d1d1f;
+  --color-muted: #55555b;
+  --color-faint: #5f5f66;
   --color-ok: #087350;
   --color-warn: #9a5800;
   --color-danger: #c4213a;
   --color-regen: #087350;
-  --dot: rgb(16 24 40 / 0.07);
-  --sheen-top: transparent;
-  --sheen-bottom: transparent;
-  --card-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
-  --chart-axis: #4b5664;
-  --chart-grid: rgb(16 24 40 / 0.07);
-  --chart-tick: rgb(16 24 40 / 0.12);
-  --chart-cursor: rgb(16 24 40 / 0.35);
-  --chart-cursor-soft: rgb(16 24 40 / 0.15);
-  --chart-marker: rgb(16 24 40 / 0.25);
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  --bar-bg: rgb(255 255 255 / 0.72);
+  --chart-axis: #55555b;
+  --chart-grid: rgb(0 0 0 / 0.07);
+  --chart-tick: rgb(0 0 0 / 0.12);
+  --chart-cursor: rgb(0 0 0 / 0.35);
+  --chart-cursor-soft: rgb(0 0 0 / 0.15);
+  --chart-marker: rgb(0 0 0 / 0.25);
   --code-bg: #f6f8fa;
   --syn-comment: #57606a;
   --syn-string: #116329;
@@ -84,10 +84,6 @@
   --syn-paren-2: #0550ae;
   --syn-paren-3: #bf3989;
 }
-:root[data-theme='light'] .glow,
-:root[data-theme='light'] .glow-strong {
-  text-shadow: none;
-}
 :root[data-theme='light'] .map-tiles-dark {
   filter: none;
 }
@@ -98,20 +94,25 @@ body,
   min-height: 100%;
 }
 
+html {
+  scrollbar-color: var(--color-line-strong) transparent;
+  scrollbar-width: thin;
+}
+
 body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  font-feature-settings: 'cv11' 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Faint dot grid for large empty areas, fading out toward the bottom. */
+/* Kept as a no-op: the flat theme has no dot grid. */
 .bg-dots {
-  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
+  display: none;
 }
 
 @utility num {
@@ -119,31 +120,28 @@ body {
   font-feature-settings: 'tnum' 1;
 }
 
+/* Section and field labels: small capitals in a muted grey. */
 @utility label {
-  font-size: 10.5px;
-  line-height: 1.2;
+  font-size: 11px;
+  line-height: 1.25;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-stretch: 115%;
   color: var(--color-muted);
 }
 
+/* Headings: tight, like a system large title. */
 @utility wide {
-  font-stretch: 118%;
+  letter-spacing: -0.018em;
 }
 
+/* The old neon glow, retired in the flat theme. */
 @utility glow {
-  text-shadow:
-    0 0 1px color-mix(in oklab, currentColor 60%, transparent),
-    0 0 22px color-mix(in oklab, currentColor 28%, transparent);
+  text-shadow: none;
 }
 
 @utility glow-strong {
-  text-shadow:
-    0 0 2px color-mix(in oklab, currentColor 70%, transparent),
-    0 0 40px color-mix(in oklab, currentColor 30%, transparent),
-    0 0 90px color-mix(in oklab, var(--accent) 18%, transparent);
+  text-shadow: none;
 }
 
 /* Small text drawn over a chart: a halo in the card colour keeps the line behind it from cutting through. */
@@ -156,12 +154,17 @@ body {
 }
 
 @utility card {
-  background:
-    linear-gradient(180deg, var(--sheen-top), var(--sheen-bottom)),
-    var(--color-surface);
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow: var(--card-shadow);
+}
+
+/* Frosted bars and sheets, like a macOS toolbar or sidebar. */
+@utility glass {
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
 }
 
 @utility focus-ring {
@@ -169,7 +172,7 @@ body {
   &:focus-visible {
     box-shadow:
       0 0 0 2px var(--color-bg),
-      0 0 0 4px var(--accent);
+      0 0 0 4px color-mix(in oklab, var(--accent) 80%, transparent);
   }
 }
 
@@ -201,8 +204,30 @@ body {
   animation: live-pulse 1.8s ease-out infinite;
 }
 
+/* Dialogs rise into place: from the bottom edge on a phone, a short lift elsewhere. */
+@keyframes sheet-in {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+dialog.sheet[open] {
+  animation: sheet-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (max-width: 47.99rem) {
+  dialog.sheet[open] {
+    animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
 /* Less motion when the device asks for it: no pulsing, spinning or sliding. */
 @media (prefers-reduced-motion: reduce) {
+  dialog.sheet[open],
   .live-dot::after,
   .animate-spin,
   .animate-pulse {
@@ -276,7 +301,7 @@ input[type='number'] {
 
 /* Code editor and consoles (LispBM, terminal). Light values are with the light theme above. */
 :root {
-  --code-bg: #06090d;
+  --code-bg: #141414;
   --syn-comment: #5f6b79;
   --syn-string: #a6e3a1;
   --syn-number: #fab387;
@@ -337,4 +362,89 @@ input[type='number'] {
 }
 .skip-link:focus {
   top: 12px;
+}
+
+/* Front page (/welcome). Only transform and opacity animate, so scrolling stays smooth on phones. */
+@keyframes welcome-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(8%, -6%, 0) scale(1.18);
+  }
+}
+.welcome-glow {
+  animation: welcome-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.welcome-in {
+  animation: welcome-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+/* Shown as each section scrolls into view (the page adds .is-in). */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* The safe-write steps light up one after another, on a loop. */
+@keyframes welcome-step {
+  0%,
+  14% {
+    border-color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 16%, var(--color-surface));
+    color: var(--color-text);
+  }
+  22%,
+  100% {
+    border-color: var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-muted);
+  }
+}
+.welcome-step {
+  animation: welcome-step 6s linear infinite;
+  animation-delay: calc(var(--i, 0) * 1s);
+}
+
+/* A chart line that keeps moving, like the live dashboard. */
+@keyframes welcome-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.welcome-scroll {
+  animation: welcome-scroll 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-glow,
+  .welcome-in,
+  .welcome-step,
+  .welcome-scroll {
+    animation: none !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

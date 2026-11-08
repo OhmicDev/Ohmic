@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Loader2, Plug } from 'lucide-react'
 import { cx, fmt } from '../lib/format'
+import { useConnectSheet } from '../state/autoConnect'
 import { useSession } from '../state/session'
 import { useTelemetry } from '../state/telemetry'
 
@@ -13,15 +14,17 @@ export function ConnectionChip() {
   const vIn = useTelemetry((s) => s.dash?.vIn)
   const soc = useTelemetry((s) => s.dash?.soc)
 
+  const show = useConnectSheet((s) => s.show)
+
   const base =
-    'focus-ring inline-flex h-9 items-center gap-2.5 rounded-full border border-line bg-surface-2/80 pl-3 pr-3.5 text-[13px] transition-colors hover:border-line-strong'
+    'focus-ring inline-flex h-8 items-center gap-2 rounded-full border border-line bg-surface-2 pl-2.5 pr-3 text-[13px] transition-colors hover:border-line-strong md:h-9 md:gap-2.5 md:pl-3 md:pr-3.5'
 
   if (status === 'connecting') {
     return (
-      <Link to="/connect" className={base}>
+      <button onClick={show} className={base}>
         <Loader2 className="size-3.5 animate-spin text-accent" />
-        <span className="max-w-[11rem] truncate text-muted">{step ?? 'Connecting'}…</span>
-      </Link>
+        <span className="max-w-[9rem] truncate text-muted md:max-w-[11rem]">{step ?? 'Connecting'}…</span>
+      </button>
     )
   }
 
@@ -36,10 +39,10 @@ export function ConnectionChip() {
 
   if (status !== 'connected') {
     return (
-      <Link to="/connect" className={cx(base, status === 'error' && 'border-danger/40')}>
-        {status === 'error' ? <span className="size-2 rounded-full bg-danger" /> : <Plug className="size-3.5 text-muted" />}
-        <span className={status === 'error' ? 'text-danger' : 'text-muted'}>{status === 'error' ? 'Disconnected' : 'Connect'}</span>
-      </Link>
+      <button onClick={show} className={cx(base, status === 'error' ? 'border-danger/40' : 'border-accent/40 bg-accent/10')}>
+        {status === 'error' ? <span className="size-2 rounded-full bg-danger" /> : <Plug className="size-3.5 text-accent" />}
+        <span className={status === 'error' ? 'text-danger' : 'font-medium text-accent'}>{status === 'error' ? 'Disconnected' : 'Connect'}</span>
+      </button>
     )
   }
 

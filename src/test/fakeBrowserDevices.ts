@@ -175,6 +175,10 @@ class FakeCharacteristic extends EventTarget {
 class FakeGattServer {
   connected = false
   connects = 0
+  /** Connection attempts that fail with a passing error first, like a phone's first try. */
+  failConnects = 0
+  /** Service lookups that fail with a passing error first. */
+  failServiceLookups = 0
   private readonly device: FakeBluetoothDevice
 
   constructor(device: FakeBluetoothDevice) {
@@ -185,6 +189,10 @@ class FakeGattServer {
     this.connects++
     await later(2)
     if (!this.device.inRange) throw new DOMException('Bluetooth Device is no longer in range.', 'NetworkError')
+    if (this.failConnects > 0) {
+      this.failConnects--
+      throw new DOMException('GATT operation failed for unknown reason.', 'NetworkError')
+    }
     this.connected = true
     return this
   }
@@ -197,6 +205,10 @@ class FakeGattServer {
 
   async getPrimaryService(uuid: string) {
     if (!this.connected) throw new DOMException('GATT Server is disconnected.', 'NetworkError')
+    if (this.failServiceLookups > 0) {
+      this.failServiceLookups--
+      throw new DOMException('GATT Server is disconnected. Cannot retrieve services.', 'NetworkError')
+    }
     if (uuid !== NUS_SERVICE || !this.device.hasNus) {
       throw new DOMException('No Services matching UUID found in Device.', 'NotFoundError')
     }

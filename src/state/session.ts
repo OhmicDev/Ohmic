@@ -215,7 +215,8 @@ export async function connectWith(transport: Transport) {
     useLiveData.getState().clear()
     goLive(a, found)
     if (transport.kind === 'serial' || transport.kind === 'ble') {
-      useSettings.getState().setLastConnection({ kind: transport.kind, name: transport.label, at: Date.now() })
+      const id = transport instanceof BleTransport ? transport.device.id : undefined
+      useSettings.getState().setLastConnection({ kind: transport.kind, name: transport.label, at: Date.now(), ...(id ? { id } : {}) })
     }
   } catch (e) {
     client?.close()
@@ -460,10 +461,12 @@ export function friendlyError(e: unknown, kind: TransportKind | null = null): st
     case 'ConnectError':
       return e.message
     case 'TimeoutError':
+      if (kind === 'ble')
+        return `Connected to the Bluetooth module, but the controller didn't answer (${e.message}). A VESC Bluetooth module talks to the controller's UART: over USB, check Tune › Config › App › General, where App to Use must include UART, at 115200 baud.`
       return `The device didn't answer (${e.message}). Check it's powered on and is a VESC-based controller.`
     case 'NotFoundError':
       return /adapter/i.test(e.message)
-        ? 'Bluetooth is turned off, or this device has no Bluetooth.'
+        ? 'Bluetooth is turned off, or this device has no Bluetooth. On Android, Chrome also needs the Nearby devices permission (Location on Android 11 and older).'
         : 'No device was chosen.'
     case 'SecurityError':
       return 'The browser blocked access to the device. The page must be served over https.'

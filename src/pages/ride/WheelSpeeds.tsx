@@ -33,7 +33,7 @@ export function WheelSpeeds() {
     <aside
       aria-label={many ? 'Wheel speeds' : 'Wheel speed'}
       className={cx(
-        'card pointer-events-none fixed right-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex gap-2 px-2.5 py-2 shadow-xl transition-opacity md:right-6 md:bottom-6',
+        'glass pointer-events-none fixed right-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 flex gap-1.5 rounded-[var(--radius-card)] border border-line-strong px-2 py-1.5 shadow-xl transition-opacity md:right-6 md:bottom-6 md:gap-2 md:px-2.5 md:py-2',
         frozen && 'opacity-55',
       )}
     >
@@ -98,7 +98,7 @@ function Wheel({ target, label, frozen }: { target: Target; label: string | null
   const angles = (n: number) => Array.from({ length: n }, (_, i) => (i * 360) / n)
 
   return (
-    <div className="flex w-14 flex-col items-center md:w-16">
+    <div className="flex w-11 flex-col items-center md:w-16">
       <svg viewBox="0 0 64 70" className="h-auto w-full" aria-hidden>
         <defs>
           <linearGradient id={fade} x1="0" x2="64" y1="0" y2="0" gradientUnits="userSpaceOnUse">
@@ -157,7 +157,7 @@ function Wheel({ target, label, frozen }: { target: Target; label: string | null
           <circle cx="32" cy="32" r="1.8" className="fill-surface" />
         </g>
       </svg>
-      <div className="num mt-0.5 text-sm leading-tight font-semibold whitespace-nowrap">
+      <div className="num mt-0.5 text-[13px] leading-tight font-semibold whitespace-nowrap md:text-sm">
         {fmt(convertSpeed(Math.abs(kmh), units), 0)}
         <span className="ml-0.5 text-[10px] font-normal text-muted">{unitLabels(units).speed}</span>
       </div>

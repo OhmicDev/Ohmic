@@ -1,15 +1,33 @@
 import { Link } from '@tanstack/react-router'
-import { Bluetooth, Cable, Loader2, PlayCircle, Power, RefreshCw, TriangleAlert, Wrench, type LucideIcon } from 'lucide-react'
-import { useMemo, type ReactNode } from 'react'
+import {
+  Bluetooth,
+  BluetoothOff,
+  Cable,
+  Check,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Loader2,
+  PlayCircle,
+  Power,
+  RefreshCw,
+  TriangleAlert,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { cx } from '../lib/format'
 import { hwTypeLabel } from '../protocol/commands'
 import { fwVersionString } from '../protocol/messages'
+import { stopLooking, useConnectSheet } from '../state/autoConnect'
+import { demoAllowed } from '../state/demo'
 import { deviceKind, targetKey, targetLabel, type DeviceInfo } from '../state/devices'
 import { useSession } from '../state/session'
 import { useSettings } from '../state/settings'
 import { portName } from '../transport/SerialTransport'
-import { detectSupport, supportMessage } from '../transport/support'
+import { bluetoothHelp, detectSupport, supportMessage, type Help } from '../transport/support'
 import { Badge, Button, PageTitle } from '../ui/Primitives'
+import { ROW_FOCUS } from '../ui/rowStyles'
 import { buttonClass } from '../ui/buttonClass'
 import { ReconnectBanner } from '../ui/ReconnectBanner'
 import { useKnownDevices } from '../ui/useKnownDevices'
@@ -20,34 +38,69 @@ export function ConnectPage() {
   return (
     <>
       <PageTitle
-        title={live ? 'Connection' : 'Connect your controller'}
+        title={live ? 'Connection' : 'Connect'}
         subtitle={
-          live
-            ? 'The device you are connected to and everything else on its CAN bus.'
-            : 'Plug in a USB cable or use Bluetooth. No hardware nearby? Try the demo scooter.'
+          live ? 'The device you are connected to and everything else on its CAN bus.' : 'Bluetooth or a USB cable. Ohmic remembers your device for next time.'
         }
       />
-      {live ? <DeviceDetails /> : <ConnectPanel />}
+      {live ? (
+        <DeviceDetails />
+      ) : (
+        <div className="max-w-xl">
+          <ConnectPanel />
+        </div>
+      )}
     </>
   )
+}
+
+/** True when the browser says Bluetooth is switched off (or missing) on this device. */
+function useBluetoothOff(check: boolean): boolean {
+  const [off, setOff] = useState(false)
+  useEffect(() => {
+    const bt = check && typeof navigator !== 'undefined' && 'bluetooth' in navigator ? navigator.bluetooth : null
+    if (!bt || typeof bt.getAvailability !== 'function') return
+    let live = true
+    const update = () =>
+      void bt.getAvailability().then(
+        (a) => live && setOff(!a),
+        () => {},
+      )
+    update()
+    bt.addEventListener('availabilitychanged', update)
+    return () => {
+      live = false
+      bt.removeEventListener('availabilitychanged', update)
+    }
+  }, [check])
+  return off
 }
 
 export function ConnectPanel() {
   const { status, step, error, connectDemo, connectUsb, connectBluetooth, connectPort, connectBleDevice } = useSession()
   const lastConnection = useSettings((s) => s.lastConnection)
+  const phase = useConnectSheet((s) => s.phase)
+  const lookingFor = useConnectSheet((s) => s.name)
   const support = useMemo(() => detectSupport(), [])
   const usbNote = supportMessage('serial', support)
-  const bleNote = supportMessage('bluetooth', support)
+  const bleHelp = useMemo(() => bluetoothHelp(support, typeof location === 'undefined' ? 'https://localhost/' : location.href), [support])
+  const bleOff = useBluetoothOff(!bleHelp)
   const busy = status === 'connecting'
   const known = useKnownDevices(status === 'idle' || status === 'error')
   const hasKnown = known.ports.length > 0 || known.ble.length > 0
+  const demo = demoAllowed()
+  // A choice made by hand replaces waiting for the last device.
+  const pick = (go: () => Promise<void>) => () => {
+    stopLooking()
+    void go()
+  }
 
   if (status === 'reconnecting') return <ReconnectBanner />
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {error && (
-        <div role="alert" className="card flex items-start gap-3 border-danger/30 bg-danger/5 p-4 text-sm">
+        <div role="alert" className="card flex items-start gap-3 border-danger/30 bg-danger/5 p-3.5 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-danger" />
           <div>
             <div className="font-semibold text-danger">Couldn't connect</div>
@@ -56,150 +109,195 @@ export function ConnectPanel() {
         </div>
       )}
 
-      {hasKnown && !busy && (
-        <section className="card p-4" aria-label="Devices used before">
-          <div className="label">Ready to connect</div>
-          <ul className="mt-1.5 divide-y divide-line">
-            {known.ports.map((p, i) => (
-              <KnownRow key={`usb-${i}`} icon={Cable} name={portName(p)} detail="USB · plugged in" onConnect={() => void connectPort(p)} />
-            ))}
-            {known.ble.map((d) => (
-              <KnownRow
-                key={`ble-${d.id}`}
-                icon={Bluetooth}
-                name={d.name || 'Bluetooth device'}
-                detail="Bluetooth · used before"
-                onConnect={() => void connectBleDevice(d)}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <Option
-          icon={Cable}
-          title="USB cable"
-          body="Direct and fastest. Best for setup, detection and firmware updates."
-          note={usbNote ?? 'Works in this browser.'}
-          noteTone={usbNote ? 'warn' : 'ok'}
-          badge={usbNote ? <Badge>Unavailable</Badge> : undefined}
-          onClick={() => void connectUsb()}
-          disabled={busy || !!usbNote}
-          highlight={!usbNote}
-        />
-        <Option
-          icon={Bluetooth}
-          title="Bluetooth"
-          body="Wireless, through VESC Express or a VESC Bluetooth module. Good for riding."
-          note={bleNote ?? 'Works in this browser.'}
-          noteTone={bleNote ? 'warn' : 'ok'}
-          badge={bleNote ? <Badge>Unavailable</Badge> : undefined}
-          onClick={() => void connectBluetooth()}
-          disabled={busy || !!bleNote}
-          highlight={!bleNote}
-        />
-        <Option
-          icon={PlayCircle}
-          title="Demo scooter"
-          body="A simulated dual-motor scooter on a looping test ride. Nothing real is changed."
-          badge={<Badge tone="accent">Try it</Badge>}
-          onClick={() => void connectDemo()}
-          disabled={busy}
-          highlight={!!usbNote && !!bleNote}
-        />
-      </div>
-
-      {(!usbNote || !bleNote) && !busy && (
-        <p className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-xs text-muted">
-          <span className="text-faint">Device not in the list?</span>
-          {!usbNote && (
-            <button className="focus-ring rounded underline decoration-line-strong underline-offset-2 hover:text-text" onClick={() => void connectUsb({ anyDevice: true })}>
-              Show every USB serial port
-            </button>
-          )}
-          {!bleNote && (
-            <button className="focus-ring rounded underline decoration-line-strong underline-offset-2 hover:text-text" onClick={() => void connectBluetooth({ anyDevice: true })}>
-              Show every Bluetooth device
-            </button>
-          )}
-        </p>
-      )}
-
-      {lastConnection && !hasKnown && !busy && (
-        <p className="px-1 text-xs text-faint">
-          Last time: {lastConnection.name} over {lastConnection.kind === 'serial' ? 'USB' : 'Bluetooth'}.
-        </p>
-      )}
-
-      {busy && (
+      {busy ? (
         <div className="card flex items-center gap-3 p-4 text-sm" aria-live="polite">
           <Loader2 className="size-4 animate-spin text-accent" />
           <span className="text-muted">{step ?? 'Connecting'}…</span>
         </div>
+      ) : phase === 'looking' ? (
+        <div className="card flex items-center gap-3 p-3.5 text-sm" aria-live="polite">
+          <Loader2 className="size-4 shrink-0 animate-spin text-accent" />
+          <span className="min-w-0 flex-1 text-muted">
+            Looking for <span className="font-medium text-text">{lookingFor}</span>. Switch it on nearby.
+          </span>
+          <Button variant="ghost" className="h-8 px-2.5" onClick={stopLooking}>
+            Stop
+          </Button>
+        </div>
+      ) : (
+        phase === 'missing' && (
+          <p className="px-1 text-[13px] text-muted" role="status">
+            {lookingFor} isn’t nearby. Switch it on, then pick it below.
+          </p>
+        )
+      )}
+
+      {hasKnown && !busy && (
+        <Group title="Your devices">
+          {known.ble.map((d) => (
+            <Choice
+              key={`ble-${d.id}`}
+              icon={Bluetooth}
+              tile="bg-[#2f7fd6]"
+              title={d.name || 'Bluetooth device'}
+              detail="Bluetooth · used before"
+              onClick={pick(() => connectBleDevice(d))}
+            />
+          ))}
+          {known.ports.map((port, i) => (
+            <Choice
+              key={`usb-${i}`}
+              icon={Cable}
+              tile="bg-[#27ae60]"
+              title={portName(port)}
+              detail="USB · plugged in"
+              onClick={pick(() => connectPort(port))}
+            />
+          ))}
+        </Group>
+      )}
+
+      <Group title={hasKnown ? 'Find another device' : 'Find your controller'}>
+        <Choice
+          icon={Bluetooth}
+          tile="bg-[#2f7fd6]"
+          title="Bluetooth"
+          detail={bleHelp ? 'Not in this browser' : 'VESC Express or a VESC Bluetooth module'}
+          onClick={pick(() => connectBluetooth())}
+          disabled={busy || !!bleHelp}
+        >
+          {bleHelp && <HelpBox help={bleHelp} />}
+        </Choice>
+        <Choice
+          icon={Cable}
+          tile="bg-[#27ae60]"
+          title="USB cable"
+          detail={usbNote ?? 'Fastest. Best for setup and firmware updates.'}
+          onClick={pick(() => connectUsb())}
+          disabled={busy || !!usbNote}
+        />
+        {demo && (
+          <Choice
+            icon={PlayCircle}
+            tile="bg-[#7f8c8d]"
+            title="Demo scooter"
+            detail="Simulated, for testing"
+            onClick={pick(() => connectDemo())}
+            disabled={busy}
+          />
+        )}
+      </Group>
+
+      {bleOff && !bleHelp && (
+        <p className="flex items-start gap-2 px-1 text-[13px] text-warn" role="status">
+          <BluetoothOff className="mt-0.5 size-4 shrink-0" aria-hidden /> Bluetooth is off on this device. Turn it on, then try again.
+        </p>
+      )}
+
+      {(!usbNote || !bleHelp) && !busy && (
+        <p className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-xs text-muted">
+          <span className="text-faint">Not in the list?</span>
+          {!bleHelp && (
+            <button className="focus-ring rounded text-accent hover:underline" onClick={pick(() => connectBluetooth({ anyDevice: true }))}>
+              Show every Bluetooth device
+            </button>
+          )}
+          {!usbNote && (
+            <button className="focus-ring rounded text-accent hover:underline" onClick={pick(() => connectUsb({ anyDevice: true }))}>
+              Show every USB serial port
+            </button>
+          )}
+        </p>
+      )}
+
+      {lastConnection && !hasKnown && !busy && phase === 'idle' && (
+        <p className="px-1 text-xs text-faint">
+          Last time: {lastConnection.name} over {lastConnection.kind === 'serial' ? 'USB' : 'Bluetooth'}.
+        </p>
       )}
     </div>
   )
 }
 
-function KnownRow({ icon: Icon, name, detail, onConnect }: { icon: LucideIcon; name: string; detail: string; onConnect: () => void }) {
+/** A grouped list, like iOS settings: a small heading over rows in one card. */
+function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <li className="flex items-center gap-3 py-2.5">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-3 text-accent">
-        <Icon className="size-4" strokeWidth={1.8} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{name}</div>
-        <div className="text-xs text-muted">{detail}</div>
-      </div>
-      <Button variant="primary" className="h-9 px-3.5" onClick={onConnect}>
-        Connect
-      </Button>
+    <section aria-label={title}>
+      <h2 className="label mb-1.5 px-1">{title}</h2>
+      <ul className="card divide-y divide-line overflow-hidden">{children}</ul>
+    </section>
+  )
+}
+
+function Choice({
+  icon: Icon,
+  tile,
+  title,
+  detail,
+  onClick,
+  disabled,
+  children,
+}: {
+  icon: LucideIcon
+  /** The icon's coloured square, like macOS settings. */
+  tile: string
+  title: string
+  detail: string
+  onClick: () => void
+  disabled?: boolean
+  children?: ReactNode
+}) {
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={cx(
+          'flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-surface-2 active:bg-surface-3 disabled:cursor-not-allowed disabled:hover:bg-transparent',
+          ROW_FOCUS,
+        )}
+      >
+        <span className={cx('flex size-8 shrink-0 items-center justify-center rounded-lg text-white', tile, disabled && 'opacity-50')}>
+          <Icon className="size-[18px]" strokeWidth={2} aria-hidden />
+        </span>
+        <span className={cx('min-w-0 flex-1', disabled && 'opacity-60')}>
+          <span className="block truncate text-[15px] font-medium">{title}</span>
+          <span className="block text-[12.5px] text-muted">{detail}</span>
+        </span>
+        {!disabled && <ChevronRight className="size-4 shrink-0 text-faint" aria-hidden />}
+      </button>
+      {children}
     </li>
   )
 }
 
-function Option({
-  icon: Icon,
-  title,
-  body,
-  note,
-  noteTone,
-  badge,
-  onClick,
-  disabled,
-  highlight,
-}: {
-  icon: LucideIcon
-  title: string
-  body: string
-  note?: string
-  noteTone?: 'ok' | 'warn'
-  badge?: ReactNode
-  onClick?: () => void
-  disabled?: boolean
-  highlight?: boolean
-}) {
+/** Why something isn't available here, with a way out (another browser, the link to copy). */
+function HelpBox({ help }: { help: Help }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () =>
+    void navigator.clipboard?.writeText(location.href).then(
+      () => setCopied(true),
+      () => {},
+    )
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cx(
-        'card focus-ring group flex flex-col items-start p-5 text-left transition',
-        disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-line-strong',
-        highlight && !disabled && 'border-accent/30 shadow-[0_0_40px_-18px_var(--accent)]',
+    <div className="px-3.5 pb-3 pl-[58px]">
+      <p className="text-[13px] leading-relaxed text-warn">{help.text}</p>
+      {help.actions.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {help.actions.map((a) =>
+            a.href === 'copy' ? (
+              <Button key={a.label} className="h-8 px-3 text-xs" onClick={copy}>
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} {copied ? 'Copied' : a.label}
+              </Button>
+            ) : (
+              <a key={a.label} href={a.href} target="_blank" rel="noreferrer" className={buttonClass('primary', 'h-8 px-3 text-xs')}>
+                <ExternalLink className="size-3.5" /> {a.label}
+              </a>
+            ),
+          )}
+        </div>
       )}
-    >
-      <div className="flex w-full items-center justify-between">
-        <span className={cx('flex size-11 items-center justify-center rounded-xl bg-surface-3', highlight && 'text-accent')}>
-          <Icon className="size-5" strokeWidth={1.8} />
-        </span>
-        {badge}
-      </div>
-      <div className="wide mt-4 text-[15px] font-semibold">{title}</div>
-      <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
-      {note && <p className={cx('mt-3 text-xs', noteTone === 'warn' ? 'text-warn' : 'text-ok')}>{note}</p>}
-    </button>
+    </div>
   )
 }
 
@@ -221,7 +319,7 @@ function DeviceDetails() {
     <div className="space-y-4">
       {status === 'reconnecting' && <ReconnectBanner />}
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="card p-5">
+        <div className="card p-4 md:p-5">
           <div className="flex items-center justify-between">
             <div className="label">Connected to</div>
             {transportKind === 'mock' && <Badge tone="accent">Simulated</Badge>}
@@ -255,7 +353,7 @@ function DeviceDetails() {
           </div>
         </div>
 
-        <div className="card p-5">
+        <div className="card p-4 md:p-5">
           <div className="flex items-center justify-between">
             <div className="label">On the CAN bus</div>
             <Button variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => void rescanCan()} disabled={scanning || status !== 'connected'}>

@@ -7,7 +7,7 @@ import { cx } from '../../lib/format'
 import { useRideModes } from '../../state/rideModes'
 import { useSession } from '../../state/session'
 import { useSettings } from '../../state/settings'
-import { Button, PageTitle } from '../../ui/Primitives'
+import { BackLink, Button, PageTitle } from '../../ui/Primitives'
 import { useNow } from '../../ui/useNow'
 import { AiPrivacy } from './AiPrivacy'
 import { ChangeCard } from './ChangeCard'
@@ -41,6 +41,7 @@ export function TunePage() {
 
   return (
     <>
+      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="AI Tune"
         subtitle="Tell it what you want from your ride. It reads your setup and suggests changes you review."

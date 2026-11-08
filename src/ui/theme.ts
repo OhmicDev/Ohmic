@@ -11,7 +11,7 @@ export type Theme = 'dark' | 'light'
 /** How much of the accent the light theme keeps: 4.5:1 or better on every light surface for all accents. */
 export const LIGHT_ACCENT_KEEP = 0.55
 
-const BG: Record<Theme, string> = { dark: '#05070a', light: '#f4f6f8' }
+const BG: Record<Theme, string> = { dark: '#191919', light: '#f5f5f7' }
 
 const query = () => (typeof window === 'undefined' ? null : window.matchMedia?.('(prefers-color-scheme: light)'))
 

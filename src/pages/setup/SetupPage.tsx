@@ -1,15 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import {
-  Archive,
-  BatteryCharging,
-  Check,
-  ChevronRight,
-  Layers,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  type LucideIcon,
-} from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import { cx } from '../../lib/format'
 import { nextStep, SETUP_ORDER, useStepsDone, useVehicleKey } from '../../state/setupProgress'
 import { useSession } from '../../state/session'
@@ -17,20 +7,6 @@ import { PageTitle } from '../../ui/Primitives'
 import { buttonClass } from '../../ui/buttonClass'
 import { StepState } from './SetupSteps'
 import { STEPS } from './steps'
-
-type HubRoute = '/modes' | '/regen' | '/abs' | '/tune' | '/config' | '/config/backups'
-
-const RIDING: { to: HubRoute; icon: LucideIcon; title: string; hint: string }[] = [
-  { to: '/modes', icon: Layers, title: 'Ride modes', hint: 'Eco, Normal, Sport and your own; single or dual motor.' },
-  { to: '/regen', icon: BatteryCharging, title: 'Regen', hint: 'Slows you down when you let go of the throttle.' },
-  { to: '/abs', icon: ShieldCheck, title: 'ABS', hint: 'Eases motor braking when a wheel starts to skid.' },
-  { to: '/tune', icon: Sparkles, title: 'AI Tune', hint: 'Say what you want more of; get changes to review.' },
-]
-
-const EXPERT: { to: HubRoute; icon: LucideIcon; title: string; hint: string }[] = [
-  { to: '/config', icon: SlidersHorizontal, title: 'Config', hint: 'Every motor and app setting, searchable, with help.' },
-  { to: '/config/backups', icon: Archive, title: 'Backups', hint: 'Saved before every write. Compare, restore, export.' },
-]
 
 export function SetupPage() {
   const status = useSession((s) => s.status)
@@ -44,12 +20,12 @@ export function SetupPage() {
     <>
       <PageTitle
         title="Setup"
-        subtitle="Get a new build riding, then shape how it rides. Every change is shown before it’s written, and backed up first."
+        subtitle="Get a new build riding, one step at a time. Every change is shown before it’s written, and backed up first."
       />
 
       {!connected && (
         <div className="card mb-4 flex flex-wrap items-center gap-3 p-4 text-sm">
-          <span className="min-w-[200px] flex-1 text-muted">Connect a controller, or the demo scooter, to run these.</span>
+          <span className="min-w-[200px] flex-1 text-muted">Connect a controller to run these.</span>
           <Link to="/connect" className={buttonClass('primary', 'h-9')}>
             Connect
           </Link>
@@ -123,34 +99,13 @@ export function SetupPage() {
         )}
       </section>
 
-      <h2 className="label mt-6 mb-2">How it rides</h2>
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        {RIDING.map((w) => (
-          <HubCard key={w.to} {...w} />
-        ))}
-      </div>
-
-      <h2 className="label mt-6 mb-2">Every setting</h2>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {EXPERT.map((w) => (
-          <HubCard key={w.to} {...w} />
-        ))}
-      </div>
+      <p className="mt-4 px-1 text-[13px] text-muted">
+        Ride modes, regen, ABS and every setting are in{' '}
+        <Link to="/tune" className="font-medium text-accent hover:underline">
+          Tune
+        </Link>
+        .
+      </p>
     </>
-  )
-}
-
-function HubCard({ to, icon: Icon, title, hint }: { to: HubRoute; icon: LucideIcon; title: string; hint: string }) {
-  return (
-    <Link to={to} className="card focus-ring flex items-center gap-3 p-4 transition-colors hover:border-line-strong">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-        <Icon className="size-[18px]" strokeWidth={1.9} aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="block text-xs text-muted">{hint}</span>
-      </span>
-      <ChevronRight className="size-4 shrink-0 text-faint" aria-hidden />
-    </Link>
   )
 }

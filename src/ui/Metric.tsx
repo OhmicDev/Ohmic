@@ -35,18 +35,20 @@ export function Metric({
   tone?: Tone
 }) {
   return (
-    <div className="card relative overflow-hidden p-4 pb-3">
+    <div className="card relative flex flex-col overflow-hidden p-3.5 pb-0 md:p-4 md:pb-0">
       <div className="label flex items-center gap-2">
         {tone !== 'normal' && <span className={cx('size-1.5 rounded-full', tone === 'warn' ? 'bg-warn' : 'bg-danger')} />}
         {label}
       </div>
       <div className={cx('mt-2 flex items-baseline gap-1.5', toneText[tone])}>
-        <TweenNumber value={value} digits={digits} className="num glow text-[34px] leading-none font-semibold tracking-tight sm:text-[38px]" />
+        <TweenNumber value={value} digits={digits} className="num text-[28px] leading-none font-semibold tracking-tight sm:text-[34px] lg:text-[38px]" />
         {unit && <span className="text-sm font-medium text-muted">{unit}</span>}
       </div>
-      <div className="num text-halo relative z-[1] mt-1.5 min-h-4 text-xs text-muted">{hint}</div>
-      {spark && (
-        <Sparkline k={spark} color={toneColor[tone]} className="pointer-events-none absolute inset-x-0 bottom-0 h-10 w-full opacity-80" />
+      <div className="num mt-1.5 min-h-4 truncate text-xs text-muted">{hint}</div>
+      {spark ? (
+        <Sparkline k={spark} color={toneColor[tone]} className="pointer-events-none -mx-3.5 mt-1 h-7 w-[calc(100%+28px)] opacity-80 md:-mx-4 md:h-8 md:w-[calc(100%+32px)]" />
+      ) : (
+        <div className="h-3 md:h-4" />
       )}
     </div>
   )

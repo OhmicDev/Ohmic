@@ -7,14 +7,12 @@ import { ACCENTS, useSettings, type PollHz, type ThemePref } from '../../state/s
 import type { BleChunkSize } from '../../transport/BleTransport'
 import { BackLink, Button, PageTitle, Segmented } from '../../ui/Primitives'
 import { Toggle } from '../../ui/Toggle'
-import { AiPrivacy } from '../tune/AiPrivacy'
 import { DataPanel, DeveloperPanel } from './DataSection'
 
 const JUMPS = [
   ['look', 'Look'],
   ['connection', 'Connection'],
   ['vehicle', 'Vehicle'],
-  ['ai', 'AI Tune'],
   ['language', 'settings.language'],
   ['data', 'settings.data'],
   ['developer', 'settings.developer'],
@@ -27,7 +25,7 @@ export function SettingsPage() {
   return (
     <>
       <BackLink to="/more">More</BackLink>
-      <PageTitle title="Settings" subtitle="How the app looks and connects, your vehicle, AI Tune privacy, and your data." />
+      <PageTitle title="Settings" subtitle="How the app looks and connects, your vehicle, and your data." />
       <nav aria-label="Settings sections" className="-mt-1 mb-4 flex flex-wrap gap-1.5">
         {JUMPS.map(([id, label]) => (
           <a
@@ -112,6 +110,12 @@ export function SettingsPage() {
               ]}
             />
           </Row>
+          <Row
+            label="Connect when the app opens"
+            hint="Shows the Connect sheet and reconnects your last device when it’s nearby, like VESC Tool."
+          >
+            <Toggle checked={s.autoConnect} onChange={s.setAutoConnect} label="Connect when the app opens" />
+          </Row>
           <Row label="Reconnect automatically" hint="If the cable or Bluetooth link drops, keep trying for a few minutes.">
             <Toggle checked={s.autoReconnect} onChange={s.setAutoReconnect} label="Reconnect automatically" />
           </Row>
@@ -160,10 +164,6 @@ export function SettingsPage() {
               ]}
             />
           </Row>
-        </Section>
-
-        <Section title="AI Tune" id="ai">
-          <AiPrivacy />
         </Section>
 
         <Section title={t('settings.language')} id="language">

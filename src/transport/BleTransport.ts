@@ -8,6 +8,13 @@ export const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
 export const NUS_RX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e' // we write
 export const NUS_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e' // we get notifications
 
+/**
+ * Phones often fail the first GATT connection or service lookup with a passing error
+ * ("GATT operation failed for unknown reason"); a moment later it works. Tries this many times.
+ */
+export const CONNECT_ATTEMPTS = 3
+const RETRY_MS = 250
+
 /** Write sizes offered in settings. 20 bytes fits every BLE link; VESC Express negotiates a larger MTU. */
 export const BLE_CHUNK_SIZES = [20, 128] as const
 export type BleChunkSize = (typeof BLE_CHUNK_SIZES)[number]
@@ -82,6 +89,18 @@ export class BleTransport implements Transport {
 
   async connect() {
     if (this.connected) return
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.connectOnce()
+        return
+      } catch (e) {
+        if (attempt >= CONNECT_ATTEMPTS || !isPassing(e)) throw e
+        await new Promise((r) => setTimeout(r, RETRY_MS * attempt))
+      }
+    }
+  }
+
+  private async connectOnce() {
     this.closing = false
     const gatt = this.device.gatt
     if (!gatt) throw new ConnectError("This device doesn't offer Bluetooth LE services.")
@@ -92,7 +111,9 @@ export class BleTransport implements Transport {
       let service: BluetoothRemoteGATTService
       try {
         service = await server.getPrimaryService(NUS_SERVICE)
-      } catch {
+      } catch (e) {
+        // Only a definite "not there" means it's the wrong device; anything else may pass.
+        if (!(e instanceof Error) || e.name !== 'NotFoundError') throw e
         throw new ConnectError(
           `${this.label} doesn't have the VESC UART service. Pick a VESC Express or a VESC Bluetooth module.`,
         )
@@ -179,6 +200,11 @@ export class BleTransport implements Transport {
     if (this.closing || !wasConnected) return
     this.lost.emit('Bluetooth connection lost')
   }
+}
+
+/** Errors worth another try: the radio or the phone's Bluetooth stack, not the device or the user. */
+function isPassing(e: unknown): boolean {
+  return e instanceof Error && (e.name === 'NetworkError' || e.name === 'OperationError' || e.name === 'UnknownError')
 }
 
 function clampChunk(n: number) {

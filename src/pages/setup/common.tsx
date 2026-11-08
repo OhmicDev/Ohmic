@@ -21,7 +21,7 @@ export function NotReady({ title, what, list }: { title: string; what: string; l
       <p className="card flex flex-wrap items-center gap-2 p-5 text-sm text-muted">
         {!connected || !list.length ? (
           <>
-            <span className="min-w-[200px] flex-1">Connect to a motor controller, or the demo scooter, to {what}.</span>
+            <span className="min-w-[200px] flex-1">Connect to a motor controller to {what}.</span>
             {!connected && (
               <Link to="/connect" className={buttonClass('primary', 'h-9')}>
                 Connect

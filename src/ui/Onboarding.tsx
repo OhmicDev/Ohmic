@@ -1,8 +1,6 @@
-import { useNavigate } from '@tanstack/react-router'
-import { Bluetooth, Gauge, Hand, ShieldCheck, Usb, Wind, Wrench } from 'lucide-react'
+import { Bluetooth, Hand, ShieldCheck, Smartphone, Usb, Wind, Wrench } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useT } from '../i18n'
-import { useSession } from '../state/session'
 import { useSettings } from '../state/settings'
 import { Dialog } from './Dialog'
 import { Logo } from './Logo'
@@ -16,15 +14,9 @@ export function Onboarding() {
   const setOnboarded = useSettings((s) => s.setOnboarded)
   const [step, setStep] = useState(1)
   const t = useT()
-  const navigate = useNavigate()
   const done = () => {
     setOnboarded(true)
     setStep(1)
-  }
-  const demo = () => {
-    done()
-    void navigate({ to: '/connect' })
-    void useSession.getState().connectDemo()
   }
 
   return (
@@ -50,7 +42,6 @@ export function Onboarding() {
               {t('intro.back')}
             </Button>
           )}
-          {step === 2 && <Button onClick={demo}>{t('intro.demo')}</Button>}
           {step < STEPS ? (
             <Button variant="primary" onClick={() => setStep(step + 1)}>
               {t('intro.next')}
@@ -74,7 +65,7 @@ export function Onboarding() {
           <ul className="space-y-3">
             <Item icon={<Usb className="size-4" />}>{t('intro.2.usb')}</Item>
             <Item icon={<Bluetooth className="size-4" />}>{t('intro.2.ble')}</Item>
-            <Item icon={<Gauge className="size-4" />}>{t('intro.2.demo')}</Item>
+            <Item icon={<Smartphone className="size-4" />}>{t('intro.2.phone')}</Item>
             <Item icon={<Wrench className="size-4" />}>{t('intro.2.setup')}</Item>
           </ul>
         )}

@@ -121,7 +121,7 @@ export function ConfigPage() {
     const busy = status === 'connecting' || (status === 'connected' && order.length === 0)
     return (
       <>
-        <BackLink to="/setup">Setup</BackLink>
+        <BackLink to="/tune">Tune</BackLink>
         <PageTitle title="Config" subtitle="Every motor and app setting, searchable, with plain-language help." actions={backupsLink} />
         {status === 'reconnecting' && <ReconnectBanner />}
         <EmptyState
@@ -142,7 +142,7 @@ export function ConfigPage() {
           ) : status === 'connected' ? (
             'This device has no motor controller to configure. If one is on the CAN bus, rescan from the Connect page.'
           ) : (
-            'Connect to a controller, or try the demo, to see and change its settings. Changes are reviewed and backed up before anything is written.'
+            'Connect to a controller to see and change its settings. Changes are reviewed and backed up before anything is written.'
           )}
         </EmptyState>
       </>
@@ -271,7 +271,7 @@ function Editor({
 
   return (
     <>
-      <BackLink to="/setup">Setup</BackLink>
+      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="Config"
         subtitle={
@@ -300,12 +300,12 @@ function Editor({
         {/* Which controller and which settings */}
         <div className="flex flex-wrap items-center gap-2">
           {keys.length > 1 && (
-            <label className="relative inline-flex">
+            <label className="relative inline-flex min-w-0 max-sm:flex-1">
               <span className="sr-only">Controller</span>
               <select
                 value={dev.key}
                 onChange={(e) => ui.set({ deviceKey: e.target.value })}
-                className="focus-ring h-10 cursor-pointer appearance-none rounded-xl border border-line bg-surface-2 pr-9 pl-3 text-sm font-medium"
+                className="focus-ring h-9 w-full cursor-pointer appearance-none truncate rounded-lg border border-line bg-surface-2 pr-9 pl-3 text-[13px] font-medium md:h-10 md:text-sm"
               >
                 {keys.map((kk) => {
                   const d = devices[kk]
@@ -337,7 +337,9 @@ function Editor({
             title="Read the settings from the controller again. Your edits are kept."
           >
             <RefreshCw className={cx('size-4', k.status === 'loading' && 'animate-spin')} />
-            {k.readAt ? `Read ${new Date(k.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Read'}
+            <span className="max-sm:sr-only">
+              {k.readAt ? `Read ${new Date(k.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Read'}
+            </span>
           </Button>
         </div>
 
@@ -362,7 +364,7 @@ function Editor({
           <>
             {/* Search and filters */}
             <div className="flex flex-wrap items-center gap-2">
-              <label className="relative min-w-0 flex-1 basis-64">
+              <label className="relative min-w-0 flex-1 basis-full sm:basis-64">
                 <span className="sr-only">Search settings</span>
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
                 <input
@@ -372,7 +374,7 @@ function Editor({
                   value={ui.query}
                   onChange={(e) => ui.set({ query: e.target.value })}
                   placeholder={`Search ${defs.order.length} settings by name or description`}
-                  className="focus-ring h-10 w-full rounded-xl border border-line bg-surface-2 pr-9 pl-9 text-sm placeholder:text-faint"
+                  className="focus-ring h-10 w-full rounded-lg border border-line bg-surface-2 pr-9 pl-9 text-sm placeholder:text-faint"
                 />
                 {ui.query && (
                   <button
@@ -384,11 +386,11 @@ function Editor({
                   </button>
                 )}
               </label>
-              <label className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 text-sm">
+              <label className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-sm">
                 <Toggle checked={ui.changedOnly} onChange={(v) => ui.set({ changedOnly: v })} label="Show changed only" />
                 Changed only
               </label>
-              <label className="relative inline-flex">
+              <label className="relative inline-flex min-w-0 flex-1 sm:flex-none">
                 <span className="sr-only">Compare with</span>
                 <select
                   value={ui.compare === 'none' ? 'none' : ui.compare === 'defaults' ? 'defaults' : String(ui.compare.backupId)}
@@ -397,7 +399,7 @@ function Editor({
                     const compare: CompareWith = v === 'none' ? 'none' : v === 'defaults' ? 'defaults' : { backupId: Number(v) }
                     ui.set({ compare, differsOnly: compare === 'none' ? false : ui.differsOnly })
                   }}
-                  className="focus-ring h-10 max-w-56 cursor-pointer appearance-none truncate rounded-xl border border-line bg-surface-2 pr-9 pl-3 text-sm"
+                  className="focus-ring h-10 w-full cursor-pointer appearance-none truncate rounded-lg border border-line bg-surface-2 pr-9 pl-3 text-sm sm:max-w-56"
                 >
                   <option value="none">Compare: off</option>
                   <option value="defaults">Compare with defaults</option>
@@ -410,7 +412,7 @@ function Editor({
                 <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" />
               </label>
               {compareValues && (
-                <label className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 text-sm">
+                <label className="flex h-10 items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-sm">
                   <Toggle checked={ui.differsOnly} onChange={(v) => ui.set({ differsOnly: v })} label="Show only differences" />
                   Differences only
                 </label>
@@ -455,7 +457,7 @@ function Editor({
                     <select
                       value={section?.id}
                       onChange={(e) => ui.set({ section: e.target.value })}
-                      className="focus-ring h-11 w-full cursor-pointer appearance-none rounded-xl border border-line bg-surface-2 pr-9 pl-3 text-sm font-medium"
+                      className="focus-ring h-11 w-full cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pr-9 pl-3 text-sm font-medium"
                     >
                       {defs.groups.map((g) => (
                         <optgroup key={g.name} label={g.name}>
@@ -507,10 +509,10 @@ function Editor({
             </div>
 
             {/* Always-visible actions */}
-            <div className="sticky bottom-[84px] z-10 md:bottom-4">
+            <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-10 md:bottom-4">
               <div
                 className={cx(
-                  'card flex flex-wrap items-center gap-2 border-line-strong p-2 shadow-[0_12px_40px_-12px_rgb(0_0_0/0.8)] backdrop-blur-md',
+                  'glass flex flex-nowrap items-center gap-1.5 rounded-[var(--radius-card)] border border-line-strong p-1.5 shadow-[0_12px_40px_-12px_rgb(0_0_0/0.6)] md:gap-2 md:p-2',
                   pending > 0 && 'border-accent/40',
                 )}
               >
@@ -536,10 +538,19 @@ function Editor({
                       <span className="max-md:hidden"> change{pending === 1 ? '' : 's'} · only in this app until you write</span>
                     </>
                   ) : (
-                    'No unsaved changes'
+                    <>
+                      No <span className="max-sm:hidden">unsaved </span>changes
+                    </>
                   )}
                 </span>
-                <Button variant="ghost" disabled={!pending || readOnly} onClick={() => cfg().discard(dev.key, kind)} title="Throw away all edits (undo can bring them back)">
+                <Button
+                  variant="ghost"
+                  className="max-sm:w-10 max-sm:px-0"
+                  aria-label="Discard"
+                  disabled={!pending || readOnly}
+                  onClick={() => cfg().discard(dev.key, kind)}
+                  title="Throw away all edits (undo can bring them back)"
+                >
                   <Eraser className="size-4" /> <span className="max-sm:hidden">Discard</span>
                 </Button>
                 <Button variant="primary" disabled={!pending || readOnly} onClick={() => setWriting(true)}>
