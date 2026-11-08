@@ -1,0 +1,58 @@
+import { Link } from '@tanstack/react-router'
+import { Loader2, Plug } from 'lucide-react'
+import { cx, fmt } from '../lib/format'
+import { useSession } from '../state/session'
+import { useTelemetry } from '../state/telemetry'
+
+export function ConnectionChip() {
+  const status = useSession((s) => s.status)
+  const step = useSession((s) => s.step)
+  const fw = useSession((s) => s.fw)
+  const kind = useSession((s) => s.transportKind)
+  const link = useSession((s) => s.link)
+  const vIn = useTelemetry((s) => s.dash?.vIn)
+  const soc = useTelemetry((s) => s.dash?.soc)
+
+  const base =
+    'focus-ring inline-flex h-9 items-center gap-2.5 rounded-full border border-line bg-surface-2/80 pl-3 pr-3.5 text-[13px] transition-colors hover:border-line-strong'
+
+  if (status === 'connecting') {
+    return (
+      <Link to="/connect" className={base}>
+        <Loader2 className="size-3.5 animate-spin text-accent" />
+        <span className="max-w-[11rem] truncate text-muted">{step ?? 'Connecting'}…</span>
+      </Link>
+    )
+  }
+
+  if (status === 'reconnecting') {
+    return (
+      <Link to="/connect" className={cx(base, 'border-warn/40')} title="Trying to reconnect">
+        <Loader2 className="size-3.5 animate-spin text-warn" />
+        <span className="text-warn">Reconnecting…</span>
+      </Link>
+    )
+  }
+
+  if (status !== 'connected') {
+    return (
+      <Link to="/connect" className={cx(base, status === 'error' && 'border-danger/40')}>
+        {status === 'error' ? <span className="size-2 rounded-full bg-danger" /> : <Plug className="size-3.5 text-muted" />}
+        <span className={status === 'error' ? 'text-danger' : 'text-muted'}>{status === 'error' ? 'Disconnected' : 'Connect'}</span>
+      </Link>
+    )
+  }
+
+  const dot = link === 'ok' ? 'bg-ok' : link === 'slow' ? 'bg-warn' : 'bg-danger'
+  return (
+    <Link to="/connect" className={base} title="Connection details">
+      <span className={cx('live-dot size-2 rounded-full', dot)} style={{ ['--pulse-color' as string]: `var(--color-${link === 'ok' ? 'ok' : link === 'slow' ? 'warn' : 'danger'})` }} />
+      <span className="max-w-[9rem] truncate font-medium">{kind === 'mock' ? 'Demo' : fw?.hwName}</span>
+      {vIn !== undefined && (
+        <span className="num hidden text-muted min-[380px]:inline">
+          {fmt(vIn, 1)} V · {fmt(soc, 0)} %
+        </span>
+      )}
+    </Link>
+  )
+}

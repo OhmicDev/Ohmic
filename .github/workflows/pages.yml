@@ -1,0 +1,66 @@
+# Publishes the app to GitHub Pages on every push to main.
+# One-time setup: in the repository, Settings › Pages › Build and deployment › Source: GitHub Actions.
+#
+# GitHub Pages only serves files, so AI Tune runs its scripted demo and the online package list is
+# unavailable there. Everything that talks to a controller works.
+
+name: Publish to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One publish at a time; a newer push waits rather than cancelling one halfway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Tells the build where the site lives: /repo-name/, or / for a custom domain or a
+      # username.github.io repository.
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+
+      # GitHub Pages has no fallback for app routes: a direct link to /setup would get its
+      # "not found" page. Serving the app as that page lets the app open the right screen.
+      - name: Direct links
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

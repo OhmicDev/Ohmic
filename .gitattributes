@@ -1,0 +1,3 @@
+# Keep LF line endings everywhere (the formatter and the CI build expect them).
+* text=auto eol=lf
+*.png binary

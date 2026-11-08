@@ -1,0 +1,340 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* Design tokens. The accent is set at runtime from the user's choice. */
+@theme {
+  --color-bg: #05070a;
+  --color-surface: #0a0e13;
+  --color-surface-2: #0f141b;
+  --color-surface-3: #161d26;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.13);
+  --color-text: #eef2f6;
+  --color-muted: #8b96a4;
+  --color-faint: #7a8593;
+  --color-ok: #3ddc97;
+  --color-warn: #ffb547;
+  --color-danger: #ff4d5e;
+  --color-regen: #3ddc97;
+
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+
+  --radius-card: 1.125rem;
+}
+
+@theme inline {
+  --color-accent: var(--accent);
+}
+
+:root {
+  --accent: #3ee6ff;
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+  --dot: rgb(255 255 255 / 0.055);
+  --sheen-top: rgb(255 255 255 / 0.028);
+  --sheen-bottom: rgb(255 255 255 / 0.008);
+  --card-shadow: none;
+  --chart-axis: #8b96a4;
+  --chart-grid: rgb(255 255 255 / 0.055);
+  --chart-tick: rgb(255 255 255 / 0.08);
+  --chart-cursor: rgb(255 255 255 / 0.28);
+  --chart-cursor-soft: rgb(255 255 255 / 0.12);
+  --chart-marker: rgb(255 255 255 / 0.22);
+}
+
+/* Light theme: the same tokens with light values (set by data-theme on <html>).
+   Every text colour here is 4.5:1 or better on every surface. The user's accent
+   is darkened for it in AppShell. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f3f5f8;
+  --color-surface-3: #e8ecf1;
+  --color-line: rgb(16 24 40 / 0.09);
+  --color-line-strong: rgb(16 24 40 / 0.17);
+  --color-text: #0e1621;
+  --color-muted: #4b5664;
+  --color-faint: #5f6a78;
+  --color-ok: #087350;
+  --color-warn: #9a5800;
+  --color-danger: #c4213a;
+  --color-regen: #087350;
+  --dot: rgb(16 24 40 / 0.07);
+  --sheen-top: transparent;
+  --sheen-bottom: transparent;
+  --card-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
+  --chart-axis: #4b5664;
+  --chart-grid: rgb(16 24 40 / 0.07);
+  --chart-tick: rgb(16 24 40 / 0.12);
+  --chart-cursor: rgb(16 24 40 / 0.35);
+  --chart-cursor-soft: rgb(16 24 40 / 0.15);
+  --chart-marker: rgb(16 24 40 / 0.25);
+  --code-bg: #f6f8fa;
+  --syn-comment: #57606a;
+  --syn-string: #116329;
+  --syn-number: #953800;
+  --syn-keyword: #8250df;
+  --syn-builtin: #0550ae;
+  --syn-constant: #cf222e;
+  --syn-paren-0: #57606a;
+  --syn-paren-1: #9a6700;
+  --syn-paren-2: #0550ae;
+  --syn-paren-3: #bf3989;
+}
+:root[data-theme='light'] .glow,
+:root[data-theme='light'] .glow-strong {
+  text-shadow: none;
+}
+:root[data-theme='light'] .map-tiles-dark {
+  filter: none;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Faint dot grid for large empty areas, fading out toward the bottom. */
+.bg-dots {
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+@utility label {
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-stretch: 115%;
+  color: var(--color-muted);
+}
+
+@utility wide {
+  font-stretch: 118%;
+}
+
+@utility glow {
+  text-shadow:
+    0 0 1px color-mix(in oklab, currentColor 60%, transparent),
+    0 0 22px color-mix(in oklab, currentColor 28%, transparent);
+}
+
+@utility glow-strong {
+  text-shadow:
+    0 0 2px color-mix(in oklab, currentColor 70%, transparent),
+    0 0 40px color-mix(in oklab, currentColor 30%, transparent),
+    0 0 90px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+/* Small text drawn over a chart: a halo in the card colour keeps the line behind it from cutting through. */
+@utility text-halo {
+  text-shadow:
+    0 0 2px var(--color-surface),
+    0 0 3px var(--color-surface),
+    0 0 5px var(--color-surface),
+    0 0 8px var(--color-surface);
+}
+
+@utility card {
+  background:
+    linear-gradient(180deg, var(--sheen-top), var(--sheen-bottom)),
+    var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+}
+
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--color-bg),
+      0 0 0 4px var(--accent);
+  }
+}
+
+/* A ring that grows and fades around a status dot. Only transform and opacity change, so the
+   compositor runs it without repainting the page each frame. */
+@keyframes live-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.75);
+    opacity: 0;
+  }
+}
+
+.live-dot {
+  position: relative;
+}
+
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--pulse-color, var(--accent));
+  pointer-events: none;
+  animation: live-pulse 1.8s ease-out infinite;
+}
+
+/* Less motion when the device asks for it: no pulsing, spinning or sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot::after,
+  .animate-spin,
+  .animate-pulse {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide number input spinners; we draw our own steppers. */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Live charts (uPlot): crosshair and zoom selection. */
+.live-chart .u-cursor-x {
+  border-right: 1px solid var(--chart-cursor);
+}
+.live-chart .u-cursor-y {
+  border-bottom: 1px dashed var(--chart-cursor-soft);
+}
+.live-chart .u-select {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border-inline: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.live-chart .u-cursor-pt {
+  border-color: var(--color-bg) !important;
+}
+
+/* Ride maps (Leaflet): OpenStreetMap tiles darkened to sit on the instrument panel. */
+.leaflet-container {
+  background: var(--color-surface-2);
+  font: inherit;
+}
+.map-tiles-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.92) saturate(0.35);
+}
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--color-bg) 75%, transparent) !important;
+  color: var(--color-muted) !important;
+  font-size: 10px;
+}
+.leaflet-control-attribution a {
+  color: var(--color-text) !important;
+}
+.leaflet-bar a {
+  background: var(--color-surface-3) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-line-strong) !important;
+}
+.leaflet-tooltip {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  border: 1px solid var(--color-line-strong);
+  box-shadow: none;
+}
+
+/* Ride scrubber */
+.scrubber {
+  accent-color: var(--accent);
+}
+
+/* Code editor and consoles (LispBM, terminal). Light values are with the light theme above. */
+:root {
+  --code-bg: #06090d;
+  --syn-comment: #5f6b79;
+  --syn-string: #a6e3a1;
+  --syn-number: #fab387;
+  --syn-keyword: #cba6f7;
+  --syn-builtin: #89dceb;
+  --syn-constant: #f38ba8;
+  --syn-paren-0: #9aa5b1;
+  --syn-paren-1: #f9e2af;
+  --syn-paren-2: #89b4fa;
+  --syn-paren-3: #f5c2e7;
+}
+.code-surface {
+  background: var(--code-bg);
+}
+.syn-comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+.syn-string {
+  color: var(--syn-string);
+}
+.syn-number {
+  color: var(--syn-number);
+}
+.syn-keyword {
+  color: var(--syn-keyword);
+}
+.syn-builtin {
+  color: var(--syn-builtin);
+}
+.syn-constant {
+  color: var(--syn-constant);
+}
+.syn-paren-0 {
+  color: var(--syn-paren-0);
+}
+.syn-paren-1 {
+  color: var(--syn-paren-1);
+}
+.syn-paren-2 {
+  color: var(--syn-paren-2);
+}
+.syn-paren-3 {
+  color: var(--syn-paren-3);
+}
+
+/* Skip link: hidden until focused from the keyboard. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  font-weight: 600;
+}
+.skip-link:focus {
+  top: 12px;
+}
