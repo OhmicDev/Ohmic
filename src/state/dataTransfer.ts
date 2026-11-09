@@ -2,30 +2,30 @@
 // settings, as one JSON file. Binary data (config bytes, ride columns) is stored
 // as base64 with its array type. Importing merges: nothing already here is
 // deleted, records with the same key are replaced by the file's copy, and
-// numbered records (backups, AI history) are added unless an identical one exists.
+// numbered records (backups) are added unless an identical one exists. Tables and
+// settings this version doesn't have, as in files from older versions, are ignored.
 
 import { db } from './db'
 import { useSettings } from './settings'
 
-export const EXPORT_FORMAT = 'ohmic-data'
-export const EXPORT_VERSION = 1
+const EXPORT_FORMAT = 'ohmic-data'
+const EXPORT_VERSION = 1
 
 /** Tables keyed by their own id: the file's copy replaces one with the same key. */
-const KEYED = ['faults', 'rideModes', 'tunes', 'rides', 'rideChunks', 'aiProfile', 'drafts'] as const
+const KEYED = ['faults', 'rideModes', 'tunes', 'rides', 'rideChunks', 'drafts'] as const
 /** Auto-numbered tables: added unless the same record (by these fields) is already here. */
 const NUMBERED = {
   backups: ['createdAt', 'deviceUuid', 'kind', 'title'],
-  aiLog: ['at', 'proposalId', 'event'],
   packageBackups: ['createdAt', 'deviceUuid', 'signature'],
 } as const
 
 type TableName = (typeof KEYED)[number] | keyof typeof NUMBERED
 const TABLES: TableName[] = [...KEYED, ...(Object.keys(NUMBERED) as (keyof typeof NUMBERED)[])]
 
-/** Settings left out of the file: the AI access code is a secret, and per-device memory doesn't travel. */
+/** Per-device memory, left out of the file: it doesn't travel. */
 const SETTINGS_SKIPPED = ['lastConnection', 'deviceViews', 'absArmed', 'regenArmed', 'singleMotorKey'] as const
 
-export interface ExportFile {
+interface ExportFile {
   format: typeof EXPORT_FORMAT
   version: number
   app: string
@@ -93,7 +93,6 @@ function exportableSettings(): Record<string, unknown> {
     if (typeof v === 'function' || (SETTINGS_SKIPPED as readonly string[]).includes(k)) continue
     out[k] = v
   }
-  if (out.ai && typeof out.ai === 'object') out.ai = { ...(out.ai as object), accessCode: '' }
   return out
 }
 
@@ -181,8 +180,6 @@ export async function importAll(plan: ImportPlan, { settings = true } = {}): Pro
     const cur = useSettings.getState()
     const incoming = { ...plan.file.settings } as Record<string, unknown>
     for (const k of SETTINGS_SKIPPED) delete incoming[k]
-    // Keep this device's AI access code; the file never has one.
-    if (incoming.ai && typeof incoming.ai === 'object') incoming.ai = { ...(incoming.ai as object), accessCode: cur.ai.accessCode }
     for (const k of Object.keys(incoming)) if (!(k in cur) || typeof (cur as unknown as Record<string, unknown>)[k] === 'function') delete incoming[k]
     useSettings.setState(incoming as Partial<typeof cur>)
   }

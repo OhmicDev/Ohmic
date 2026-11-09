@@ -2,6 +2,7 @@ import { AlertTriangle, Check, FileUp } from 'lucide-react'
 import { sameOnWire } from '../../config/codec'
 import type { ConfigDefs, ConfigValues } from '../../config/types'
 import type { ImportResult } from '../../config/xmlFile'
+import { plural } from '../../lib/format'
 import { Dialog } from '../../ui/Dialog'
 import { Button } from '../../ui/Primitives'
 import { describeValue } from './describe'
@@ -11,8 +12,6 @@ export interface PendingImport {
   result: ImportResult | null
   error: string | null
 }
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /** Shows what a VESC Tool file would change before it goes into the edits. */
 export function ImportDialog({

@@ -3,14 +3,15 @@
 
 import type { ImuData } from '../protocol/imu'
 import type { Values } from '../protocol/messages'
-import { motorRpm, speedKmh, type Units, type VehicleSetup } from '../lib/vehicle'
+import { fmt } from '../lib/format'
+import { convertSpeed, convertTemp, motorRpm, speedKmh, unitLabels, type Units, type VehicleSetup } from '../lib/vehicle'
 
-export type SignalGroup = 'Currents' | 'Power' | 'Duty & speed' | 'Voltages' | 'Thermals' | 'Position' | 'Energy' | 'IMU'
+type SignalGroup = 'Currents' | 'Power' | 'Duty & speed' | 'Voltages' | 'Thermals' | 'Position' | 'Energy' | 'IMU'
 
 export const SIGNAL_GROUPS: SignalGroup[] = ['Currents', 'Power', 'Duty & speed', 'Voltages', 'Thermals', 'Position', 'Energy', 'IMU']
 
 /** Base unit; 'temp' and 'speed' switch with metric/imperial. */
-export type SignalUnit = 'A' | 'W' | '%' | 'ERPM' | 'rpm' | 'speed' | 'counts' | 'V' | 'temp' | '°' | 'Ah' | 'Wh' | 'g' | '°/s'
+type SignalUnit = 'A' | 'W' | '%' | 'ERPM' | 'rpm' | 'speed' | 'counts' | 'V' | 'temp' | '°' | 'Ah' | 'Wh' | 'g' | '°/s'
 
 export interface SignalInput {
   values: Values
@@ -76,25 +77,21 @@ export function signalDef(id: string): SignalDef | undefined {
   return i === undefined ? undefined : SIGNALS[i]
 }
 
-/** Unit label shown to the user. */
 export function unitLabel(unit: SignalUnit, units: Units): string {
-  if (unit === 'temp') return units === 'metric' ? '°C' : '°F'
-  if (unit === 'speed') return units === 'metric' ? 'km/h' : 'mph'
+  if (unit === 'temp') return unitLabels(units).temp
+  if (unit === 'speed') return unitLabels(units).speed
   if (unit === 'counts') return ''
   return unit
 }
 
 /** Converts a stored (metric) value to what the user sees. */
 export function toDisplay(unit: SignalUnit, units: Units, value: number): number {
-  if (units === 'metric') return value
-  if (unit === 'temp') return (value * 9) / 5 + 32
-  if (unit === 'speed') return value / 1.609344
+  if (unit === 'temp') return convertTemp(value, units)
+  if (unit === 'speed') return convertSpeed(value, units)
   return value
 }
 
 /** Formats with fixed digits; "—" for missing values, no "-0". */
 export function formatSignal(def: SignalDef, units: Units, value: number): string {
-  if (!Number.isFinite(value)) return '—'
-  const s = toDisplay(def.unit, units, value).toFixed(def.digits)
-  return /^-0(\.0+)?$/.test(s) ? s.slice(1) : s
+  return fmt(toDisplay(def.unit, units, value), def.digits)
 }

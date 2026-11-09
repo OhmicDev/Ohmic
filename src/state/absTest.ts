@@ -9,7 +9,9 @@
 // timeout stops it if the app freezes.
 
 import { create } from 'zustand'
+import { errorText } from '../lib/format'
 import { erpmForSpeed } from '../lib/rideModes'
+import { sleep } from '../lib/time'
 import { useConfig, type DeviceConfig } from './config'
 import { targetKey } from './devices'
 import { motionBlock } from './motion'
@@ -27,7 +29,7 @@ const STOPPED_ERPM = 150
 const TEST_KMH = 20
 const MAX_TEST_ERPM = 10_000
 
-export type AbsTestPhase = 'idle' | 'checking' | 'spinning' | 'braking' | 'reading' | 'done'
+type AbsTestPhase = 'idle' | 'checking' | 'spinning' | 'braking' | 'reading' | 'done'
 
 interface AbsTestState {
   phase: AbsTestPhase
@@ -44,7 +46,7 @@ interface AbsTestState {
 export const useAbsTest = create<AbsTestState>()(() => ({ phase: 'idle', key: null, erpm: 0, releases: null, error: null, stopped: false }))
 
 /** ERPM to spin a lifted wheel to for the test, or null without a wheel setup. */
-export function absTestErpm(d: DeviceConfig): number | null {
+function absTestErpm(d: DeviceConfig): number | null {
   const mc = d.mcconf.device
   if (!mc) return null
   const e = erpmForSpeed(TEST_KMH, mc)
@@ -64,8 +66,6 @@ export function absTestBlock(d: DeviceConfig): string | null {
 
 let run = 0
 let cleanup: (() => void) | null = null
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 function liveErpm(d: DeviceConfig): number {
   return Math.abs(useTelemetry.getState().devices[targetKey(d.target)]?.rpm ?? 0)
@@ -162,7 +162,7 @@ export async function startAbsTest(key: string): Promise<void> {
     finish({ releases })
   } catch (e) {
     release(d)
-    finish({ error: `The test stopped: ${msg(e)}` })
+    finish({ error: `The test stopped: ${errorText(e)}` })
   }
 }
 

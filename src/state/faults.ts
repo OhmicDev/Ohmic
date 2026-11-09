@@ -11,8 +11,9 @@ import { targetKey, targetLabel } from './devices'
 import { sessionEvents, useSession, type SamplesEvent } from './session'
 import { useSettings } from './settings'
 import { runCommand } from './terminal'
+import { errorText } from '../lib/format'
 
-export interface FaultSnapshot {
+interface FaultSnapshot {
   vIn: number
   currentMotor: number
   currentIn: number
@@ -42,7 +43,7 @@ export interface FaultEvent {
   snapshotDuring?: boolean
 }
 
-export interface ControllerFaultLog {
+interface ControllerFaultLog {
   status: 'reading' | 'ok' | 'error'
   log: FaultLog | null
   readAt: number | null
@@ -192,7 +193,7 @@ export const useFaults = create<FaultsState>()((set, get) => ({
       }
       update({ status: 'ok', log, readAt: Date.now() })
     } catch (e) {
-      update({ status: 'error', error: e instanceof Error ? e.message : String(e) })
+      update({ status: 'error', error: errorText(e) })
     }
   },
 }))
@@ -203,11 +204,7 @@ sessionEvents.ended.on(({ at }) => useFaults.getState().endAll(at))
 useSession.subscribe((s, prev) => {
   if (s.status === 'reconnecting' && prev.status === 'connected') useFaults.getState().endAll(Date.now())
   if (s.status === 'idle' && prev.status !== 'idle') {
-    set({ logs: {} })
+    useFaults.setState({ logs: {} })
     lastClean.clear()
   }
 })
-
-function set(patch: Partial<FaultsState>) {
-  useFaults.setState(patch)
-}

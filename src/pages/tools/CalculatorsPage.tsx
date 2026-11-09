@@ -22,14 +22,13 @@ import {
 } from '../../lib/calculators'
 import { cx, fmt, fmtThousands } from '../../lib/format'
 import { BATTERY_KINDS, kvFromFlux, type BatteryKind } from '../../lib/setupMath'
-import { convertDistance, convertPerDistance, convertSpeed, unitLabels, type Units } from '../../lib/vehicle'
+import { convertDistance, convertPerDistance, convertSpeed, KM_PER_MI, unitLabels, type Units } from '../../lib/vehicle'
 import { averageWhPerKm } from '../../logs/summary'
 import { useConfig } from '../../state/config'
 import { useRideLogs } from '../../state/rideLogs'
 import { useSettings } from '../../state/settings'
-import { BackLink, PageTitle, Segmented } from '../../ui/Primitives'
-
-const KM_PER_MI = 1.609344
+import { PageTitle, Segmented } from '../../ui/Primitives'
+import { BackToMore } from './ToolBits'
 
 // Every input's allowed range. Anything outside is refused, never trimmed.
 const F = {
@@ -63,11 +62,12 @@ type Key = keyof typeof F
 /** Text the user typed per field, and the value when it's valid. */
 function useFields<K extends Key>(initial: Record<K, string>) {
   const [text, setText] = useState(initial)
-  const problems = Object.fromEntries((Object.keys(text) as K[]).map((k) => [k, fieldProblem(F[k], text[k])])) as Record<K, string | null>
-  const values = Object.fromEntries((Object.keys(text) as K[]).map((k) => [k, parseField(text[k])])) as Record<K, number>
+  const keys = Object.keys(text) as K[]
+  const problems = Object.fromEntries(keys.map((k) => [k, fieldProblem(F[k], text[k])])) as Record<K, string | null>
+  const values = Object.fromEntries(keys.map((k) => [k, parseField(text[k])])) as Record<K, number>
   const ok = Object.values(problems).every((p) => p === null)
   const set = (k: K, v: string) => setText((t) => ({ ...t, [k]: v }))
-  return { text, set, problems, values, ok, setAll: setText }
+  return { text, set, problems, values, ok }
 }
 
 const n = (v: number, digits = 1) => String(Number(v.toFixed(digits)))
@@ -90,7 +90,7 @@ function useVehicleFacts() {
     const maxVin = main ? Number(main.l_max_vin) : null
     return {
       vehicle,
-      chemistry: vehicle.batteryChemistry as BatteryKind,
+      chemistry: vehicle.batteryChemistry,
       kv: kv && Number.isFinite(kv) ? kv : null,
       batteryA: batteryA > 0 ? batteryA : null,
       maxVin: maxVin && Number.isFinite(maxVin) ? maxVin : null,
@@ -105,7 +105,7 @@ export function CalculatorsPage() {
   const units = useSettings((s) => s.units)
   return (
     <>
-      <BackLink to="/more">More</BackLink>
+      <BackToMore />
       <PageTitle title="Calculators" subtitle="Quick answers for planning a build or a change. Starting values come from your vehicle setup and connected controller." />
       <div className="grid gap-4 lg:grid-cols-2">
         <PackCalc facts={facts} />
@@ -124,7 +124,7 @@ export function CalculatorsPage() {
 
 type Facts = ReturnType<typeof useVehicleFacts>
 
-// ---------------------------------------------------------------- calculators
+const nominalVolts = (facts: Facts) => facts.vehicle.batteryCells * (facts.chemistry === 'lifepo4' ? 3.2 : 3.6)
 
 function PackCalc({ facts }: { facts: Facts }) {
   const [chem, setChem] = useState<BatteryKind>(facts.chemistry)
@@ -179,7 +179,7 @@ function RangeCalc({ facts, units }: { facts: Facts; units: Units }) {
 
 function SpeedCalc({ facts, units }: { facts: Facts; units: Units }) {
   const v = facts.vehicle
-  const nominal = v.batteryCells * (facts.chemistry === 'lifepo4' ? 3.2 : 3.6)
+  const nominal = nominalVolts(facts)
   const f = useFields({
     volts: n(nominal, 1),
     kv: n(facts.kv ?? 15, 1),
@@ -248,8 +248,7 @@ function GearCalc() {
 }
 
 function PowerCalc({ facts }: { facts: Facts }) {
-  const nominal = facts.vehicle.batteryCells * (facts.chemistry === 'lifepo4' ? 3.2 : 3.6)
-  const f = useFields({ volts: n(nominal, 1), amps: '30', motorA: '60', duty: '50' })
+  const f = useFields({ volts: n(nominalVolts(facts), 1), amps: '30', motorA: '60', duty: '50' })
   const okP = !f.problems.volts && !f.problems.amps
   const okB = !f.problems.motorA && !f.problems.duty
   const w = okP ? f.values.volts * f.values.amps : null
@@ -342,8 +341,6 @@ function WhatIfCalc({ facts, units }: { facts: Facts; units: Units }) {
   )
 }
 
-// ---------------------------------------------------------------- pieces
-
 function Calc({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
   return (
     <section className="card h-fit space-y-4 p-5" aria-label={title}>
@@ -402,7 +399,7 @@ function Result({ label, value, unit, hint, big, warn }: { label: string; value:
   return (
     <div>
       <dt className="label text-[9.5px]">{label}</dt>
-      <dd className={cx('num mt-1 font-semibold', big ? 'glow text-2xl' : 'text-base')}>
+      <dd className={cx('num mt-1 font-semibold', big ? 'text-2xl' : 'text-base')}>
         {value}
         {unit && value !== '—' && <span className="ml-1 text-xs font-normal text-muted">{unit}</span>}
       </dd>

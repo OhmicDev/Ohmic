@@ -16,7 +16,7 @@ interface ArchiveIndex {
 
 const index = rawIndex as unknown as ArchiveIndex
 
-export interface ArchiveFile {
+interface ArchiveFile {
   version: string
   /** Archive folder, e.g. "410_o_411_o_412". */
   board: string
@@ -37,14 +37,14 @@ export interface ArchiveVersion {
   files: ArchiveFile[]
 }
 
-export const boardNames = (name: string) => name.replace(/\.bin$/i, '').split('_o_')
+const boardNames = (name: string) => name.replace(/\.bin$/i, '').split('_o_')
 
 export function fitsBoard(name: string, hwName: string): boolean {
   const hw = hwName.trim().toLowerCase()
   return !!hw && boardNames(name).some((n) => n.toLowerCase() === hw)
 }
 
-export function fileLabel(file: string): string {
+function fileLabel(file: string): string {
   if (file === 'VESC_default.bin') return 'Standard'
   if (file === 'VESC_default_no_hw_limits.bin') return 'No hardware limits'
   return `Variant: ${file.replace(/^VESC_/, '').replace(/\.bin$/i, '')}`
@@ -54,10 +54,9 @@ export function fileLabel(file: string): string {
 export function firmwareFor(hwName: string): ArchiveVersion[] {
   const out: ArchiveVersion[] = []
   for (const v of index.versions) {
-    const boards = v.boards
-    const board = Object.keys(boards).find((b) => fitsBoard(b, hwName))
+    const board = Object.keys(v.boards).find((b) => fitsBoard(b, hwName))
     if (!board) continue
-    const files = boards[board].map((file) => ({
+    const files = v.boards[board].map((file) => ({
       version: v.version,
       board,
       file,
@@ -77,8 +76,6 @@ export function firmwareFor(hwName: string): ArchiveVersion[] {
 export function suggestedVersion(versions: ArchiveVersion[]): ArchiveVersion | null {
   return versions.find((v) => v.configurable) ?? versions[0] ?? null
 }
-
-export const newestArchiveVersion = () => index.versions[0]?.version ?? null
 
 /** VESC Tool's bootloader for this hardware, or its generic one. */
 export function bootloaderFor(hwName: string): { file: string; url: string; generic: boolean } {

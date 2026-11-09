@@ -3,7 +3,7 @@ import { ArrowRight, Check, Wrench, X } from 'lucide-react'
 import { useConfig } from '../../state/config'
 import { nextStep, SETUP_ORDER, useSetupProgress, useStepsDone, useVehicleKey, type SetupStep } from '../../state/setupProgress'
 import { buttonClass } from '../../ui/buttonClass'
-import { STEPS } from './steps'
+import { countDone, STEPS } from './steps'
 
 /**
  * The end of a setup step: says how far setup has got and leads on to the next step,
@@ -12,7 +12,7 @@ import { STEPS } from './steps'
 export function NextStep({ step }: { step: SetupStep }) {
   const done = useStepsDone(useVehicleKey())
   const next = nextStep(done, step)
-  const count = SETUP_ORDER.filter((s) => done?.[s]).length
+  const count = countDone(done)
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">
@@ -51,7 +51,7 @@ export function SetupPrompt() {
   const readOnly = useConfig((s) => s.order.some((k) => s.devices[k]?.mcconf.status === 'readonly'))
   const next = nextStep(done)
   if (!vehicle || dismissed || readOnly || next === null) return null
-  const count = SETUP_ORDER.filter((s) => done?.[s]).length
+  const count = countDone(done)
   return (
     <section aria-label="Setup" className="card flex flex-wrap items-center gap-x-4 gap-y-3 border-accent/30 p-4">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">

@@ -2,7 +2,6 @@ import { BatteryMedium } from 'lucide-react'
 import { useState } from 'react'
 import { formatNumber } from '../../config/display'
 import type { ConfigValues } from '../../config/types'
-import { cx } from '../../lib/format'
 import { Button, Segmented } from '../../ui/Primitives'
 
 type Chem = 'liion' | 'lifepo4'
@@ -104,7 +103,7 @@ export function BatteryHelper({ draft, readOnly, onApply }: { draft: ConfigValue
         {newMinVin !== null && (
           <span className="text-warn">Also lowers the minimum input voltage to {formatNumber(newMinVin, 1)} V so it doesn’t trip first.</span>
         )}
-        <Button className={cx('ml-auto h-9')} disabled={readOnly || same} onClick={apply}>
+        <Button className="ml-auto h-9" disabled={readOnly || same} onClick={apply}>
           {same ? 'Already set' : 'Use these values'}
         </Button>
       </div>

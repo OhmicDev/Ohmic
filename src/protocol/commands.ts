@@ -110,8 +110,6 @@ export const COMM = {
   MOTOR_ESTOP: 159,
 } as const
 
-export type CommandId = (typeof COMM)[keyof typeof COMM]
-
 const NAMES = new Map<number, string>(Object.entries(COMM).map(([k, v]) => [v, k]))
 
 export function commandName(id: number): string {

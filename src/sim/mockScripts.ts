@@ -16,7 +16,7 @@ import { encodeLispStats, parseLispStorage, unpackLispProgram } from '../protoco
 import { DEMO_CONFIG_MARKER, DEMO_LIGHTS_XML } from './demoPackageConfig'
 import type { MockReply } from './mockBus'
 
-export interface ScriptHost {
+interface ScriptHost {
   now: () => number
   /** Live readings a script can print. */
   reading: (fn: string) => number | null
@@ -26,7 +26,7 @@ export interface ScriptHost {
 
 const AREA_MAX = 128 * 1024
 
-function lispPrint(text: string): Uint8Array {
+export function lispPrint(text: string): Uint8Array {
   return Uint8Array.from([COMM.LISP_PRINT, ...new TextEncoder().encode(text)])
 }
 

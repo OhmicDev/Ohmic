@@ -74,7 +74,6 @@ export async function renameRide(id: string, name: string) {
   await useRideLogs.getState().refresh()
 }
 
-/** Splits rows into chunks for storage. */
 function* chunksOf(d: RideData, size: number): Generator<{ rows: number; cols: Columns }> {
   for (let from = 0; from < d.rows; from += size) {
     const to = Math.min(d.rows, from + size)
@@ -113,6 +112,17 @@ export async function saveImportedRide(log: ImportedLog, fileName: string): Prom
   return id
 }
 
+/** A ride's end, row count and summary, worked out from its saved rows. */
+function closedAtLastRow(startedAt: number, data: RideData) {
+  return {
+    endedAt: startedAt + data.cols.t[data.rows - 1],
+    rows: data.rows,
+    hasGps: hasGps(data),
+    hasImu: hasImu(data),
+    summary: summarize(data),
+  }
+}
+
 /**
  * Rides left open when the app closed mid-recording: their saved rows are kept
  * and the ride is closed where they end. Empty ones are removed.
@@ -121,17 +131,8 @@ export async function finishInterruptedRides(activeId: string | null): Promise<n
   const open = (await db.rides.toArray()).filter((r) => r.endedAt === null && r.id !== activeId)
   for (const r of open) {
     const data = await loadRideData(r.id)
-    if (data.rows === 0) {
-      await db.rides.delete(r.id)
-      continue
-    }
-    await db.rides.update(r.id, {
-      endedAt: r.startedAt + data.cols.t[data.rows - 1],
-      rows: data.rows,
-      hasGps: hasGps(data),
-      hasImu: hasImu(data),
-      summary: summarize(data),
-    })
+    if (data.rows === 0) await db.rides.delete(r.id)
+    else await db.rides.update(r.id, closedAtLastRow(r.startedAt, data))
   }
   return open.length
 }
@@ -143,13 +144,7 @@ export async function finishInterruptedRides(activeId: string | null): Promise<n
  */
 export async function reconcileRide(ride: RideLog, data: RideData): Promise<RideLog> {
   if (ride.endedAt === null || ride.rows === data.rows || data.rows === 0) return ride
-  const patch = {
-    endedAt: ride.startedAt + data.cols.t[data.rows - 1],
-    rows: data.rows,
-    hasGps: hasGps(data),
-    hasImu: hasImu(data),
-    summary: summarize(data),
-  }
+  const patch = closedAtLastRow(ride.startedAt, data)
   await db.rides.update(ride.id, patch)
   await useRideLogs.getState().refresh()
   return { ...ride, ...patch }

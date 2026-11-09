@@ -4,8 +4,6 @@
 import { BufferReader, BufferWriter, toHex } from './buffer'
 import { COMM } from './commands'
 
-// ---------------------------------------------------------------- FW_VERSION
-
 export interface FwVersion {
   major: number
   minor: number
@@ -82,8 +80,6 @@ export function fwVersionString(fw: Pick<FwVersion, 'major' | 'minor' | 'testVer
   return `${fw.major}.${String(fw.minor).padStart(2, '0')}${fw.testVersion ? ` beta ${fw.testVersion}` : ''}`
 }
 
-// ---------------------------------------------------------------- GET_VALUES
-
 export interface Values {
   tempFet: number // °C
   tempMotor: number // °C
@@ -151,8 +147,7 @@ const FIELDS: FieldCodec[] = [
   { size: 1, read: (r, v) => (v.status = r.u8()), write: (w, v) => w.u8(v.status) },
 ]
 
-export const VALUES_FIELD_COUNT = FIELDS.length
-export const ALL_VALUES_MASK = 0xffffffff
+const ALL_VALUES_MASK = 0xffffffff
 
 export function emptyValues(): Values {
   return {
@@ -198,8 +193,6 @@ export function encodeValuesSelective(v: Values, mask: number): Uint8Array {
   })
   return w.toUint8Array()
 }
-
-// ---------------------------------------------------------------- PING_CAN
 
 /** Reply: one byte per CAN ID that answered. */
 export function decodePingCan(r: BufferReader): number[] {

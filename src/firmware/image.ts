@@ -22,7 +22,7 @@ export const CHUNK_BYTES = 384
 export const MAX_IMAGE_BYTES = 393_208
 /** Bigger than this and VESC Tool assumes the file is for an ESP32 (VESC Express), not a motor controller. */
 const COMPRESS_BELOW = 700_000
-export const COMPRESSED_FLAG = 0xcc
+const COMPRESSED_FLAG = 0xcc
 /** Where a motor controller's bootloader lives, relative to the update area. */
 export const BOOTLOADER_OFFSET = 128 * 1024 * 3
 export const MAX_BOOTLOADER_BYTES = 128 * 1024
@@ -35,7 +35,7 @@ export class FirmwareFileError extends Error {
   }
 }
 
-export interface Chunk {
+interface Chunk {
   offset: number
   data: Uint8Array
 }

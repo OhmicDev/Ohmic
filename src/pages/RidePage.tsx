@@ -115,7 +115,6 @@ function Dashboard() {
 
         <SetupPrompt />
 
-        {/* Hero */}
         <div className="grid gap-3 lg:grid-cols-[1.55fr_1fr]">
           <section className="card relative overflow-hidden p-4 md:p-6" aria-label="Speed and power">
             <div className="flex items-center justify-between">
@@ -130,7 +129,7 @@ function Dashboard() {
               </span>
             </div>
             <div className="mt-1 flex items-end gap-3">
-              <span className="num glow-strong wide leading-[0.85] font-bold tracking-[-0.04em]" style={{ fontSize: 'clamp(84px, 22vw, 176px)' }} aria-live="off">
+              <span className="num wide leading-[0.85] font-bold tracking-[-0.04em]" style={{ fontSize: 'clamp(84px, 22vw, 176px)' }} aria-live="off">
                 <TweenNumber value={speed} ms={260} />
               </span>
               <span className="mb-2 text-lg font-medium text-muted md:mb-5">{u.speed}</span>
@@ -188,7 +187,6 @@ function Dashboard() {
 
         <RideControls />
 
-        {/* Live tiles */}
         <div className="grid grid-cols-2 gap-2.5 md:gap-3 lg:grid-cols-4">
           <Metric
             label="Battery current"
@@ -252,7 +250,6 @@ function Dashboard() {
           />
         </div>
 
-        {/* Trip */}
         <section className="card p-4 md:p-5" aria-label="Trip">
           <div className="flex items-center justify-between">
             <span className="label">This trip</span>

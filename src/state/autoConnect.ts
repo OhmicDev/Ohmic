@@ -12,7 +12,7 @@ import { useSettings } from './settings'
 /** How long to look for the last Bluetooth device before leaving it to the rider. */
 export const LOOK_MS = 20_000
 
-export type AutoPhase = 'idle' | 'looking' | 'missing'
+type AutoPhase = 'idle' | 'looking' | 'missing'
 
 interface ConnectSheetState {
   open: boolean

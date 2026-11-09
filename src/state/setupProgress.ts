@@ -2,6 +2,7 @@
 // and the dashboard's reminder; the controller's settings are what count.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import type { FwVersion } from '../protocol/messages'
 import { useSession } from './session'
 
 export type SetupStep = 'motor' | 'input' | 'direction' | 'battery'
@@ -31,9 +32,12 @@ export const useSetupProgress = create<SetupProgressState>()(
   ),
 )
 
-/** The connected vehicle, named by the controller on the cable or Bluetooth link. */
+/** A vehicle is named by the controller on the cable or Bluetooth link. */
+const vehicleOf = (fw: FwVersion | null) => (fw ? fw.uuid || fw.hwName : null)
+
+/** The connected vehicle. */
 export function useVehicleKey(): string | null {
-  return useSession((s) => (s.fw ? s.fw.uuid || s.fw.hwName : null))
+  return useSession((s) => vehicleOf(s.fw))
 }
 
 export function useStepsDone(vehicle: string | null): StepsDone | undefined {
@@ -51,7 +55,6 @@ export function nextStep(done: StepsDone | undefined, after?: SetupStep): SetupS
 }
 
 export function markSetupDone(step: SetupStep) {
-  const { fw } = useSession.getState()
-  const vehicle = fw ? fw.uuid || fw.hwName : null
+  const vehicle = vehicleOf(useSession.getState().fw)
   if (vehicle) useSetupProgress.getState().markDone(vehicle, step)
 }

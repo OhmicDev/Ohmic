@@ -9,17 +9,17 @@ import { STRENGTH_PCT, strengthPct } from '../../onboard/regen'
 import { absIsOn, regenIsOn, useAbs, useRegen } from '../../state/onboard'
 import { singleDriverKey, useRideModes, type MotorUse } from '../../state/rideModes'
 import { useSettings } from '../../state/settings'
+import { useMotorDevices } from '../setup/helpers'
 import { AbsIntroDialog } from './AbsIntroDialog'
 import { AbsTestDialog } from './AbsTestDialog'
 
 export function RideControls() {
-  const order = useConfig((s) => s.order)
   const devices = useConfig((s) => s.devices)
+  const list = useMotorDevices()
   const { modes, activeId, motors, busy, error, load, apply, clearError } = useRideModes()
   const [pending, setPending] = useState<{ id: string | null; motors: MotorUse } | null>(null)
   useEffect(() => void load(), [load])
 
-  const list = order.map((k) => devices[k]).filter(Boolean)
   if (!list.length) return null
   const ready = list.every((d) => d.mcconf.status === 'ready')
   const readOnly = list.some((d) => d.mcconf.status === 'readonly')
@@ -169,12 +169,7 @@ function RegenButton() {
           <span className="block text-sm font-semibold text-text">Regen</span>
           <span className={cx('block text-[11px]', on && !busy ? 'text-ok' : 'text-muted')}>{hint}</span>
         </span>
-        <span
-          aria-hidden
-          className={cx('relative h-6 w-10 shrink-0 rounded-full border transition-colors', shownOn ? 'border-ok/60 bg-ok/40' : 'border-line-strong bg-surface-3', busy && 'opacity-60')}
-        >
-          <span className={cx('absolute top-0.5 size-[18px] rounded-full bg-text shadow transition-[left]', shownOn ? 'left-[18px]' : 'left-0.5')} />
-        </span>
+        <SwitchKnob on={shownOn} busy={busy} />
       </button>
       {error && !busy && <p className="mt-1 max-w-[240px] text-[11px] leading-snug text-warn">{error}</p>}
     </div>
@@ -239,17 +234,7 @@ function AbsButton() {
             <span className="block text-sm font-semibold text-text">ABS</span>
             <span className={cx('block text-[11px]', on && !busy ? 'text-ok' : 'text-muted')}>{hint}</span>
           </span>
-          {/* The switch itself, so it reads as something to flip. */}
-          <span
-            aria-hidden
-            className={cx(
-              'relative h-6 w-10 shrink-0 rounded-full border transition-colors',
-              shownOn ? 'border-ok/60 bg-ok/40' : 'border-line-strong bg-surface-3',
-              busy && 'opacity-60',
-            )}
-          >
-            <span className={cx('absolute top-0.5 size-[18px] rounded-full bg-text shadow transition-[left]', shownOn ? 'left-[18px]' : 'left-0.5')} />
-          </span>
+          <SwitchKnob on={shownOn} busy={busy} />
         </button>
         <button
           onClick={() => setTesting(true)}
@@ -271,5 +256,17 @@ function AbsButton() {
         }}
       />
     </div>
+  )
+}
+
+/** The switch drawn inside the Regen and ABS buttons, so they read as something to flip. */
+function SwitchKnob({ on, busy }: { on: boolean; busy: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cx('relative h-6 w-10 shrink-0 rounded-full border transition-colors', on ? 'border-ok/60 bg-ok/40' : 'border-line-strong bg-surface-3', busy && 'opacity-60')}
+    >
+      <span className={cx('absolute top-0.5 size-[18px] rounded-full bg-text shadow transition-[left]', on ? 'left-[18px]' : 'left-0.5')} />
+    </span>
   )
 }

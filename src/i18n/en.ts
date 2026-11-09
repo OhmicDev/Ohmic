@@ -17,7 +17,6 @@ export const en = {
   'pwa.later': 'Later',
   'pwa.offlineReady': 'Ohmic now works offline.',
   'pwa.offline': 'You’re offline. Everything works except firmware downloads; packages show the list from your last visit.',
-  'pwa.offlineAi': 'AI Tune needs an internet connection. You’re offline.',
   'pwa.offlineFirmware': 'Downloading firmware needs an internet connection. You’re offline; a firmware file you already have still works.',
 
   'settings.theme': 'Theme',

@@ -130,7 +130,6 @@ export function decodeConfig(defs: ConfigDefs, input: BufferReader | Uint8Array)
   return out
 }
 
-/** Reads just the signature from a config body, without decoding the rest. */
 export function peekSignature(body: Uint8Array): number {
   return new BufferReader(body).u32()
 }

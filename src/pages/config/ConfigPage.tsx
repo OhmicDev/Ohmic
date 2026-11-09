@@ -22,8 +22,8 @@ import { SEPARATOR, type ConfigDefs, type ConfigKind, type ConfigValue, type Con
 import { validateConfig, type Issue } from '../../config/validate'
 import { detectKind, exportConfigXml, importConfigXml } from '../../config/xmlFile'
 import { downloadText, pickTextFile, safeFileName, stamp } from '../../lib/files'
-import { cx } from '../../lib/format'
-import { pendingCount, useConfig, type DeviceConfig, type KindState } from '../../state/config'
+import { cx, errorText } from '../../lib/format'
+import { pendingCount, useConfig, type DeviceConfig } from '../../state/config'
 import { useSession } from '../../state/session'
 import { BackLink, Button, PageTitle, Segmented } from '../../ui/Primitives'
 import { ReconnectBanner } from '../../ui/ReconnectBanner'
@@ -166,7 +166,7 @@ function Editor({
   const ui = useConfigUi()
   const sessionStatus = useSession((s) => s.status)
   const kind = ui.kind
-  const k: KindState = dev[kind]
+  const k = dev[kind]
   const { defs, draft, device } = k
   const readOnly = k.status !== 'ready' || sessionStatus !== 'connected'
   const [writing, setWriting] = useState(false)
@@ -182,10 +182,10 @@ function Editor({
   }
 
   const { backups } = useBackups({ deviceUuid: dev.fw.uuid || null, kind })
-  const compareBackup = typeof ui.compare === 'object' ? backups?.find((b) => b.id === (ui.compare as { backupId: number }).backupId) : undefined
-  const compareValues: ConfigValues | null =
-    ui.compare === 'defaults' ? k.defaults : compareBackup ? compareBackup.values : null
-  const compareLabel = ui.compare === 'defaults' ? 'Default' : compareBackup ? 'Backup' : ''
+  const compareWith = ui.compare
+  const compareBackup = typeof compareWith === 'object' ? backups?.find((b) => b.id === compareWith.backupId) : undefined
+  const compareValues: ConfigValues | null = compareWith === 'defaults' ? k.defaults : compareBackup ? compareBackup.values : null
+  const compareLabel = compareWith === 'defaults' ? 'Default' : compareBackup ? 'Backup' : ''
 
   const sections = useMemo(() => (defs ? sectionsOf(defs) : []), [defs])
   const issues = useMemo(() => {
@@ -230,7 +230,7 @@ function Editor({
     try {
       setPendingImport({ fileName: file.name, result: importConfigXml(target.defs, file.text), error: null })
     } catch (e) {
-      setPendingImport({ fileName: file.name, result: null, error: e instanceof Error ? e.message : String(e) })
+      setPendingImport({ fileName: file.name, result: null, error: errorText(e) })
     }
   }
 
@@ -297,7 +297,6 @@ function Editor({
         {sessionStatus === 'reconnecting' && <ReconnectBanner />}
         <LiveStrip target={dev.target} />
 
-        {/* Which controller and which settings */}
         <div className="flex flex-wrap items-center gap-2">
           {keys.length > 1 && (
             <label className="relative inline-flex min-w-0 max-sm:flex-1">
@@ -362,7 +361,6 @@ function Editor({
 
         {defs && draft && (
           <>
-            {/* Search and filters */}
             <div className="flex flex-wrap items-center gap-2">
               <label className="relative min-w-0 flex-1 basis-full sm:basis-64">
                 <span className="sr-only">Search settings</span>
@@ -508,7 +506,6 @@ function Editor({
               </div>
             </div>
 
-            {/* Always-visible actions */}
             <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-10 md:bottom-4">
               <div
                 className={cx(
@@ -567,8 +564,8 @@ function Editor({
       {reviewOpen && <WriteDialog open onClose={closeReview} deviceKey={dev.key} kind={kind} />}
       <ImportDialog
         pending={pendingImport}
-        defs={pendingImport ? dev[kind].defs : null}
-        draft={pendingImport ? dev[kind].draft : null}
+        defs={defs}
+        draft={draft}
         onClose={() => setPendingImport(null)}
         onApply={(values) => cfg().edit(dev.key, kind, values)}
       />

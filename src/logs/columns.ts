@@ -5,7 +5,7 @@
 // controllers, temperatures and duty are the highest, speed and voltage come
 // from the main controller. Missing values are NaN.
 
-export const COLUMN_IDS = [
+const COLUMN_IDS = [
   't', // ms since the ride started
   'speed', // km/h, from ERPM
   'distance', // km since the ride started

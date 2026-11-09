@@ -6,8 +6,6 @@ import { useSession } from '../state/session'
 import { useSettings } from '../state/settings'
 import { Dialog } from './Dialog'
 
-export const CONNECT_SHEET_TITLE = 'Connect your controller'
-
 /**
  * The Connect sheet. Like VESC Tool, it comes up by itself when the app opens without a
  * connection (after the first-run intro), and reconnects the last device where it can.
@@ -45,7 +43,7 @@ export function ConnectSheet() {
       open={open && !onConnectPage}
       onClose={hide}
       size="sm"
-      title={CONNECT_SHEET_TITLE}
+      title="Connect your controller"
       subtitle="Bluetooth or USB. Ohmic remembers it for next time."
     >
       <ConnectPanel />

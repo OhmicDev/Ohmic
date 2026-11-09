@@ -12,17 +12,17 @@ export const NUS_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e' // we get notificat
  * Phones often fail the first GATT connection or service lookup with a passing error
  * ("GATT operation failed for unknown reason"); a moment later it works. Tries this many times.
  */
-export const CONNECT_ATTEMPTS = 3
+const CONNECT_ATTEMPTS = 3
 const RETRY_MS = 250
 
 /** Write sizes offered in settings. 20 bytes fits every BLE link; VESC Express negotiates a larger MTU. */
-export const BLE_CHUNK_SIZES = [20, 128] as const
+const BLE_CHUNK_SIZES = [20, 128] as const
 export type BleChunkSize = (typeof BLE_CHUNK_SIZES)[number]
 
 /** The parts of `navigator.bluetooth` we use, so tests can pass a fake. */
 export type BluetoothApi = Pick<Bluetooth, 'requestDevice'> & { getDevices?: () => Promise<BluetoothDevice[]> }
 
-export interface BleTransportOptions {
+interface BleTransportOptions {
   chunkSize?: number
   connectTimeoutMs?: number
 }

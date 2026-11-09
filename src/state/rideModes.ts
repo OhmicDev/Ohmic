@@ -23,10 +23,11 @@ import {
   type RideMode,
 } from '../lib/rideModes'
 import { TEMP_KEYS, type TempLimits } from '../protocol/setup'
-import { setMcconfReadFilter, useConfig, type DeviceConfig } from './config'
+import { motorDevices, setMcconfReadFilter, useConfig, type DeviceConfig } from './config'
 import { motionBlock } from './motion'
 import { activeClient, useSession } from './session'
 import { useSettings } from './settings'
+import { errorText } from '../lib/format'
 
 export type { MotorUse, RideMode }
 
@@ -39,22 +40,7 @@ export interface LiveLimitsRecord {
   sent: TempLimits
   modeId: string | null
   motors: MotorUse
-  /** A test of AI-proposed limits running on top (see LimitTest). */
-  test?: { id: string; label: string; limits: Partial<TempLimits>; startedAt: number } | null
   at: number
-}
-
-/**
- * Limits under test (an AI proposal tried before saving): they replace these
- * fields for each controller, on top of the stored settings and any ride mode.
- * Memory only, like ride modes: a power cycle ends the test.
- */
-export interface LimitTest {
-  id: string
-  label: string
-  startedAt: number
-  /** By device key. */
-  limits: Record<string, Partial<TempLimits>>
 }
 
 interface RideModeState {
@@ -63,22 +49,11 @@ interface RideModeState {
   /** The mode the controllers are running now; null means their own settings. */
   activeId: string | null
   motors: MotorUse
-  /** Limits under test, or null. */
-  test: LimitTest | null
   busy: boolean
   error: string | null
   load: () => Promise<void>
-  /**
-   * Sends a mode (and motor choice, and limit test) to every motor controller.
-   * `test` left out keeps the current one. Resolves false on failure (see `error`).
-   */
-  apply: (modeId: string | null, motors?: MotorUse, test?: LimitTest | null) => Promise<boolean>
-  /** Starts a limit test on top of the current mode. Resolves false on failure (see `error`). */
-  startTest: (test: LimitTest) => Promise<boolean>
-  /** Ends the limit test: the stored settings (and the mode) come back. */
-  endTest: () => Promise<boolean>
-  /** Forgets the test without sending anything (a write is about to put the stored limits back anyway). */
-  dropTest: () => void
+  /** Sends a mode (and motor choice) to every motor controller. Resolves false on failure (see `error`). */
+  apply: (modeId: string | null, motors?: MotorUse) => Promise<boolean>
   /** Saves a mode after checking it. Returns the problems, or [] when saved. */
   save: (m: RideMode) => Promise<string[]>
   remove: (id: string) => Promise<void>
@@ -122,12 +97,6 @@ function loadRecords() {
   return recordsLoaded
 }
 
-/** Motor controllers in bus order, as the config store knows them. */
-function motorDevices(): DeviceConfig[] {
-  const { devices, order } = useConfig.getState()
-  return order.map((k) => devices[k]).filter((d): d is DeviceConfig => !!d)
-}
-
 function notReadyReason(d: DeviceConfig): string | null {
   switch (d.mcconf.status) {
     case 'ready':
@@ -152,27 +121,20 @@ function finiteLimits(l: TempLimits): boolean {
   return TEMP_KEYS.every((k) => Number.isFinite(l[k]))
 }
 
+const modeById = (modes: RideMode[], id: string | null) => (id === null ? null : (modes.find((m) => m.id === id) ?? null))
+
 /** Limits for one controller, worked out from its stored settings. */
-function plan(d: DeviceConfig, mode: RideMode | null, motors: MotorUse, list: DeviceConfig[], singleKey: string | null, test: LimitTest | null) {
+function plan(d: DeviceConfig, mode: RideMode | null, motors: MotorUse, list: DeviceConfig[], singleKey: string | null) {
   const mc = d.mcconf.device as ConfigValues
   const stock = limitsFromConfig(mc)
   const driving = motors === 'dual' || d.key === singleKey
-  const sent = limitsFor(stock, mc, mode, driving, motors === 'dual' ? list.length : 1)
-  const tested = test?.limits[d.key]
-  if (tested) {
-    Object.assign(sent, tested)
-    // A motor switched off in single-motor mode stays off.
-    if (!driving) {
-      sent.currentMaxScale = 0
-      sent.currentMinScale = 0
-    }
-  }
-  return { stock, sent }
+  return { stock, sent: limitsFor(stock, mc, mode, driving, motors === 'dual' ? list.length : 1) }
 }
 
-function recordTest(test: LimitTest | null, key: string): LiveLimitsRecord['test'] {
-  const limits = test?.limits[key]
-  return test && limits ? { id: test.id, label: test.label, limits, startedAt: test.startedAt } : null
+/** Keeps a record of what a controller was sent; one back on its own settings needs none. */
+async function remember(key: string, limits: { stock: TempLimits; sent: TempLimits }, modeId: string | null, motors: MotorUse) {
+  if (modeId === null && motors === 'dual') await dropRecord(key)
+  else await putRecord({ key, stock: limits.stock, sent: limits.sent, modeId, motors, at: Date.now() })
 }
 
 async function sendLimits(d: DeviceConfig, l: TempLimits) {
@@ -193,7 +155,6 @@ export const useRideModes = create<RideModeState>()((set, get) => ({
   loaded: false,
   activeId: null,
   motors: 'dual',
-  test: null,
   busy: false,
   error: null,
 
@@ -212,15 +173,14 @@ export const useRideModes = create<RideModeState>()((set, get) => ({
     }
   },
 
-  apply: async (modeId, motorsArg, testArg) => {
+  apply: async (modeId, motorsArg) => {
     if (get().busy) return false
-    const test = testArg === undefined ? get().test : testArg
     const fail = (error: string) => {
       set({ busy: false, error })
       return false
     }
     if (!activeClient() || useSession.getState().status !== 'connected') return fail('Connect to a controller first.')
-    const mode = modeId === null ? null : (get().modes.find((m) => m.id === modeId) ?? null)
+    const mode = modeById(get().modes, modeId)
     if (modeId !== null && !mode) return fail('That ride mode no longer exists.')
     if (mode) {
       const issues = modeIssues(mode)
@@ -242,7 +202,7 @@ export const useRideModes = create<RideModeState>()((set, get) => ({
       if (block) return fail(block)
     }
     const singleKey = singleDriverKey(list)
-    const plans = list.map((d) => ({ d, ...plan(d, mode, motors, list, singleKey, test) }))
+    const plans = list.map((d) => ({ d, ...plan(d, mode, motors, list, singleKey) }))
     const bad = plans.find((p) => !finiteLimits(p.sent))
     if (bad) return fail(`${bad.d.name}: its settings gave limits that aren’t numbers, so nothing was sent.`)
 
@@ -253,42 +213,25 @@ export const useRideModes = create<RideModeState>()((set, get) => ({
       for (const p of plans) {
         await sendLimits(p.d, p.sent)
         done.push(p)
-        const t = recordTest(test, p.d.key)
-        if (modeId === null && motors === 'dual' && !t) await dropRecord(p.d.key)
-        else await putRecord({ key: p.d.key, stock: p.stock, sent: p.sent, modeId, motors, test: t, at: Date.now() })
+        await remember(p.d.key, p, modeId, motors)
       }
     } catch (e) {
       // Don't leave the motors on different modes: put back what the others had.
       for (const p of done) {
         const prev = get()
-        const back = plan(p.d, prev.activeId ? (prev.modes.find((m) => m.id === prev.activeId) ?? null) : null, prev.motors, list, singleKey, prev.test)
+        const back = plan(p.d, modeById(prev.modes, prev.activeId), prev.motors, list, singleKey)
         try {
           await sendLimits(p.d, back.sent)
-          const t = recordTest(prev.test, p.d.key)
-          if (prev.activeId === null && prev.motors === 'dual' && !t) await dropRecord(p.d.key)
-          else await putRecord({ key: p.d.key, ...back, modeId: prev.activeId, motors: prev.motors, test: t, at: Date.now() })
+          await remember(p.d.key, back, prev.activeId, prev.motors)
         } catch {
           // Reported below; a power cycle always brings back the stored settings.
         }
       }
-      return fail(`Couldn’t switch: ${e instanceof Error ? e.message : String(e)}`)
+      return fail(`Couldn’t switch: ${errorText(e)}`)
     }
-    set({ busy: false, activeId: modeId, motors, test })
+    set({ busy: false, activeId: modeId, motors })
     return true
   },
-
-  startTest: async (test) => {
-    const s = get()
-    return s.apply(s.activeId, s.motors, test)
-  },
-
-  endTest: async () => {
-    const s = get()
-    if (!s.test) return true
-    return s.apply(s.activeId, s.motors, null)
-  },
-
-  dropTest: () => set({ test: null }),
 
   save: async (m) => {
     const issues = modeIssues(m)
@@ -360,16 +303,7 @@ setMcconfReadFilter(async (key, values) => {
   }
   const s = useRideModes.getState()
   const known = rec.modeId === null || s.modes.some((m) => m.id === rec.modeId) || !s.loaded
-  // A limit test still running from before a reload or reconnect.
-  const test = rec.test
-    ? {
-        id: rec.test.id,
-        label: rec.test.label,
-        startedAt: rec.test.startedAt,
-        limits: { ...(s.test?.id === rec.test.id ? s.test.limits : {}), [key]: rec.test.limits },
-      }
-    : s.test
-  useRideModes.setState({ activeId: known ? rec.modeId : null, motors: rec.motors, test })
+  useRideModes.setState({ activeId: known ? rec.modeId : null, motors: rec.motors })
   return withLimits(values, rec.stock)
 })
 
@@ -392,24 +326,15 @@ export async function pauseRideMode(key: string): Promise<(() => Promise<void>) 
       return
     }
     const list = motorDevices()
-    const mode = s.activeId ? (s.modes.find((m) => m.id === s.activeId) ?? null) : null
-    const p = plan(dev, mode, s.motors, list, singleDriverKey(list), s.test)
-    const t = recordTest(s.test, key)
+    const p = plan(dev, modeById(s.modes, s.activeId), s.motors, list, singleDriverKey(list))
     try {
       await sendLimits(dev, p.sent)
-      if (s.activeId === null && s.motors === 'dual' && !t) await dropRecord(key)
-      else await putRecord({ key, ...p, modeId: s.activeId, motors: s.motors, test: t, at: Date.now() })
+      await remember(key, p, s.activeId, s.motors)
     } catch (e) {
       await dropRecord(key)
-      useRideModes.setState({ error: `The ride mode couldn’t be put back on ${dev.name}: ${e instanceof Error ? e.message : String(e)}` })
+      useRideModes.setState({ error: `The ride mode couldn’t be put back on ${dev.name}: ${errorText(e)}` })
     }
   }
-}
-
-/** Is a ride mode (or single-motor mode) changing this controller's limits right now? */
-export function rideModeActiveOn(key: string): boolean {
-  const r = records.get(key)
-  return !!r && !sameLimits(r.sent, r.stock)
 }
 
 /** Motor settings just read from a controller, with its stored limits in place of a running mode's (null when none is running). */
@@ -422,5 +347,5 @@ export function withoutRideMode(key: string, values: ConfigValues): ConfigValues
 // On a deliberate disconnect the controllers keep their limits until power-off; the
 // next connection finds them again when it reads the settings.
 useSession.subscribe((s, prev) => {
-  if (s.status === 'idle' && prev.status !== 'idle') useRideModes.setState({ busy: false, error: null, activeId: null, motors: 'dual', test: null })
+  if (s.status === 'idle' && prev.status !== 'idle') useRideModes.setState({ busy: false, error: null, activeId: null, motors: 'dual' })
 })

@@ -1,29 +1,11 @@
 import { Link } from '@tanstack/react-router'
-import {
-  Battery,
-  Boxes,
-  Calculator,
-  Code2,
-  Compass,
-  Cpu,
-  Gamepad2,
-  Music,
-  Network,
-  Route,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react'
+import { Battery, Boxes, Calculator, Code2, Compass, Cpu, Gamepad2, Music, Network, Route, Settings } from 'lucide-react'
 import { APP_NAME, APP_VERSION } from '../appInfo'
 import { buttonClass } from '../ui/buttonClass'
 import { PageTitle } from '../ui/Primitives'
-import { LinkRow, RowGroup } from '../ui/RowList'
-import type { TileColor } from '../ui/rowStyles'
+import { LinkRow, RowGroup, type LinkRowProps } from '../ui/RowList'
 
-type MoreRoute = '/logs' | '/sounds' | '/calc' | '/control' | '/firmware' | '/lisp' | '/packages' | '/bms' | '/imu' | '/can'
-
-type Item = { to: MoreRoute; icon: LucideIcon; color: TileColor; title: string; hint: string }
-
-const GROUPS: { id: string; title: string; items: Item[] }[] = [
+const GROUPS: { id: string; title: string; items: LinkRowProps[] }[] = [
   {
     id: 'riding',
     title: 'Riding',

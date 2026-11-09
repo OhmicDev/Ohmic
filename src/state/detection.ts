@@ -8,6 +8,8 @@ import type { Target } from '../client/VescClient'
 import { decodeConfig } from '../config/codec'
 import { fwKey } from '../config/registry'
 import type { ConfigValues } from '../config/types'
+import { errorText } from '../lib/format'
+import { sleep } from '../lib/time'
 import { detectResult, type DetectArgs, type DetectResult } from '../protocol/setup'
 import { addBackup } from './backups'
 import { useConfig } from './config'
@@ -17,7 +19,7 @@ import { absIsOn, useAbs } from './onboard'
 import { pauseRideMode, useRideModes, withoutRideMode, type MotorUse } from './rideModes'
 import { activeClient, useSession } from './session'
 
-export interface DetectBefore {
+interface DetectBefore {
   key: string
   backupId: number
   values: ConfigValues
@@ -38,11 +40,8 @@ interface DetectionState {
   reset: () => void
 }
 
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
 /** What blocks a detection run on these controllers right now, if anything. */
-export function detectBlock(keys: string[]): string | null {
+function detectBlock(keys: string[]): string | null {
   const cfg = useConfig.getState()
   const list = keys.map((k) => cfg.devices[k])
   if (!activeClient() || useSession.getState().status !== 'connected') return 'Not connected.'
@@ -120,7 +119,7 @@ export const useDetection = create<DetectionState>()((set, get) => ({
       for (const d of devices) await pauseRideMode(d.key)
     } catch (e) {
       const note = await restoreRide(ride, targets).catch(() => null)
-      set({ phase: 'done', step: null, before, error: `Couldn’t get ready, so nothing was measured: ${msg(e)}`, note })
+      set({ phase: 'done', step: null, before, error: `Couldn’t get ready, so nothing was measured: ${errorText(e)}`, note })
       return
     }
 
@@ -131,7 +130,7 @@ export const useDetection = create<DetectionState>()((set, get) => ({
     try {
       result = detectResult(await client.detectApplyAllFoc(args, target))
     } catch (e) {
-      error = `No answer from the controller (${msg(e)}). It may still have changed its settings; they’re compared below.`
+      error = `No answer from the controller (${errorText(e)}). It may still have changed its settings; they’re compared below.`
     }
 
     // 4. Read back what the controllers now hold, then put the ride mode back on top.
@@ -143,7 +142,7 @@ export const useDetection = create<DetectionState>()((set, get) => ({
         // The config page shows a failed read; the comparison skips it.
       }
     }
-    const note = await restoreRide(ride, targets).catch((e) => `The ride mode wasn’t switched back on: ${msg(e)}`)
+    const note = await restoreRide(ride, targets).catch((e) => `The ride mode wasn’t switched back on: ${errorText(e)}`)
     set({ phase: 'done', step: null, result, error, note })
   },
 }))

@@ -13,7 +13,7 @@ export const IMU_FIELDS = [
   'q0', 'q1', 'q2', 'q3',
 ] as const
 
-export type ImuField = (typeof IMU_FIELDS)[number]
+type ImuField = (typeof IMU_FIELDS)[number]
 export type ImuData = Record<ImuField, number>
 
 /** Angles, acceleration and rotation: what the live data screen uses. */

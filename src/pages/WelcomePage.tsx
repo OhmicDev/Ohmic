@@ -20,6 +20,7 @@ import { APP_NAME, APP_VERSION } from '../appInfo'
 import { useSettings } from '../state/settings'
 import { Logo } from '../ui/Logo'
 import { Button } from '../ui/Primitives'
+import { prefersReducedMotion } from '../ui/reducedMotion'
 import { IconTile } from '../ui/RowList'
 import type { TileColor } from '../ui/rowStyles'
 
@@ -140,7 +141,6 @@ export function WelcomePage() {
       </header>
 
       <main id="main" tabIndex={-1} className="outline-none">
-        {/* Hero */}
         <section className="relative isolate">
           <div
             aria-hidden
@@ -156,18 +156,18 @@ export function WelcomePage() {
             <div>
               <p
                 className="welcome-in inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface/70 px-3 py-1 text-xs text-muted"
-                style={i(0)}
+                style={stagger(0)}
               >
                 <span className="size-1.5 rounded-full bg-ok" /> For VESC® controllers · free and open source
               </p>
-              <h1 className="welcome-in wide mt-5 text-[40px] leading-[1.05] font-bold sm:text-[52px] md:text-[60px]" style={i(1)}>
+              <h1 className="welcome-in wide mt-5 text-[40px] leading-[1.05] font-bold sm:text-[52px] md:text-[60px]" style={stagger(1)}>
                 Your scooter’s controller, <span className="text-accent">in your browser.</span>
               </h1>
-              <p className="welcome-in mt-5 max-w-xl text-[17px] leading-relaxed text-muted" style={i(2)}>
+              <p className="welcome-in mt-5 max-w-xl text-[17px] leading-relaxed text-muted" style={stagger(2)}>
                 {APP_NAME} connects to VESC-based motor controllers over Bluetooth or USB. Set up a new build, tune how it rides, and watch
                 every value live, on your laptop or your phone.
               </p>
-              <div className="welcome-in mt-8 flex flex-wrap items-center gap-3" style={i(3)}>
+              <div className="welcome-in mt-8 flex flex-wrap items-center gap-3" style={stagger(3)}>
                 <Button variant="primary" className="h-11 px-5 text-[15px]" onClick={enter}>
                   Open {APP_NAME} <ArrowRight className="size-4" />
                 </Button>
@@ -178,7 +178,7 @@ export function WelcomePage() {
                   See what it does
                 </a>
               </div>
-              <p className="welcome-in mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-faint" style={i(4)}>
+              <p className="welcome-in mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-faint" style={stagger(4)}>
                 <span className="inline-flex items-center gap-1.5">
                   <Bluetooth className="size-3.5" aria-hidden /> Chrome, Edge, Samsung Internet · Bluefy on iPhone
                 </span>
@@ -187,13 +187,12 @@ export function WelcomePage() {
                 </span>
               </p>
             </div>
-            <div className="welcome-in" style={i(3)}>
+            <div className="welcome-in" style={stagger(3)}>
               <DashPreview />
             </div>
           </div>
         </section>
 
-        {/* What it does */}
         <Section id="features" eyebrow="What it does" title="Everything for riding, setting up and tuning">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f, n) => (
@@ -202,7 +201,6 @@ export function WelcomePage() {
           </div>
         </Section>
 
-        {/* Safety */}
         <Section
           id="safety"
           eyebrow="Safe by design"
@@ -214,7 +212,7 @@ export function WelcomePage() {
               <li
                 key={s}
                 className="welcome-step flex items-center gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-3 py-3 text-[13px] font-medium text-muted"
-                style={i(n)}
+                style={stagger(n)}
               >
                 <span className="num flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[11px] font-semibold text-text">
                   {n + 1}
@@ -225,7 +223,6 @@ export function WelcomePage() {
           </ol>
         </Section>
 
-        {/* Why */}
         <Section
           id="why"
           eyebrow="Why Ohmic"
@@ -239,7 +236,6 @@ export function WelcomePage() {
           </div>
         </Section>
 
-        {/* Last call */}
         <section className="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
           <div className="reveal card relative isolate overflow-hidden px-6 py-10 text-center md:py-14">
             <div
@@ -283,7 +279,7 @@ export function WelcomePage() {
   )
 }
 
-const i = (n: number) => ({ '--i': n }) as CSSProperties
+const stagger = (n: number) => ({ '--i': n }) as CSSProperties
 
 function Section({
   id,
@@ -314,7 +310,7 @@ function Section({
 
 function CardItem({ card, n, check }: { card: Card; n: number; check?: boolean }) {
   return (
-    <div className="reveal card flex gap-3.5 p-4 md:p-5" style={i(n)}>
+    <div className="reveal card flex gap-3.5 p-4 md:p-5" style={stagger(n)}>
       <IconTile icon={card.icon} color={card.color} />
       <div className="min-w-0">
         <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
@@ -331,10 +327,6 @@ function CardItem({ card, n, check }: { card: Card; n: number; check?: boolean }
 function useReveal() {
   useEffect(() => {
     const els = [...document.querySelectorAll<HTMLElement>('.reveal')]
-    if (typeof IntersectionObserver === 'undefined') {
-      for (const el of els) el.classList.add('is-in')
-      return
-    }
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -362,7 +354,7 @@ function DashPreview() {
   const wheels = useRef<(SVGGElement | null)[]>([])
 
   useEffect(() => {
-    const calm = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const calm = prefersReducedMotion()
     let frame = 0
     let visible = true
     let t = 0
@@ -386,7 +378,7 @@ function DashPreview() {
       frame = visible && !document.hidden ? requestAnimationFrame(tick) : 0
     }
     const resume = () => {
-      if (frame || calm || !visible || document.hidden) return
+      if (frame || !visible || document.hidden) return
       last = performance.now()
       frame = requestAnimationFrame(tick)
     }
@@ -394,19 +386,16 @@ function DashPreview() {
       draw(27, 1.3)
       return
     }
-    const io =
-      typeof IntersectionObserver === 'undefined'
-        ? null
-        : new IntersectionObserver(([e]) => {
-            visible = e.isIntersecting
-            resume()
-          })
-    if (box.current) io?.observe(box.current)
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting
+      resume()
+    })
+    if (box.current) io.observe(box.current)
     document.addEventListener('visibilitychange', resume)
     resume()
     return () => {
       cancelAnimationFrame(frame)
-      io?.disconnect()
+      io.disconnect()
       document.removeEventListener('visibilitychange', resume)
     }
   }, [])

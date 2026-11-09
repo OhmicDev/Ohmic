@@ -6,7 +6,7 @@
 
 import { crc16 } from './crc16'
 
-export const DEFAULT_MAX_PAYLOAD = 4096
+const DEFAULT_MAX_PAYLOAD = 4096
 
 export function encodePacket(payload: Uint8Array): Uint8Array {
   const len = payload.length
@@ -28,7 +28,7 @@ export function encodePacket(payload: Uint8Array): Uint8Array {
   return out
 }
 
-export interface DecoderStats {
+interface DecoderStats {
   packets: number
   crcErrors: number
   droppedBytes: number
@@ -84,7 +84,6 @@ export class PacketDecoder {
 
   private drain() {
     while (this.len > 0) {
-      // Skip to the next possible start byte.
       let skip = 0
       while (skip < this.len && !isStartByte(this.buf[skip])) skip++
       if (skip > 0) {

@@ -24,8 +24,11 @@ export function DeleteRideDialog({ ride, onClose, onDeleted }: { ride: RideLog |
             onClick={async () => {
               if (!ride) return
               setBusy(true)
-              await deleteRide(ride.id)
-              setBusy(false)
+              try {
+                await deleteRide(ride.id)
+              } finally {
+                setBusy(false)
+              }
               onClose()
               onDeleted?.()
             }}

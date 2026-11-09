@@ -4,13 +4,14 @@
 import { fwKey } from '../config/registry'
 import type { ConfigKind } from '../config/types'
 import { makeItem, shareChanges, writeConfig, type WriteItem, type WriteOutcome, type WriteStep } from '../config/write'
+import { plural } from '../lib/format'
 import { addBackup } from './backups'
 import { useConfig, type DeviceConfig } from './config'
 import { motionBlock } from './motion'
 import { pauseRideMode } from './rideModes'
 import { activeClient } from './session'
 
-export interface PlannedWrite {
+interface PlannedWrite {
   items: WriteItem[]
   /** Settings left out for each extra controller, by device key. */
   skipped: Record<string, string[]>
@@ -66,8 +67,6 @@ export interface WriteProgress {
   step: WriteStep | 'waiting' | 'done'
   outcome?: WriteOutcome
 }
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 function confirm(item: WriteItem, outcome: WriteOutcome) {
   const store = useConfig.getState()

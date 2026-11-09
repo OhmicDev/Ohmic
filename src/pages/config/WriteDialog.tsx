@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowRight, Check, CircleAlert, Loader2, ShieldCheck, X 
 import { useState } from 'react'
 import type { ConfigKind } from '../../config/types'
 import type { WriteItem, WriteOutcome } from '../../config/write'
-import { cx } from '../../lib/format'
+import { cx, plural } from '../../lib/format'
 import { useConfig } from '../../state/config'
 import { useMotionBlock } from '../../state/motion'
 import { planWrite, planWriteEach, runWrites, shareTargets, type WriteProgress } from '../../state/writes'
@@ -21,7 +21,6 @@ const STEP_TEXT: Record<WriteProgress['step'], string> = {
   done: 'Done',
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 const kindWord = (k: ConfigKind) => (k === 'mcconf' ? 'motor' : 'app')
 const itemWord = (i: WriteItem) => i.custom?.label ?? kindWord(i.kind)
 
@@ -121,7 +120,6 @@ export function WriteDialog({
   deviceKeys?: string[]
   /** Write exactly these (built elsewhere, e.g. an AI proposal), ignoring the editor's drafts. */
   fixedItems?: WriteItem[]
-  /** Called as writing starts. */
   onStart?: () => void
   /** Called with what was written and how each went. */
   onFinished?: (items: WriteItem[], outcomes: WriteOutcome[]) => void
@@ -139,8 +137,10 @@ export function WriteDialog({
   const others = deviceKeys || fixedItems ? [] : shareTargets(deviceKey, kind)
   const items = phase === 'review' ? (plan?.items ?? []) : ran
   const motion = useMotionBlock(items.map((i) => i.target))
-  const errors = items.flatMap((i) => i.issues.filter((x) => x.level === 'error').map((x) => ({ ...x, device: i.deviceName, label: i.defs.params[x.param]?.label ?? x.param })))
-  const warnings = items.flatMap((i) => i.issues.filter((x) => x.level === 'warning').map((x) => ({ ...x, device: i.deviceName, label: i.defs.params[x.param]?.label ?? x.param })))
+  const issuesAt = (level: 'error' | 'warning') =>
+    items.flatMap((i) => i.issues.filter((x) => x.level === level).map((x) => ({ ...x, device: i.deviceName, label: i.defs.params[x.param]?.label ?? x.param })))
+  const errors = issuesAt('error')
+  const warnings = issuesAt('warning')
   const kinds = [...new Set(items.map(itemWord))]
   const devicesShown = [...new Set(items.map((i) => i.deviceName))]
   const total = items.reduce((n, i) => n + i.changes.length, 0)
@@ -166,8 +166,7 @@ export function WriteDialog({
     onFinished?.(frozen, outcomes)
   }
 
-  const blockedReason =
-    total === 0 ? 'No changes to write.' : errors.length ? 'Fix the problems above first.' : motion ? motion : null
+  const blockedReason = total === 0 ? 'No changes to write.' : errors.length ? 'Fix the problems above first.' : motion || null
 
   const title =
     phase === 'done'

@@ -8,6 +8,7 @@ import { targetKey, targetLabel } from '../../state/devices'
 import { useSession } from '../../state/session'
 import { useSettings } from '../../state/settings'
 import { useTelemetry } from '../../state/telemetry'
+import { prefersReducedMotion } from '../../ui/reducedMotion'
 import { SPOKES, spinRate, wheelKmh } from './wheelSpin'
 
 /** Tyre radius in the drawing; the road under it moves at this radius times the turn rate. */
@@ -16,7 +17,7 @@ const R = 26
 const DASH = 12
 /** When the device asks for less motion, the drawing turns at this fraction of its usual rate. */
 const CALM = 0.25
-const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const angles = (n: number) => Array.from({ length: n }, (_, i) => (i * 360) / n)
 
 /**
  * Bottom corner of the dashboard: a little wheel for each motor controller, turning with
@@ -68,7 +69,7 @@ function Wheel({ target, label, frozen }: { target: Target; label: string | null
   // Turned by hand each frame, so React renders once per new value, not 60 times a second.
   useEffect(() => {
     // Asked for less motion: still turn (the turn is the reading), but slowly and without the blur.
-    const calm = reducedMotion()
+    const calm = prefersReducedMotion()
     let frame = 0
     let last = performance.now()
     let shown = 0
@@ -95,7 +96,6 @@ function Wheel({ target, label, frozen }: { target: Target; label: string | null
   }, [])
 
   const fade = `fade-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
-  const angles = (n: number) => Array.from({ length: n }, (_, i) => (i * 360) / n)
 
   return (
     <div className="flex w-11 flex-col items-center md:w-16">

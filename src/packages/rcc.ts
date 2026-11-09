@@ -12,12 +12,12 @@ const FLAG_COMPRESSED = 0x01
 const FLAG_DIRECTORY = 0x02
 const FLAG_ZSTD = 0x04
 
-export interface RccFile {
+interface RccFile {
   path: string
   read: () => Promise<Uint8Array>
 }
 
-export class RccError extends Error {
+class RccError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'RccError'

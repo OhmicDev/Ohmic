@@ -1,8 +1,8 @@
 # Publishes the app to GitHub Pages on every push to main.
 # One-time setup: in the repository, Settings › Pages › Build and deployment › Source: GitHub Actions.
 #
-# GitHub Pages only serves files, so AI Tune runs its scripted demo and the online package list is
-# unavailable there. Everything that talks to a controller works.
+# GitHub Pages only serves files, so the online package list is unavailable there. Everything that
+# talks to a controller works.
 
 name: Publish to GitHub Pages
 

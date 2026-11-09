@@ -1,13 +1,13 @@
 // Just enough of a LispBM console for the demo: it recognises the programs Ohmic
-// sends (ABS and motor sounds), runs their logic in the simulator, and answers
+// sends (ABS, regen and motor sounds), runs their logic in the simulator, and answers
 // the status checks. Like the firmware, it ignores commands sent too close together.
 
-import { ABS_DT } from '../onboard/abs'
+import { ABS_DT, type AbsParams } from '../onboard/abs'
 import { REGEN_DT, type RegenParams } from '../onboard/regen'
 
-export interface LispHost {
+interface LispHost {
   now: () => number
-  startAbs: (p: { speedPerErpm: number; slipDecel: number; minSpeed: number; releaseFraction: number; holdS: number; rampS: number; maxReleaseS: number }) => void
+  startAbs: (p: AbsParams) => void
   stopAbs: () => void
   absStatus: () => { on: boolean; interventions: number; beat: number } | null
   playTune: (entries: number[]) => void
@@ -18,7 +18,7 @@ export interface LispHost {
 }
 
 /** The firmware drops console commands closer together than this. */
-export const REPL_MIN_GAP_MS = 500
+const REPL_MIN_GAP_MS = 500
 
 export class MockLisp {
   private readonly host: LispHost

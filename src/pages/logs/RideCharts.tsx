@@ -12,7 +12,7 @@ const HEIGHT = 140
 const SYNC = 'ohmic-ride'
 const TIME_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200]
 
-export interface ChartSeries {
+interface ChartSeries {
   label: string
   /** Colour slot: the same thing keeps the same colour across charts (motor blue, battery orange). */
   slot: number
@@ -21,7 +21,7 @@ export interface ChartSeries {
   digits: number
 }
 
-export interface ChartSpec {
+interface ChartSpec {
   id: string
   title: string
   unit: (u: Units) => string
@@ -69,13 +69,17 @@ function setCursorQuiet(u: uPlot, left: number) {
 /** Every chart, sharing one cursor. Hovering a chart moves `index`; changing `index` moves the cursor. */
 export function RideCharts({ data, units, index, onIndex }: { data: RideData; units: Units; index: number; onIndex: (i: number) => void }) {
   const x = useMemo(() => Array.from(data.cols.t, (t) => t / 1000), [data])
+  // Built once per ride: a new spec object would make each chart rebuild on every cursor move.
+  const charts = useMemo(
+    () =>
+      RIDE_CHARTS.map((spec) => ({ ...spec, series: spec.series.filter((s) => hasColumn(data, s.col)) })).filter((spec) => spec.series.length),
+    [data],
+  )
   return (
     <div className="space-y-5">
-      {RIDE_CHARTS.map((spec) => {
-        const series = spec.series.filter((s) => hasColumn(data, s.col))
-        if (!series.length) return null
-        return <Chart key={spec.id} spec={{ ...spec, series }} data={data} x={x} units={units} index={index} onIndex={onIndex} />
-      })}
+      {charts.map((spec) => (
+        <Chart key={spec.id} spec={spec} data={data} x={x} units={units} index={index} onIndex={onIndex} />
+      ))}
     </div>
   )
 }

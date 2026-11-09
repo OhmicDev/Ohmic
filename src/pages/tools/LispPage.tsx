@@ -28,7 +28,7 @@ export function LispPage() {
   const [confirmLoad, setConfirmLoad] = useState<{ title: string; code: string; fileName: string | null } | null>(null)
   const absOn = useAbs((x) => x.status)
   const regenOn = useRegen((x) => x.status)
-  const now = useNow(1000)
+  useNow(1000) // re-checks the motion block once a second
 
   useEffect(() => void loadLispDraft(), [])
 
@@ -39,7 +39,6 @@ export function LispPage() {
     if (info && key !== s.target) s.setTarget(key)
   }, [info, key, s])
 
-  // Stats once a second while the page is open.
   useEffect(() => {
     if (!connected) return
     const t = setInterval(() => void useLisp.getState().pollStats(), 1000)
@@ -49,7 +48,6 @@ export function LispPage() {
 
   const support = scriptSupport(info?.fw)
   const motion = connected ? scriptMotionBlock(devices, 'upload or start a script') : null
-  void now // re-check the motion block once a second
   const stats = s.stats[key]
   const bytes = useMemo(() => lispStorageBlob(packLispProgram(s.code)).length, [s.code])
   const max = maxScriptBytes(info?.fw)

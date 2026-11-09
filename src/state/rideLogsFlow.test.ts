@@ -6,6 +6,7 @@ import { hasGps } from '../logs/columns'
 import { parseVescCsv, toVescCsv } from '../logs/logFiles'
 import { DEFAULT_VEHICLE } from '../lib/vehicle'
 import { MockBus } from '../sim/mockBus'
+import { waitForWithin } from '../test/waitFor'
 import { MockTransport } from '../transport/MockTransport'
 import { db } from './db'
 import { deleteRide, finishInterruptedRides, getRide, listRides, loadRideData, renameRide, saveImportedRide } from './rideLogs'
@@ -14,13 +15,7 @@ import { connectWith, useSession } from './session'
 import { useSettings } from './settings'
 import { useTelemetry } from './telemetry'
 
-async function waitFor(check: () => boolean, timeoutMs = 5000) {
-  const start = Date.now()
-  while (!check()) {
-    if (Date.now() - start > timeoutMs) throw new Error('Timed out waiting')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
+const waitFor = waitForWithin(5000)
 
 async function connect() {
   const bus = new MockBus()

@@ -13,7 +13,7 @@ import { DemoPark } from '../config/LiveStrip'
 import { BackToMore, Banner } from './ToolBits'
 
 const hex = (d: Uint8Array) => Array.from(d, (b) => b.toString(16).padStart(2, '0')).join(' ')
-const idText = (id: number, ext: boolean) => (ext ? id.toString(16).toUpperCase().padStart(8, '0') : id.toString(16).toUpperCase().padStart(3, '0'))
+const idText = (id: number, ext: boolean) => id.toString(16).toUpperCase().padStart(ext ? 8 : 3, '0')
 
 export function CanPage() {
   const devices = useSession((x) => x.devices)
@@ -22,9 +22,8 @@ export function CanPage() {
   const scanning = useSession((x) => x.busy)
   const m = useCanMonitor()
   const [confirmStart, setConfirmStart] = useState(false)
-  const now = useNow(1000)
+  useNow(1000) // keeps the "moving" check current
   const block = connected ? canMonitorBlock() : null
-  void now
 
   // Leaving the page stops the monitor and puts the controller back.
   useEffect(() => () => void useCanMonitor.getState().stop(), [])
@@ -293,16 +292,16 @@ function LogTable({ frames }: { frames: FrameRow[] }) {
 
 function SendForm() {
   const send = useCanMonitor((s) => s.send)
-  const [idTextIn, setId] = useState('')
+  const [idInput, setIdInput] = useState('')
   const [ext, setExt] = useState(true)
-  const [data, setData] = useState('')
+  const [dataInput, setDataInput] = useState('')
   const [sent, setSent] = useState<string | null>(null)
   // Always hex here, as CAN tools show IDs; a leading 0x is fine too.
-  const idIn = idTextIn.trim().replace(/^0x/i, '')
-  const id = idIn ? (/^[0-9a-f]+$/i.test(idIn) ? parseCanId(`0x${idIn}`, ext) : null) : null
-  const bytes = parseHexBytes(data)
-  const idError = idTextIn.trim() && id === null ? (ext ? 'A hex ID up to 1FFFFFFF.' : 'A hex ID up to 7FF.') : null
-  const dataError = data.trim() && bytes === null ? 'Up to 8 bytes in hex, e.g. 01 a2 ff.' : null
+  const idHex = idInput.trim().replace(/^0x/i, '')
+  const id = /^[0-9a-f]+$/i.test(idHex) ? parseCanId(`0x${idHex}`, ext) : null
+  const bytes = parseHexBytes(dataInput)
+  const idError = idInput.trim() && id === null ? (ext ? 'A hex ID up to 1FFFFFFF.' : 'A hex ID up to 7FF.') : null
+  const dataError = dataInput.trim() && bytes === null ? 'Up to 8 bytes in hex, e.g. 01 a2 ff.' : null
   const frame = id !== null && bytes ? { id, extended: ext, data: bytes } : null
   const refused = frame ? refusedFrame(frame) : null
 
@@ -320,8 +319,8 @@ function SendForm() {
         <label className="block">
           <span className="text-xs text-muted">ID (hex)</span>
           <input
-            value={idTextIn}
-            onChange={(e) => setId(e.target.value)}
+            value={idInput}
+            onChange={(e) => setIdInput(e.target.value)}
             aria-invalid={!!idError}
             placeholder={ext ? '00001B0A' : '123'}
             className={cx('focus-ring mt-1 block h-9 w-32 rounded-lg border bg-surface-2 px-2.5 font-mono text-sm', idError ? 'border-danger/60' : 'border-line-strong')}
@@ -333,8 +332,8 @@ function SendForm() {
         <label className="block min-w-40 flex-1">
           <span className="text-xs text-muted">Data (hex bytes)</span>
           <input
-            value={data}
-            onChange={(e) => setData(e.target.value)}
+            value={dataInput}
+            onChange={(e) => setDataInput(e.target.value)}
             aria-invalid={!!dataError}
             placeholder="01 02 03"
             className={cx('focus-ring mt-1 block h-9 w-full rounded-lg border bg-surface-2 px-2.5 font-mono text-sm', dataError ? 'border-danger/60' : 'border-line-strong')}

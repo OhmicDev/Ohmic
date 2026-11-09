@@ -4,34 +4,14 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CAN_MODE } from '../protocol/can'
-import { MockBus } from '../sim/mockBus'
-import { MockTransport } from '../transport/MockTransport'
+import { connectLocal } from '../test/simulator'
+import { waitForWithin } from '../test/waitFor'
 import { idStats, recentFrames, refusedFrame, useCanMonitor } from './canMonitor'
-import { useConfig } from './config'
-import { connectWith, useSession } from './session'
+import { useSession } from './session'
 import { useSettings } from './settings'
 
-async function waitFor(check: () => boolean, timeoutMs = 6000) {
-  const start = Date.now()
-  while (!check()) {
-    if (Date.now() - start > timeoutMs) throw new Error('Timed out waiting')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
-
-const LOCAL = 'uuid:5e1a00000000000000000001'
+const waitFor = waitForWithin(6000)
 const mon = () => useCanMonitor.getState()
-
-async function connect(bus = new MockBus(), { parked = true } = {}) {
-  bus.sim.parked = parked
-  bus.sim.rideTime = 4.5
-  await connectWith(new MockTransport({ bus, connectDelayMs: 5, latencyMs: [1, 2] }))
-  await waitFor(() => useConfig.getState().devices[LOCAL]?.appconf.status === 'ready')
-  await waitFor(() => useSession.getState().link === 'ok')
-  if (parked) await waitFor(() => bus.sim.speed === 0)
-  await new Promise((r) => setTimeout(r, 150))
-  return bus
-}
 
 beforeEach(() => {
   useSettings.setState({ autoReconnect: false, pollHz: 20, deviceViews: {} })
@@ -45,7 +25,7 @@ afterEach(async () => {
 
 describe('CAN monitor', () => {
   it('starts in comm-bridge mode, records frames and switches back on stop', async () => {
-    const bus = await connect()
+    const bus = await connectLocal()
     expect(bus.canMode).toBe(CAN_MODE.VESC)
     expect(await mon().start()).toBe(true)
     expect(bus.canMode).toBe(CAN_MODE.COMM_BRIDGE)
@@ -63,7 +43,7 @@ describe('CAN monitor', () => {
   })
 
   it('sends frames, but refuses ones that drive a motor or carry commands', async () => {
-    await connect()
+    await connectLocal()
     await mon().start()
     expect(refusedFrame({ id: (1 << 8) | 2, extended: true, data: new Uint8Array(4) })).toMatch(/drive a motor/)
     expect(refusedFrame({ id: (8 << 8) | 2, extended: true, data: new Uint8Array(4) })).toMatch(/command/)
@@ -81,7 +61,7 @@ describe('CAN monitor', () => {
   })
 
   it('won’t start while a wheel turns', async () => {
-    const bus = await connect(new MockBus(), { parked: false })
+    const bus = await connectLocal({ parked: false })
     await waitFor(() => bus.sim.speed > 1)
     await new Promise((r) => setTimeout(r, 120))
     expect(await mon().start()).toBe(false)
@@ -90,13 +70,13 @@ describe('CAN monitor', () => {
   })
 
   it('switches back on the next connection when the link dropped mid-monitor', async () => {
-    const bus = await connect()
+    const bus = await connectLocal()
     await mon().start()
     expect(bus.canMode).toBe(CAN_MODE.COMM_BRIDGE)
     await useSession.getState().disconnect()
     expect(mon().status).toBe('off')
     expect(bus.canMode).toBe(CAN_MODE.COMM_BRIDGE) // nothing could be sent
-    await connect(bus)
+    await connectLocal({ bus })
     await waitFor(() => bus.canMode === CAN_MODE.VESC)
     expect(mon().notice).toMatch(/after the last monitor session/)
   })

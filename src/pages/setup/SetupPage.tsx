@@ -6,7 +6,7 @@ import { useSession } from '../../state/session'
 import { PageTitle } from '../../ui/Primitives'
 import { buttonClass } from '../../ui/buttonClass'
 import { StepState } from './SetupSteps'
-import { STEPS } from './steps'
+import { countDone, STEPS } from './steps'
 
 export function SetupPage() {
   const status = useSession((s) => s.status)
@@ -14,7 +14,7 @@ export function SetupPage() {
   const vehicle = useVehicleKey()
   const done = useStepsDone(vehicle)
   const next = nextStep(done)
-  const count = SETUP_ORDER.filter((s) => done?.[s]).length
+  const count = countDone(done)
 
   return (
     <>
@@ -77,7 +77,7 @@ export function SetupPage() {
                     <span className="block text-xs text-muted">{s.hint}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    {at && <StepState at={at} />}
+                    <StepState at={at} />
                     {isNext ? (
                       <span className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-bg">
                         {count === 0 ? 'Start' : 'Next'}

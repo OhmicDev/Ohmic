@@ -12,8 +12,8 @@ import {
   type ModeSetting,
   type RideMode,
 } from '../../lib/rideModes'
-import { convertSpeed, unitLabels } from '../../lib/vehicle'
-import { TEMP_FIELDS, TEMP_KEYS, type TempLimits } from '../../protocol/setup'
+import { convertSpeed, KM_PER_MI, unitLabels } from '../../lib/vehicle'
+import { TEMP_FIELDS, TEMP_KEYS } from '../../protocol/setup'
 import { pendingCount, useConfig, type DeviceConfig } from '../../state/config'
 import { useMotionBlock } from '../../state/motion'
 import { singleDriverKey, useRideModes } from '../../state/rideModes'
@@ -21,12 +21,7 @@ import { useSettings } from '../../state/settings'
 import { Dialog } from '../../ui/Dialog'
 import { BackLink, Badge, Button, PageTitle } from '../../ui/Primitives'
 import { WriteDialog } from '../config/WriteDialog'
-
-function useMotorDevices(): DeviceConfig[] {
-  const order = useConfig((s) => s.order)
-  const devices = useConfig((s) => s.devices)
-  return order.map((k) => devices[k]).filter(Boolean)
-}
+import { useMotorDevices } from '../setup/helpers'
 
 export function RideModesPage() {
   const { modes, activeId, busy, error, load, apply, save, remove, addFromTemplate, clearError } = useRideModes()
@@ -174,7 +169,7 @@ function SingleMotorChoice({ list }: { list: DeviceConfig[] }) {
 function previewRows(m: RideMode, list: DeviceConfig[]) {
   const rows: { device: string; label: string; from: string; to: string }[] = []
   for (const d of list) {
-    const mc = d.mcconf.device as ConfigValues | null
+    const mc = d.mcconf.device
     if (!mc || d.mcconf.status !== 'ready') continue
     const stock = limitsFromConfig(mc)
     const out = limitsFor(stock, mc, m, true, list.length)
@@ -204,12 +199,17 @@ function ModeEditor({
   onSave: (m: RideMode) => Promise<string[]>
 }) {
   const units = useSettings((s) => s.units)
+  // Top speed is typed in the rider's unit; the mode keeps km/h.
+  const shown = (key: ModeSetting, v: number) => (key === 'maxSpeedKmh' ? round1(convertSpeed(v, units)) : v)
   const [name, setName] = useState(mode.name)
-  const [text, setText] = useState<Record<ModeSetting, string>>(() =>
-    Object.fromEntries(MODE_SETTINGS.map((s) => [s.key, mode[s.key] === null ? '' : String(s.key === 'maxSpeedKmh' ? round1(convertSpeed(mode[s.key]!, units)) : mode[s.key])])) as Record<
-      ModeSetting,
-      string
-    >,
+  const [text, setText] = useState<Record<ModeSetting, string>>(
+    () =>
+      Object.fromEntries(
+        MODE_SETTINGS.map((s) => {
+          const v = mode[s.key]
+          return [s.key, v === null ? '' : String(shown(s.key, v))]
+        }),
+      ) as Record<ModeSetting, string>,
   )
   const [custom, setCustom] = useState<Record<ModeSetting, boolean>>(
     () => Object.fromEntries(MODE_SETTINGS.map((s) => [s.key, mode[s.key] !== null])) as Record<ModeSetting, boolean>,
@@ -223,7 +223,7 @@ function ModeEditor({
     else {
       const raw = text[s.key].trim()
       const v = raw === '' ? NaN : Number(raw)
-      draft[s.key] = s.key === 'maxSpeedKmh' && units === 'imperial' ? v * 1.609344 : v
+      draft[s.key] = s.key === 'maxSpeedKmh' && units === 'imperial' ? v * KM_PER_MI : v
     }
   }
   const issues = modeIssues(draft)
@@ -281,7 +281,7 @@ function ModeEditor({
                       aria-pressed={custom[s.key] === c}
                       onClick={() => {
                         setCustom({ ...custom, [s.key]: c })
-                        if (c && text[s.key] === '') setText({ ...text, [s.key]: String(s.key === 'maxSpeedKmh' ? round1(convertSpeed(25, units)) : s.max === 100 ? 70 : 2000) })
+                        if (c && text[s.key] === '') setText({ ...text, [s.key]: String(shown(s.key, s.key === 'maxSpeedKmh' ? 25 : s.max === 100 ? 70 : 2000)) })
                       }}
                       className={cx('focus-ring h-7 rounded-md px-2.5', custom[s.key] === c ? 'bg-surface-3 text-text' : 'text-muted')}
                     >
@@ -362,7 +362,7 @@ function MakePermanent({ mode, list, onClose }: { mode: RideMode; list: DeviceCo
       const k = cfg.devices[d.key]?.mcconf
       if (!k?.device || k.status !== 'ready') continue
       const stock = limitsFromConfig(k.device)
-      const out: TempLimits = limitsFor(stock, k.device, mode, true, list.length)
+      const out = limitsFor(stock, k.device, mode, true, list.length)
       const patch: ConfigValues = {}
       for (const key of TEMP_KEYS) if (Math.abs(out[key] - stock[key]) > 1e-6) patch[TEMP_FIELDS[key]] = round6(out[key])
       if (Object.keys(patch).length) cfg.edit(d.key, 'mcconf', patch)

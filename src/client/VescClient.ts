@@ -27,7 +27,6 @@ import { encodePacket, PacketDecoder } from '../protocol/packet'
 import {
   decodeDecodedAdc,
   decodeDecodedPpm,
-  decodeLispPrint,
   decodeTempLimits,
   encodeDetectArgs,
   encodeReplCmd,
@@ -47,9 +46,9 @@ import { Emitter, type Transport } from '../transport/types'
 
 export type Target = 'local' | number
 
-export type Priority = 'high' | 'normal' | 'low'
+type Priority = 'high' | 'normal' | 'low'
 
-export interface RequestOptions {
+interface RequestOptions {
   target?: Target
   timeoutMs?: number
   retries?: number
@@ -98,7 +97,7 @@ const PRIORITY: Record<Priority, number> = { high: 0, normal: 1, low: 2 }
 const TIMEOUT_COOLDOWN_MS = 120
 
 /** What the protocol log sees: every payload out and in, and requests that went unanswered. */
-export type ProtocolTap = (dir: 'tx' | 'rx' | 'timeout', payload: Uint8Array) => void
+type ProtocolTap = (dir: 'tx' | 'rx' | 'timeout', payload: Uint8Array) => void
 
 let tap: ProtocolTap | null = null
 
@@ -125,12 +124,8 @@ export class VescClient {
     this.offData = transport.onData((bytes) => this.decoder.push(bytes))
   }
 
-  get decoderStats() {
-    return this.decoder.stats
-  }
-
   /** Packets nobody asked for (prints, LispBM output, detection progress...). */
-  onUnsolicited(cb: (payload: Uint8Array) => void) {
+  private onUnsolicited(cb: (payload: Uint8Array) => void) {
     return this.unsolicited.on(cb)
   }
 
@@ -220,8 +215,8 @@ export class VescClient {
    * packets (see onPrint). The firmware runs one terminal command at a time and
    * drops any that arrive while another is still running.
    */
-  async terminal(line: string, target: Target = 'local') {
-    await this.send(COMM.TERMINAL_CMD, encodeTerminalCmd(line), target)
+  terminal(line: string, target: Target = 'local') {
+    return this.send(COMM.TERMINAL_CMD, encodeTerminalCmd(line), target)
   }
 
   /** Text the firmware prints: terminal output and warnings. */
@@ -234,8 +229,6 @@ export class VescClient {
   sendAlive(target: Target = 'local') {
     return this.send(COMM.ALIVE, undefined, target)
   }
-
-  // ------------------------------------------------------------ ride modes and setup
 
   /** The live (possibly temporary) limits. */
   async getTempLimits(opts?: RequestOptions) {
@@ -297,7 +290,7 @@ export class VescClient {
   }
 
   /** Waits for an unsolicited packet with this ID. */
-  waitForPacket(command: number, timeoutMs: number): Promise<BufferReader> {
+  private waitForPacket(command: number, timeoutMs: number): Promise<BufferReader> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         off()
@@ -311,8 +304,6 @@ export class VescClient {
       })
     })
   }
-
-  // ------------------------------------------------------------ firmware update
 
   /** Erases the update area for an image this big. Takes a few seconds; never retried. */
   async eraseNewApp(bytes: number, target: Target = 'local'): Promise<boolean> {
@@ -332,8 +323,7 @@ export class VescClient {
    */
   async writeNewAppData(offset: number, data: Uint8Array, target: Target = 'local'): Promise<boolean> {
     const r = await this.request(COMM.WRITE_NEW_APP_DATA, encodeWriteNewAppData(offset, data), { target, timeoutMs: 3000, retries: 2, priority: 'high' })
-    const reply = decodeWriteReply(r)
-    return reply.ok && (reply.offset === null || reply.offset === offset)
+    return wroteAt(decodeWriteReply(r), offset)
   }
 
   /** Restarts into the bootloader, which checks and installs the new image. There's no reply. */
@@ -348,11 +338,9 @@ export class VescClient {
 
   onLispPrint(cb: (text: string) => void) {
     return this.onUnsolicited((p) => {
-      if (p[0] === COMM.LISP_PRINT) cb(decodeLispPrint(p.subarray(1)))
+      if (p[0] === COMM.LISP_PRINT) cb(decodePrint(p.subarray(1)))
     })
   }
-
-  // ------------------------------------------------------------ LispBM scripts
 
   /** Stops the script engine and erases its storage for a script this big. */
   async lispErase(size: number, target: Target = 'local'): Promise<boolean> {
@@ -363,8 +351,7 @@ export class VescClient {
   /** Writes one chunk of script storage. Rewriting the same bytes is harmless, so a lost reply is retried (5 tries, like VESC Tool). */
   async lispWrite(offset: number, data: Uint8Array, target: Target = 'local'): Promise<boolean> {
     const r = await this.request(COMM.LISP_WRITE_CODE, encodeLispWrite(offset, data), { target, timeoutMs: 1000, retries: 4, priority: 'high' })
-    const reply = decodeLispWriteReply(r)
-    return reply.ok && (reply.offset === null || reply.offset === offset)
+    return wroteAt(decodeLispWriteReply(r), offset)
   }
 
   async lispRead(len: number, offset: number, target: Target = 'local') {
@@ -377,13 +364,10 @@ export class VescClient {
     return !r.has(1) || r.u8() > 0
   }
 
-  /** CPU and memory use plus numeric globals. The firmware doesn't answer while no script runs. */
-  /** No reply comes while no script runs, so the wait is short: a long one would hold up live data. */
+  /** CPU and memory use plus numeric globals. No reply comes while no script runs, so the wait is short: a long one would hold up live data. */
   async lispStats(opts: RequestOptions = {}): Promise<LispStats> {
     return decodeLispStats(await this.request(COMM.LISP_GET_STATS, Uint8Array.of(1), { timeoutMs: 700, retries: 0, priority: 'low', ...opts }))
   }
-
-  // ------------------------------------------------------------ QML user interface storage
 
   async qmlErase(size: number, target: Target = 'local'): Promise<boolean> {
     const r = await this.request(COMM.QMLUI_ERASE, encodeLispErase(size), { target, timeoutMs: 8000, retries: 0, priority: 'high' })
@@ -392,11 +376,8 @@ export class VescClient {
 
   async qmlWrite(offset: number, data: Uint8Array, target: Target = 'local'): Promise<boolean> {
     const r = await this.request(COMM.QMLUI_WRITE, encodeLispWrite(offset, data), { target, timeoutMs: 1000, retries: 4, priority: 'high' })
-    const reply = decodeLispWriteReply(r)
-    return reply.ok && (reply.offset === null || reply.offset === offset)
+    return wroteAt(decodeLispWriteReply(r), offset)
   }
-
-  // ------------------------------------------------------------ custom configs (packages)
 
   async customConfigXmlChunk(index: number, len: number, offset: number, target: Target = 'local') {
     const r = await this.request(COMM.GET_CUSTOM_CONFIG_XML, encodeCustomXmlRequest(index, len, offset), { target, timeoutMs: 1500, retries: 2 })
@@ -413,8 +394,6 @@ export class VescClient {
   async setCustomConfig(index: number, body: Uint8Array, opts: RequestOptions = {}): Promise<void> {
     await this.request(COMM.SET_CUSTOM_CONFIG, encodeCustomIndex(index, body), { timeoutMs: 3000, retries: 0, priority: 'high', ...opts })
   }
-
-  // ------------------------------------------------------------ BMS, IMU calibration, CAN
 
   async bmsValues(opts: RequestOptions = {}): Promise<BmsValues> {
     return decodeBmsValues(await this.request(COMM.BMS_GET_VALUES, undefined, { timeoutMs: 800, retries: 0, priority: 'low', ...opts }))
@@ -520,6 +499,11 @@ export class VescClient {
     }
     this.unsolicited.emit(payload)
   }
+}
+
+/** A write was taken: the controller said ok and, if it echoed an offset (firmware 5.3 and newer), it's the one sent. */
+function wroteAt(reply: { ok: boolean; offset: number | null }, offset: number): boolean {
+  return reply.ok && (reply.offset === null || reply.offset === offset)
 }
 
 function frameFor(command: number, body: Uint8Array, target: Target): Uint8Array {

@@ -97,8 +97,7 @@ test('keyboard: the Connect sheet takes focus first, then the first Tab is a ski
   await expect(skip).toBeFocused()
   await page.keyboard.press('Enter')
   await page.keyboard.press('Tab')
-  const inMain = await page.evaluate(() => !!document.activeElement?.closest('main'))
-  expect(inMain).toBe(true)
+  expect(await page.evaluate(() => !!document.activeElement?.closest('main'))).toBe(true)
 })
 
 test('light theme applies at once and survives a reload', async ({ page }) => {

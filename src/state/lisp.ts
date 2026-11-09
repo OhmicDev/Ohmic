@@ -5,7 +5,7 @@
 // engine, which also ends anything Ohmic itself runs there (ABS, regen, sounds).
 
 import { create } from 'zustand'
-import { ClosedError, TimeoutError, type Target, type VescClient } from '../client/VescClient'
+import { TimeoutError, type Target, type VescClient } from '../client/VescClient'
 import { HW_TYPE } from '../protocol/commands'
 import {
   LISP_CHUNK,
@@ -21,11 +21,12 @@ import {
 import type { FwVersion } from '../protocol/messages'
 import { db } from './db'
 import { targetFromKey, targetKey, targetLabel, type DeviceInfo } from './devices'
+import { controllerErrorText } from './errors'
 import { motionBlock } from './motion'
 import { ohmicLispBusy, runLisp } from './onboard'
 import { activeClient, sessionEvents, useSession } from './session'
 
-export type ConsoleKind = 'out' | 'in' | 'note' | 'error' | 'ohmic'
+type ConsoleKind = 'out' | 'in' | 'note' | 'error' | 'ohmic'
 
 export interface ConsoleLine {
   id: number
@@ -36,7 +37,7 @@ export interface ConsoleLine {
   at: number
 }
 
-export interface StatsEntry {
+interface StatsEntry {
   stats: LispStats | null
   /** True when the engine answered, false after it stayed quiet (no script running), null before asking. */
   running: boolean | null
@@ -80,7 +81,7 @@ const STATS_IDLE_MS = 5000
 let statsInFlight = false
 let nextId = 1
 
-const STARTER = `; LispBM runs on the controller itself. Upload sends this script and starts it.
+export const LISP_STARTER = `; LispBM runs on the controller itself. Upload sends this script and starts it.
 ; Output from (print ...) shows in the console below.
 
 (print "Hello from LispBM")
@@ -111,12 +112,15 @@ export function scriptMotionBlock(devices: DeviceInfo[], action: string): string
   return motors.length ? motionBlock(motors, Date.now(), action) : null
 }
 
-const errText = (e: unknown) =>
-  e instanceof TimeoutError ? 'The controller didn’t answer.' : e instanceof ClosedError ? 'The connection closed.' : e instanceof Error ? e.message : String(e)
-
-function makeLines(kind: ConsoleKind, text: string, target: string, at = Date.now()): ConsoleLine[] {
-  const parts = text.replace(/\n$/, '').split('\n')
-  return parts.map((t) => ({ id: nextId++, kind, text: t, target, at }))
+/** Adds text to the console, split into lines, under the controller the page is set to. */
+function addLines(kind: ConsoleKind, text: string, at = Date.now()) {
+  useLisp.setState((s) => {
+    const added = text
+      .replace(/\n$/, '')
+      .split('\n')
+      .map((t) => ({ id: nextId++, kind, text: t, target: s.target, at }))
+    return { lines: [...s.lines, ...added].slice(-MAX_LINES) }
+  })
 }
 
 /** Reads the whole stored blob. Null when the controller has no script. */
@@ -173,10 +177,8 @@ export const useLisp = create<LispState>()((set, get) => {
     return { client, target, info }
   }
 
-  const note = (kind: ConsoleKind, text: string) => set((s) => ({ lines: [...s.lines, ...makeLines(kind, text, s.target)].slice(-MAX_LINES) }))
-
   return {
-    code: STARTER,
+    code: LISP_STARTER,
     fileName: null,
     dirty: false,
     target: 'local',
@@ -216,7 +218,7 @@ export const useLisp = create<LispState>()((set, get) => {
         )
         set({ busy: { what: 'Starting', progress: null } })
         const started = await client.lispSetRunning(true, target)
-        note('note', `Uploaded ${blob.length.toLocaleString()} bytes to ${targetLabel(target)}${started ? ' and started it' : ''}.`)
+        addLines('note', `Uploaded ${blob.length.toLocaleString()} bytes to ${targetLabel(target)}${started ? ' and started it' : ''}.`)
         set({
           busy: null,
           dirty: false,
@@ -225,7 +227,7 @@ export const useLisp = create<LispState>()((set, get) => {
         })
         return true
       } catch (e) {
-        set({ busy: null, error: `Upload failed: ${errText(e)} The controller’s stored script may now be empty or partial; upload again.` })
+        set({ busy: null, error: `Upload failed: ${controllerErrorText(e)} The controller’s stored script may now be empty or partial; upload again.` })
         return false
       }
     },
@@ -254,7 +256,7 @@ export const useLisp = create<LispState>()((set, get) => {
         set({ notice: imports ? `Read from ${targetLabel(target)}. It also has ${imports} imported file(s), which aren’t shown and won’t be kept if you upload from here.` : `Read from ${targetLabel(target)}.` })
         return code
       } catch (e) {
-        set({ busy: null, error: `Couldn’t read the script: ${errText(e)}` })
+        set({ busy: null, error: `Couldn’t read the script: ${controllerErrorText(e)}` })
         return null
       }
     },
@@ -271,7 +273,7 @@ export const useLisp = create<LispState>()((set, get) => {
       set({ busy: { what: running ? 'Starting' : 'Stopping', progress: null }, error: null, notice: null })
       try {
         const ok = await client.lispSetRunning(running, target)
-        note('note', ok ? `${running ? 'Started' : 'Stopped'} the script on ${targetLabel(target)}.` : `${targetLabel(target)} couldn’t ${running ? 'start' : 'stop'} the script.`)
+        addLines('note', ok ? `${running ? 'Started' : 'Stopped'} the script on ${targetLabel(target)}.` : `${targetLabel(target)} couldn’t ${running ? 'start' : 'stop'} the script.`)
         set({
           busy: null,
           stats: { ...get().stats, [targetKey(target)]: { stats: running ? (get().stats[targetKey(target)]?.stats ?? null) : null, running: ok ? running : null, at: Date.now() } },
@@ -279,7 +281,7 @@ export const useLisp = create<LispState>()((set, get) => {
         if (!ok) set({ error: running ? 'The script didn’t start. Is one stored? Check the console for errors.' : 'The controller didn’t stop the script.' })
         return ok
       } catch (e) {
-        set({ busy: null, error: errText(e) })
+        set({ busy: null, error: controllerErrorText(e) })
         return false
       }
     },
@@ -296,11 +298,11 @@ export const useLisp = create<LispState>()((set, get) => {
           set({ error: 'The controller refused to erase its script storage.' })
           return false
         }
-        note('note', `Removed the stored script from ${targetLabel(target)}.`)
+        addLines('note', `Removed the stored script from ${targetLabel(target)}.`)
         set({ notice: `${targetLabel(target)} has no stored script now.`, stats: { ...get().stats, [targetKey(target)]: { stats: null, running: false, at: Date.now() } } })
         return true
       } catch (e) {
-        set({ busy: null, error: errText(e) })
+        set({ busy: null, error: controllerErrorText(e) })
         return false
       }
     },
@@ -313,12 +315,12 @@ export const useLisp = create<LispState>()((set, get) => {
         set({ error: 'Connect to a controller first.' })
         return
       }
-      note('in', line)
+      addLines('in', line)
       try {
         // Through the shared queue, so the console keeps the firmware's gap between commands.
         await runLisp(target, line, 0, { fromConsole: true })
       } catch (e) {
-        note('error', errText(e))
+        addLines('error', controllerErrorText(e))
       }
     },
 
@@ -349,11 +351,8 @@ export const useLisp = create<LispState>()((set, get) => {
 // Everything LispBM prints goes to the console, under the controller the page is set to
 // (prints don't say where they came from). Lines answering Ohmic's own programs are marked.
 sessionEvents.lispPrints.on(({ text, at }) => {
-  const kind: ConsoleKind = ohmicLispBusy() ? 'ohmic' : /^\*\*\*/.test(text) ? 'error' : 'out'
-  useLisp.setState((s) => ({ lines: [...s.lines, ...makeLines(kind, text, s.target, at)].slice(-MAX_LINES) }))
+  addLines(ohmicLispBusy() ? 'ohmic' : /^\*\*\*/.test(text) ? 'error' : 'out', text, at)
 })
-
-// ------------------------------------------------------------------ draft
 
 const DRAFT_ID = 'lisp'
 let draftTimer: ReturnType<typeof setTimeout> | null = null
@@ -375,5 +374,3 @@ export async function loadLispDraft() {
     // IndexedDB unavailable (private mode): start with the example.
   }
 }
-
-export const LISP_STARTER = STARTER

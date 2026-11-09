@@ -1,7 +1,7 @@
 import { Compass, Crosshair, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { makeItem, type WriteItem } from '../../config/write'
-import { cx, fmt } from '../../lib/format'
+import { cx, errorText, fmt } from '../../lib/format'
 import { IMU_CAL_PARAMS, type ImuCalibration, type ImuData } from '../../protocol/imu'
 import { deviceKey, useConfig } from '../../state/config'
 import { targetKey, targetLabel } from '../../state/devices'
@@ -9,6 +9,7 @@ import { requestImu } from '../../state/live'
 import { motionBlock } from '../../state/motion'
 import { activeClient, sessionEvents, useSession } from '../../state/session'
 import { Button, PageTitle } from '../../ui/Primitives'
+import { prefersReducedMotion } from '../../ui/reducedMotion'
 import { useNow } from '../../ui/useNow'
 import { DemoPark } from '../config/LiveStrip'
 import { WriteDialog } from '../config/WriteDialog'
@@ -152,7 +153,7 @@ function Board3d({ source, yawZero }: { source: React.RefObject<ImuData | null>;
   }, [yawZero])
 
   useEffect(() => {
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    const reduce = prefersReducedMotion()
     const cur = { roll: 0, pitch: 0, yaw: 0 }
     let last = performance.now()
     let raf = 0
@@ -180,7 +181,6 @@ function Board3d({ source, yawZero }: { source: React.RefObject<ImuData | null>;
   return (
     <div className="relative h-72 overflow-hidden [perspective:900px] sm:h-80" role="img" aria-label="3D view of the controller’s orientation. The numbers below give the same angles.">
       <div className="absolute top-1/2 left-1/2 [transform-style:preserve-3d]" style={{ transform: 'translate(-50%,-50%) rotateX(60deg) rotateZ(-32deg)' }}>
-        {/* Floor */}
         <div
           className="absolute top-1/2 left-1/2 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70"
           style={{
@@ -192,12 +192,10 @@ function Board3d({ source, yawZero }: { source: React.RefObject<ImuData | null>;
         />
         <div ref={board} className="relative h-[84px] w-[230px] -translate-x-1/2 -translate-y-1/2 [transform-style:preserve-3d]">
           <div className={cx(face, 'bg-surface-3')} style={{ transform: 'translateZ(0px)' }} />
-          {/* Sides */}
           <div className="absolute top-0 left-[18px] h-[10px] w-[194px] origin-top bg-surface-2" style={{ transform: 'rotateX(-90deg)' }} />
           <div className="absolute bottom-0 left-[18px] h-[10px] w-[194px] origin-bottom bg-surface-2" style={{ transform: 'rotateX(90deg)' }} />
           <div className="absolute top-[18px] right-0 h-[48px] w-[10px] origin-right bg-accent/60" style={{ transform: 'rotateY(-90deg)' }} />
           <div className="absolute top-[18px] left-0 h-[48px] w-[10px] origin-left bg-surface-2" style={{ transform: 'rotateY(90deg)' }} />
-          {/* Top */}
           <div
             className={cx(face, 'border border-accent/50 bg-surface-2 shadow-[0_0_40px_-10px_var(--accent)]')}
             style={{ transform: `translateZ(${T}px)` }}
@@ -260,7 +258,7 @@ function Calibration({ dk, isDemo }: { dk: string; isDemo: boolean }) {
       setResult(await client.imuCalibration(yaw, d.target))
       setPhase('done')
     } catch (e) {
-      setError(`Calibration failed: ${e instanceof Error ? e.message : String(e)}`)
+      setError(`Calibration failed: ${errorText(e)}`)
       setPhase('idle')
     }
   }

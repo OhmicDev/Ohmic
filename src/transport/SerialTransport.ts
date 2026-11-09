@@ -14,14 +14,14 @@ export const VESC_USB_IDS = [
 /** The parts of `navigator.serial` we use, so tests can pass a fake. */
 export type SerialApi = Pick<Serial, 'getPorts' | 'requestPort'>
 
-export interface SerialTransportOptions {
+interface SerialTransportOptions {
   baudRate?: number
   serial?: SerialApi
 }
 
 const hex4 = (n: number) => n.toString(16).padStart(4, '0')
 
-export function isVescPort(port: SerialPort): boolean {
+function isVescPort(port: SerialPort): boolean {
   const { usbVendorId, usbProductId } = port.getInfo()
   return VESC_USB_IDS.some((id) => id.usbVendorId === usbVendorId && id.usbProductId === usbProductId)
 }

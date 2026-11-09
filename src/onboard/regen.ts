@@ -21,7 +21,7 @@
 // regenStartCommands produces the same logic for the controller.
 
 import type { ConfigValues } from '../config/types'
-import { lf, li, packCommands, squash } from './lisp'
+import { lf, li, packCommands, parseStatusLine, squash } from './lisp'
 
 export interface RegenParams {
   /** Metres per second for each ERPM on this controller's wheel. */
@@ -51,9 +51,9 @@ export const STRENGTH_PCT: Record<Exclude<RegenStrength, 'custom'>, number> = { 
 
 export const REGEN_DT = 0.01
 /** Throttle (or brake) input below this counts as let go. */
-export const RELEASED = 0.05
+const RELEASED = 0.05
 /** Throttle above this counts as used, which allows regen on the next let-go. */
-export const PRESSED = 0.1
+const PRESSED = 0.1
 /** Never acts below this speed: 2 km/h, so you can always stop and stand. */
 export const REGEN_MIN_SPEED = 2 / 3.6
 
@@ -92,8 +92,6 @@ export function regenSettingsProblem(s: RegenSettings): string | null {
 }
 
 export const strengthPct = (s: RegenSettings) => (s.strength === 'custom' ? s.customPct : STRENGTH_PCT[s.strength])
-
-// ------------------------------------------------------------ which controller reads the throttle
 
 export interface ThrottleSource {
   input: 0 | 1
@@ -134,8 +132,6 @@ export function throttleSource(app: ConfigValues): ThrottleSource | { problem: s
   return null
 }
 
-// ------------------------------------------------------------ reference logic
-
 export interface RegenState {
   /** The throttle was used since the vehicle last stopped. */
   armed: boolean
@@ -150,7 +146,7 @@ export interface RegenState {
 
 export const regenInit = (): RegenState => ({ armed: false, active: false, level: 0, wait: 0, engagements: 0 })
 
-export interface RegenInputs {
+interface RegenInputs {
   /** 0..1 for ADC; -1..1 for PPM. */
   throttle: number
   /** The ADC2 lever, 0..1 (ignored for PPM, where it's the back half of the stick). */
@@ -182,8 +178,6 @@ export function regenStep(s: RegenState, p: RegenParams, x: RegenInputs): number
   return p.amps * s.level * fade
 }
 
-// ------------------------------------------------------------ LispBM
-//
 // Settings live in globals (ohm-g*), so the functions don't change between runs;
 // ohm-gk counts loop runs (to prove the loop is alive) and ohm-gid echoes the
 // run that started it (to prove these settings took).
@@ -257,10 +251,9 @@ export interface RegenStatus {
   runId: number | null
 }
 
-/** Reads REGEN_STATUS_PROGRAM's output. An unknown variable means it was never started since power-on. */
+/** Reads REGEN_STATUS_PROGRAM's output. */
 export function parseRegenStatus(text: string): RegenStatus | null {
-  const m = /\(\s*(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\)/.exec(text)
-  if (m) return { on: m[1] === '1', engagements: Number(m[2]), beat: Number(m[3]), runId: Number(m[4]) }
-  if (/not.?bound|undefined|variable|ohm-/i.test(text)) return { on: false, engagements: 0, beat: null, runId: null }
-  return null
+  const st = parseStatusLine(text)
+  if (st === 'unbound') return { on: false, engagements: 0, beat: null, runId: null }
+  return st && { on: st.on, engagements: st.count, beat: st.beat, runId: st.runId }
 }

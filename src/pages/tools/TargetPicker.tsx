@@ -6,12 +6,12 @@ export function TargetPicker({
   devices,
   value,
   onChange,
-  label = 'Device',
+  label,
 }: {
   devices: DeviceInfo[]
   value: string
   onChange: (key: string) => void
-  label?: string
+  label: string
 }) {
   if (devices.length < 2) return null
   return (

@@ -2,7 +2,7 @@
 
 import { LISP_STARTER } from '../state/lisp'
 
-export interface LispExample {
+interface LispExample {
   id: string
   title: string
   hint: string

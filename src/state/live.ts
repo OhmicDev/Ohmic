@@ -57,8 +57,6 @@ export const useLiveData = create<LiveDataState>()((set) => ({
   },
 }))
 
-// ------------------------------------------------------------ view state
-
 /** A plotted signal: which controller, which signal, and its colour slot (fixed while plotted). */
 export interface Plotted {
   key: string // "local:currentMotor"
@@ -142,8 +140,6 @@ export const useLiveView = create<LiveViewState>()(
     },
   ),
 )
-
-// ------------------------------------------------------------ IMU demand
 
 let viewers = 0
 

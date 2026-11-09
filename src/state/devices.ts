@@ -50,7 +50,7 @@ export function pickPrimary(devices: DeviceInfo[]): Target | null {
   return devices.find((d) => d.motor)?.target ?? null
 }
 
-export function isViewValid(view: View, devices: DeviceInfo[]): boolean {
+function isViewValid(view: View, devices: DeviceInfo[]): boolean {
   return view === 'all' || devices.some((d) => d.motor && d.target === view)
 }
 

@@ -78,8 +78,9 @@ function InputSteps({ list }: { list: DeviceConfig[] }) {
   const [step, setStep] = useState<Step>('choose')
   const [writing, setWriting] = useState<null | 'prepare' | 'final'>(null)
   const d = devices[key] ?? list[0]
-  const app = d.appconf.device as ConfigValues
-  const reading = useReading(d, input, step === 'rest' || step === 'throttle' || step === 'brake' || step === 'review')
+  const app = d.appconf.device!
+  const live = step === 'rest' || step === 'throttle' || step === 'brake' || step === 'review'
+  const reading = useReading(d, input, live)
   const [rest, setRest] = useState<{ a: Range; b: Range }>({ a: emptyRange(), b: emptyRange() })
   const [full, setFull] = useState<{ a: Range; b: Range }>({ a: emptyRange(), b: emptyRange() })
   const [brakeFull, setBrakeFull] = useState<Range>(emptyRange())
@@ -121,7 +122,6 @@ function InputSteps({ list }: { list: DeviceConfig[] }) {
     setWriting('prepare')
   }
 
-  // Final values.
   const thr = input === 'adc' ? adcEnds(rest.a, full.a) : ppmEnds(rest.a, full.a)
   const brk = input === 'adc' && brake ? adcEnds(rest.b, brakeFull) : null
   const problem = typeof thr === 'string' ? thr : typeof brk === 'string' ? `Brake: ${brk}` : null
@@ -227,9 +227,7 @@ function InputSteps({ list }: { list: DeviceConfig[] }) {
           </>
         )}
 
-        {(step === 'rest' || step === 'throttle' || step === 'brake' || step === 'review') && (
-          <LiveBars input={input} brake={input === 'adc' && brake} reading={reading} rest={rest} full={full} brakeFull={brakeFull} />
-        )}
+        {live && <LiveBars input={input} brake={input === 'adc' && brake} reading={reading} rest={rest} full={full} brakeFull={brakeFull} />}
 
         {isDemo && (step === 'rest' || step === 'throttle' || step === 'brake') && <DemoHand />}
 
@@ -244,7 +242,7 @@ function InputSteps({ list }: { list: DeviceConfig[] }) {
         {step === 'throttle' && (
           <StepBox
             text={input === 'adc' ? 'Push the throttle all the way, hold a moment, then let go.' : 'Push the throttle fully forward, then pull the brake fully back, then let go.'}
-            ready={typeof (input === 'adc' ? adcEnds(rest.a, full.a) : ppmEnds(rest.a, full.a)) !== 'string'}
+            ready={typeof thr !== 'string'}
             onBack={() => go('rest')}
             onNext={() => go(input === 'adc' && brake ? 'brake' : 'review')}
           />

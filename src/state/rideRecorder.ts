@@ -3,11 +3,11 @@
 // app mid-ride keeps everything up to the last save.
 
 import { create } from 'zustand'
-import type { Target } from '../client/VescClient'
 import { emptyRow, RowBuffer, type Row } from '../logs/columns'
 import { askMotionPermission, holdWakeLock, watchGps, watchPhoneMotion, type GpsFix, type GpsStatus, type PhoneMotion } from '../logs/sensors'
 import { SummaryBuilder, type RideSummary } from '../logs/summary'
 import { speedKmh, tachoToKm } from '../lib/vehicle'
+import type { Values } from '../protocol/messages'
 import { db } from './db'
 import { deviceName } from './config'
 import { targetKey } from './devices'
@@ -20,7 +20,7 @@ import { useTelemetry } from './telemetry'
 export type ImuStatus = 'off' | 'waiting' | 'controller' | 'phone' | 'none'
 
 /** Save what's been recorded this often (ms), or sooner if this many rows build up. */
-export const SAVE_EVERY_MS = 10_000
+const SAVE_EVERY_MS = 10_000
 const SAVE_ROWS = 2000
 /** A GPS fix older than this isn't put on new rows. */
 const FIX_MAX_AGE_MS = 5000
@@ -246,7 +246,7 @@ function moved(r: Run, key: string, value: number): number {
 }
 
 function buildRow(r: Run, e: SamplesEvent): Row | null {
-  const primary: Target | null = useSession.getState().primary
+  const primary = useSession.getState().primary
   const lead = e.samples.find((s) => s.target === primary)
   if (!lead) return null
   const vehicle = useSettings.getState().vehicle
@@ -260,8 +260,8 @@ function buildRow(r: Run, e: SamplesEvent): Row | null {
     t.ah += moved(r, `ah:${k}`, s.values.ampHours)
     t.ahCharged += moved(r, `ahc:${k}`, s.values.ampHoursCharged)
   }
-  const sum = (f: (x: (typeof e.samples)[number]['values']) => number) => e.samples.reduce((n, s) => n + f(s.values), 0)
-  const max = (f: (x: (typeof e.samples)[number]['values']) => number) => Math.max(...e.samples.map((s) => f(s.values)))
+  const sum = (f: (x: Values) => number) => e.samples.reduce((n, s) => n + f(s.values), 0)
+  const max = (f: (x: Values) => number) => Math.max(...e.samples.map((s) => f(s.values)))
 
   const row = emptyRow()
   row.t = e.at - r.ride.startedAt

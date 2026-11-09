@@ -27,7 +27,6 @@ export class ConnectError extends Error {
   }
 }
 
-/** Small helper for the listener lists every transport needs. */
 export class Emitter<T> {
   private listeners = new Set<(value: T) => void>()
 
@@ -38,9 +37,5 @@ export class Emitter<T> {
 
   emit(value: T) {
     for (const cb of [...this.listeners]) cb(value)
-  }
-
-  clear() {
-    this.listeners.clear()
   }
 }

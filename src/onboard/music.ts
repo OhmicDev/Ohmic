@@ -11,7 +11,6 @@ import { li, MAX_CMD, packCommands, squash } from './lisp'
 export interface Note {
   /** Hz; 0 is a rest. */
   freq: number
-  /** Milliseconds. */
   ms: number
 }
 
@@ -116,7 +115,7 @@ const MAX_VOLTS_OF_BATTERY = 0.25
 /** A short gap between notes so repeated notes are heard as separate. */
 const GAP_FRACTION = 0.12
 
-export interface MotorElectrical {
+interface MotorElectrical {
   /** Ohms. */
   r: number
   /** Henries. */

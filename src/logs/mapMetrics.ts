@@ -5,7 +5,7 @@ import type { ColumnId } from './columns'
 
 export type MapMetric = 'speed' | 'power' | 'current' | 'temp'
 
-export interface MetricDef {
+interface MetricDef {
   label: string
   col: ColumnId
   unit: (u: Units) => string

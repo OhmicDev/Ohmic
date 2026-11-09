@@ -1,7 +1,7 @@
 import { Keyboard, Loader2, OctagonX, Pencil, TriangleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cx } from '../../lib/format'
-import { useConfig, type DeviceConfig } from '../../state/config'
+import type { DeviceConfig } from '../../state/config'
 import { targetKey } from '../../state/devices'
 import {
   benchLimitOf,
@@ -29,26 +29,32 @@ import {
 import { useSession } from '../../state/session'
 import { useSettings, type BenchLimits, type LatchSeconds } from '../../state/settings'
 import { useTelemetry } from '../../state/telemetry'
-import { BackLink, Button, PageTitle, Segmented } from '../../ui/Primitives'
+import { Button, PageTitle, Segmented } from '../../ui/Primitives'
 import { Toggle } from '../../ui/Toggle'
 import { useNow } from '../../ui/useNow'
 import { DemoPark } from '../config/LiveStrip'
 import { DevicePicker } from '../setup/common'
+import { useMotorDevices } from '../setup/helpers'
 import { BenchChart } from './BenchChart'
+import { BackToMore } from './ToolBits'
 
-/** Keys the panel listens for, unless a control that uses them has focus. */
+/** Whether the panel's keys apply: not while a control that uses them has focus. */
 function panelKeys(el: Element | null) {
   if (!el || el === document.body) return true
   if (el instanceof HTMLElement && el.dataset.benchKeys !== undefined) return true
   return !el.closest('button, input, select, textarea, a, [role="radio"], [role="switch"], [contenteditable]')
 }
 
+/** Space or the hold button let go: a held run stops, a latched one carries on. */
+function releaseHold() {
+  const r = useMotorControl.getState().run
+  if (r && !r.latched) stopControl()
+}
+
 export function MotorControlPage() {
-  const order = useConfig((s) => s.order)
-  const devices = useConfig((s) => s.devices)
+  const list = useMotorDevices()
   const connected = useSession((s) => s.status === 'connected')
   const st = useMotorControl()
-  const list = order.map((k) => devices[k]).filter(Boolean)
   const runDevs = runDevices(st)
   const main = runDevs[0] ?? null
 
@@ -70,8 +76,7 @@ export function MotorControlPage() {
     const up = (e: KeyboardEvent) => {
       if (e.key !== ' ' || !panelKeys(document.activeElement)) return
       e.preventDefault()
-      const r = useMotorControl.getState().run
-      if (r && !r.latched) stopControl()
+      releaseHold()
     }
     window.addEventListener('keydown', down, true)
     window.addEventListener('keyup', up, true)
@@ -84,7 +89,7 @@ export function MotorControlPage() {
 
   return (
     <>
-      <BackLink to="/more">More</BackLink>
+      <BackToMore />
       <PageTitle
         title="Motor control"
         subtitle="Drive a motor from here to test it on the bench: by current, duty, speed, position or braking."
@@ -299,11 +304,6 @@ function RunCard({ devs }: { devs: DeviceConfig[] }) {
   const left = run ? Math.max(0, Math.ceil((run.endsAt - now) / 1000)) : 0
   const names = devs.map((d) => d.name).join(' and ')
 
-  const releaseHold = () => {
-    const r = useMotorControl.getState().run
-    if (r && !r.latched) stopControl()
-  }
-
   return (
     <section className="card sticky bottom-24 z-10 space-y-3 p-5 md:bottom-4" aria-label="Run">
       <div className="flex flex-wrap items-stretch gap-3">
@@ -379,13 +379,14 @@ function RunCard({ devs }: { devs: DeviceConfig[] }) {
   )
 }
 
+const fmt = (x: number | undefined, digits: number) => (x === undefined || !Number.isFinite(x) ? '—' : x.toFixed(digits))
+
 function Readouts({ devs }: { devs: DeviceConfig[] }) {
   const values = useTelemetry((s) => s.devices)
   return (
     <section className="card p-5" aria-label="Live readouts">
       {devs.map((d, i) => {
         const v = values[targetKey(d.target)]
-        const fmt = (x: number | undefined, digits: number) => (x === undefined || !Number.isFinite(x) ? '—' : x.toFixed(digits))
         return (
           <div key={d.key} className={cx(i > 0 && 'mt-4 border-t border-line pt-4')}>
             {devs.length > 1 && <div className="mb-2 text-sm font-semibold">{d.name}</div>}

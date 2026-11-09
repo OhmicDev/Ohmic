@@ -51,8 +51,6 @@ test('Ride settings, Config and its backups belong to Tune; tools and app settin
   await expect(main.getByRole('link', { name: /^Ride modes/ })).toBeVisible()
   await expect(main.getByRole('link', { name: /^Backups/ })).toBeVisible()
 
-  await expect(main.getByRole('link', { name: /AI Tune/ })).toHaveCount(0)
-
   // Setup is just the steps for a new build.
   await tab('Setup').click()
   await expect(main.getByRole('link', { name: /^Ride modes/ })).toHaveCount(0)

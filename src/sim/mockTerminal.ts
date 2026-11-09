@@ -23,7 +23,7 @@ export interface SimFaultRecord {
 /** The firmware keeps 25 entries; the 25th wraps the write index to 0, which empties the printed list. */
 export const FAULT_LOG_LEN = 25
 
-export interface TerminalDevice {
+interface TerminalDevice {
   /** False for modules like VESC Express that don't drive a motor. */
   motor: boolean
   hwName: string

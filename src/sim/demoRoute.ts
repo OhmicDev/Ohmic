@@ -19,7 +19,7 @@ for (let i = 0; i <= STEPS; i++) {
 }
 
 /** Length of one lap (m). */
-export const ROUTE_LENGTH_M = along[STEPS]
+const ROUTE_LENGTH_M = along[STEPS]
 
 export interface DemoFix {
   lat: number

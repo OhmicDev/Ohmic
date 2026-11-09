@@ -14,8 +14,9 @@ import { targetKey, targetLabel, type DeviceInfo } from './devices'
 import { setImuGate } from './imuGate'
 import { activeClient, useSession } from './session'
 import { useSettings } from './settings'
+import { errorText } from '../lib/format'
 
-export type KindStatus = 'idle' | 'loading' | 'ready' | 'readonly' | 'unsupported' | 'error'
+type KindStatus = 'idle' | 'loading' | 'ready' | 'readonly' | 'unsupported' | 'error'
 
 export interface KindState {
   status: KindStatus
@@ -152,7 +153,7 @@ async function readKind(key: string, kind: ConfigKind) {
   } catch (e) {
     patchKind(key, kind, (k) => ({
       status: k.device ? (k.defs ? 'ready' : 'error') : 'error',
-      reason: `Couldn't read ${kind === 'mcconf' ? 'motor' : 'app'} settings: ${e instanceof Error ? e.message : String(e)}`,
+      reason: `Couldn't read ${kind === 'mcconf' ? 'motor' : 'app'} settings: ${errorText(e)}`,
     }))
   }
 }
@@ -246,21 +247,22 @@ export const useConfig = create<ConfigState>()((set) => ({
   },
 }))
 
+/** Motor controllers in bus order, as the config store knows them. */
+export function motorDevices({ devices, order }: Pick<ConfigState, 'devices' | 'order'> = useConfig.getState()): DeviceConfig[] {
+  return order.map((k) => devices[k]).filter((d): d is DeviceConfig => !!d)
+}
+
 /** Number of unwritten edits for one device and config. */
 export function pendingCount(k: KindState | undefined): number {
   if (!k?.defs || !k.draft || !k.device) return 0
   return diffValues(k.defs, k.draft, k.device).length
 }
 
-export function hasPendingEdits(): boolean {
-  return Object.values(useConfig.getState().devices).some((d) => pendingCount(d.mcconf) + pendingCount(d.appconf) > 0)
-}
-
-// Follow the connection: add controllers as they're found and read their settings
-// in the background. Disconnecting on purpose forgets everything; a dropped link keeps edits.
 // IMU type "off" in the app settings: don't ask that controller for IMU data.
 setImuGate((d) => useConfig.getState().devices[deviceKey(d)]?.appconf.device?.['imu_conf.type'] !== 0)
 
+// Follow the connection: add controllers as they're found and read their settings
+// in the background. Disconnecting on purpose forgets everything; a dropped link keeps edits.
 useSession.subscribe((s, prev) => {
   if (s.status === 'idle' && prev.status !== 'idle') {
     useConfig.getState().reset()

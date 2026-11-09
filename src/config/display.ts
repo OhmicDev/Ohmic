@@ -5,7 +5,7 @@
 
 import { CFG, type ConfigValue, type ParamDef } from './types'
 
-export interface DisplaySpec {
+interface DisplaySpec {
   /** shown = stored × factor */
   factor: number
   min: number
@@ -15,7 +15,7 @@ export interface DisplaySpec {
   unit: string
 }
 
-export function isNumeric(p: ParamDef): boolean {
+function isNumeric(p: ParamDef): boolean {
   return p.typeId === CFG.DOUBLE || p.typeId === CFG.INT
 }
 

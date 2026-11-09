@@ -17,7 +17,7 @@ function crcTable() {
   return table
 }
 
-export function crc32c(data: Uint8Array): number {
+function crc32c(data: Uint8Array): number {
   const t = crcTable()
   let crc = 0xffffffff
   for (let i = 0; i < data.length; i++) crc = t[(crc ^ data[i]) & 0xff] ^ (crc >>> 8)

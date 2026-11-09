@@ -3,6 +3,7 @@
 // Nothing here clamps or "fixes" a value; differences after the write are reported.
 
 import { ConfigRejectedError, TimeoutError, type Target, type VescClient } from '../client/VescClient'
+import { errorText } from '../lib/format'
 import { decodeConfig, encodeConfig, sameOnWire } from './codec'
 import type { ConfigDefs, ConfigKind, ConfigValue, ConfigValues } from './types'
 import { validateConfig, type Issue } from './validate'
@@ -18,7 +19,7 @@ export function diffValues(defs: ConfigDefs, a: ConfigValues, b: ConfigValues): 
   return defs.order.filter((n) => !sameOnWire(defs.params[n], a[n], b[n]))
 }
 
-export function changesBetween(defs: ConfigDefs, before: ConfigValues, after: ConfigValues): Change[] {
+function changesBetween(defs: ConfigDefs, before: ConfigValues, after: ConfigValues): Change[] {
   return diffValues(defs, before, after).map((name) => ({ name, from: before[name], to: after[name] }))
 }
 
@@ -26,7 +27,7 @@ export function changesBetween(defs: ConfigDefs, before: ConfigValues, after: Co
  * Settings that belong to one controller and its motor, never copied to others
  * when writing "to all controllers": its CAN id, calibration and measured motor values.
  */
-export function isPerDeviceParam(name: string): boolean {
+function isPerDeviceParam(name: string): boolean {
   return (
     name === 'controller_id' ||
     name === 'm_invert_direction' ||
@@ -68,7 +69,7 @@ export interface WriteItem {
   custom?: CustomWriteIo
 }
 
-export interface CustomWriteIo {
+interface CustomWriteIo {
   /** Shown where "motor" or "app" settings would be. */
   label: string
   read: () => Promise<Uint8Array>
@@ -110,7 +111,7 @@ export function shareChanges(
 
 export type WriteStep = 'checking' | 'backup' | 'writing' | 'verifying'
 
-export interface Adjustment {
+interface Adjustment {
   name: string
   wanted: ConfigValue
   got: ConfigValue
@@ -120,19 +121,17 @@ export type WriteOutcome =
   | { status: 'ok'; backupId: number; values: ConfigValues }
   /** Written, but the controller stored some values differently (hardware limits etc.). */
   | { status: 'adjusted'; backupId: number; values: ConfigValues; adjusted: Adjustment[] }
-  /** Nothing was written. */
+  /** Nothing was written, or the read-back that checks the write failed. */
   | { status: 'failed'; backupId: number | null; error: string; values?: ConfigValues }
   /** The controller changed underneath us; nothing was written. */
   | { status: 'stale'; backupId: null; values: ConfigValues; changedOnDevice: string[] }
 
-export interface WriteDeps {
+interface WriteDeps {
   client: Pick<VescClient, 'getConfig' | 'setConfig'>
   /** Saves a backup of the controller's current settings; returns its id. */
   backup: (item: WriteItem, current: { raw: Uint8Array; values: ConfigValues }) => Promise<number>
   onStep?: (step: WriteStep) => void
 }
-
-const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export async function writeConfig(item: WriteItem, deps: WriteDeps): Promise<WriteOutcome> {
   const { client, onStep } = deps
@@ -147,7 +146,7 @@ export async function writeConfig(item: WriteItem, deps: WriteDeps): Promise<Wri
     raw = await client.getConfig(item.kind, opts)
     current = decodeConfig(item.defs, raw)
   } catch (e) {
-    return { status: 'failed', backupId: null, error: `Couldn't read the current settings: ${errText(e)}` }
+    return { status: 'failed', backupId: null, error: `Couldn't read the current settings: ${errorText(e)}` }
   }
   const changedOnDevice = diffValues(item.defs, current, item.before)
   if (changedOnDevice.length) return { status: 'stale', backupId: null, values: current, changedOnDevice }
@@ -158,7 +157,7 @@ export async function writeConfig(item: WriteItem, deps: WriteDeps): Promise<Wri
   try {
     backupId = await deps.backup(item, { raw, values: current })
   } catch (e) {
-    return { status: 'failed', backupId: null, error: `Couldn't save a backup, so nothing was written: ${errText(e)}` }
+    return { status: 'failed', backupId: null, error: `Couldn't save a backup, so nothing was written: ${errorText(e)}` }
   }
 
   // 3. Write.
@@ -167,7 +166,7 @@ export async function writeConfig(item: WriteItem, deps: WriteDeps): Promise<Wri
   try {
     body = encodeConfig(item.defs, item.after)
   } catch (e) {
-    return { status: 'failed', backupId, error: errText(e) }
+    return { status: 'failed', backupId, error: errorText(e) }
   }
   let writeError: unknown = null
   try {
@@ -175,7 +174,7 @@ export async function writeConfig(item: WriteItem, deps: WriteDeps): Promise<Wri
   } catch (e) {
     if (e instanceof ConfigRejectedError) return { status: 'failed', backupId, error: `The controller refused the settings: ${e.message}` }
     // A lost reply doesn't mean a lost write; the read-back below decides.
-    if (!(e instanceof TimeoutError)) return { status: 'failed', backupId, error: errText(e) }
+    if (!(e instanceof TimeoutError)) return { status: 'failed', backupId, error: errorText(e) }
     writeError = e
   }
 
@@ -185,7 +184,7 @@ export async function writeConfig(item: WriteItem, deps: WriteDeps): Promise<Wri
   try {
     stored = decodeConfig(item.defs, await client.getConfig(item.kind, opts))
   } catch (e) {
-    return { status: 'failed', backupId, error: `Written, but couldn't read the settings back to check them: ${errText(e)}` }
+    return { status: 'failed', backupId, error: `Written, but couldn't read the settings back to check them: ${errorText(e)}` }
   }
   const adjusted = diffValues(item.defs, item.after, stored).map((name) => ({
     name,

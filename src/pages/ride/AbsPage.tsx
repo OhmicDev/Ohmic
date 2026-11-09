@@ -2,13 +2,13 @@ import { CloudRain, FlaskConical, Loader2, RefreshCw, ShieldCheck, ShieldOff } f
 import { useEffect, useState } from 'react'
 import { cx } from '../../lib/format'
 import { SLIP_DECEL, type AbsSensitivity } from '../../onboard/abs'
-import { useConfig } from '../../state/config'
 import { absIsOn, useAbs } from '../../state/onboard'
 import { demoSkidTest, useSession } from '../../state/session'
 import { useSettings } from '../../state/settings'
 import { BackLink, Badge, Button, PageTitle, Segmented } from '../../ui/Primitives'
 import { useNow } from '../../ui/useNow'
 import { DemoPark } from '../config/LiveStrip'
+import { useMotorDevices } from '../setup/helpers'
 import { AbsIntroDialog } from './AbsIntroDialog'
 import { AbsTestDialog } from './AbsTestDialog'
 
@@ -23,15 +23,13 @@ export function AbsPage() {
   const sensitivity = useSettings((s) => s.absSensitivity)
   const setSensitivity = useSettings((s) => s.setAbsSensitivity)
   const acknowledged = useSettings((s) => s.absAcknowledged)
-  const order = useConfig((s) => s.order)
-  const devices = useConfig((s) => s.devices)
+  const list = useMotorDevices()
   const connected = useSession((s) => s.status === 'connected')
   const isDemo = useSession((s) => s.transportKind === 'mock')
   const [intro, setIntro] = useState(false)
   const [demoNote, setDemoNote] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
   const now = useNow(1000)
-  const list = order.map((k) => devices[k]).filter(Boolean)
   const on = absIsOn(status, list)
 
   // While on, keep the count of brake releases fresh.

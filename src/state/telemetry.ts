@@ -11,7 +11,7 @@ import { motorRpm, packWh, SocEstimator, speedKmh, tachoToKm } from '../lib/vehi
 import { targetKey, type View } from './devices'
 import { useSettings } from './settings'
 
-export interface DeviceSample {
+interface DeviceSample {
   target: Target
   values: Values
 }
@@ -48,7 +48,7 @@ export interface Trip {
   peakTempFet: number
 }
 
-export const HISTORY_KEYS = ['speed', 'vIn', 'currentIn', 'power', 'currentMotor', 'duty', 'erpm', 'tempMotor', 'tempFet'] as const
+const HISTORY_KEYS = ['speed', 'vIn', 'currentIn', 'power', 'currentMotor', 'duty', 'erpm', 'tempMotor', 'tempFet'] as const
 export type HistoryKey = (typeof HISTORY_KEYS)[number]
 const HISTORY_MS = 60_000
 const MIN_DISTANCE_FOR_RANGE_KM = 0.3
@@ -86,7 +86,7 @@ interface Counter {
 
 const netWh = (now: CounterValues, base: CounterValues) => now.wh - base.wh - (now.whCharged - base.whCharged)
 
-export interface IngestOptions {
+interface IngestOptions {
   /** Motor controller that leads speed, voltage and distance. */
   primary: Target
   view: View
@@ -106,8 +106,6 @@ interface TelemetryState {
 
 const soc = new SocEstimator()
 let counters = new Map<string, Counter>()
-
-const keyOf = targetKey
 
 export const useTelemetry = create<TelemetryState>()((set, get) => ({
   devices: {},
@@ -148,7 +146,7 @@ export const useTelemetry = create<TelemetryState>()((set, get) => ({
     let distanceKm = 0
     let energyWh = 0
     for (const s of samples) {
-      const k = keyOf(s.target)
+      const k = targetKey(s.target)
       const cur: CounterValues = {
         tachoAbs: s.values.tachometerAbs,
         wh: s.values.wattHours,
@@ -220,7 +218,7 @@ export const useTelemetry = create<TelemetryState>()((set, get) => ({
     }
 
     set({
-      devices: Object.fromEntries(samples.map((s) => [keyOf(s.target), s.values])),
+      devices: Object.fromEntries(samples.map((s) => [targetKey(s.target), s.values])),
       dash,
       trip,
       lastUpdate: now,

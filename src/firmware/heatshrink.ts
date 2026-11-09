@@ -9,8 +9,8 @@
 // as in the reference encoder. Matches may overlap the bytes they produce (runs).
 // The decoder's window starts zero-filled; this encoder never refers before the start.
 
-export const HS_WINDOW_BITS = 13
-export const HS_LOOKAHEAD_BITS = 5
+const HS_WINDOW_BITS = 13
+const HS_LOOKAHEAD_BITS = 5
 const WINDOW = 1 << HS_WINDOW_BITS
 const MAX_LEN = 1 << HS_LOOKAHEAD_BITS
 const MIN_LEN = 3

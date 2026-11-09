@@ -11,6 +11,10 @@ export function fmtThousands(n: number): string {
   return Math.round(n).toLocaleString('en-US')
 }
 
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+export const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
 export function fmtDuration(sec: number): string {
   const s = Math.max(0, Math.floor(sec))
   const h = Math.floor(s / 3600)

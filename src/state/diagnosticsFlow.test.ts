@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SIGNAL_INDEX } from '../live/signals'
 import { MockBus } from '../sim/mockBus'
+import { waitForWithin } from '../test/waitFor'
 import { MockTransport } from '../transport/MockTransport'
 import { useFaults } from './faults'
 import { addLiveViewer, liveLogs, useLiveView } from './live'
@@ -8,13 +9,7 @@ import { connectWith, injectDemoFault, useSession } from './session'
 import { useSettings } from './settings'
 import { runCommand, useTerminal } from './terminal'
 
-async function waitFor(check: () => boolean, timeoutMs = 4000) {
-  const start = Date.now()
-  while (!check()) {
-    if (Date.now() - start > timeoutMs) throw new Error('Timed out waiting')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
+const waitFor = waitForWithin(4000)
 
 const connectDemo = () => connectWith(new MockTransport({ bus: new MockBus({ layout: 'dual' }), connectDelayMs: 5, latencyMs: [1, 2] }))
 const faults = () => useFaults.getState()

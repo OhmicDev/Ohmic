@@ -128,7 +128,7 @@ export function summarize(d: RideData): RideSummary {
   return b.get()
 }
 
-export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371.0088
   const rad = Math.PI / 180
   const dLat = (lat2 - lat1) * rad

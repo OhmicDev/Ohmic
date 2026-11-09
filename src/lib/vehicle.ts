@@ -1,5 +1,5 @@
 // Vehicle math: ERPM -> speed, tachometer -> distance, voltage -> battery %.
-// Until config reading lands (phase 3) these settings come from the user.
+// The setup is read from the primary controller's motor settings, and can be edited in Settings.
 
 export type Chemistry = 'liion' | 'lifepo4'
 
@@ -65,7 +65,7 @@ export function socFromCellVoltage(cellV: number, chem: Chemistry): number {
   return 100
 }
 
-export function nominalCellVoltage(chem: Chemistry): number {
+function nominalCellVoltage(chem: Chemistry): number {
   return chem === 'lifepo4' ? 3.2 : 3.6
 }
 
@@ -97,11 +97,9 @@ export class SocEstimator {
   }
 }
 
-// ---------------------------------------------------------------- units
-
 export type Units = 'metric' | 'imperial'
 
-const KM_PER_MI = 1.609344
+export const KM_PER_MI = 1.609344
 
 export const unitLabels = (u: Units) =>
   u === 'metric'

@@ -6,14 +6,14 @@ import { db } from './db'
 
 export { db }
 
-export interface BackupChange {
+interface BackupChange {
   name: string
   label: string
   from: ConfigValue
   to: ConfigValue
 }
 
-export type BackupReason = 'before-write' | 'before-update' | 'manual' | 'imported'
+type BackupReason = 'before-write' | 'before-update' | 'manual' | 'imported'
 
 export interface Backup {
   id: number
@@ -36,7 +36,7 @@ export interface Backup {
   values: ConfigValues
 }
 
-export type NewBackup = Omit<Backup, 'id' | 'createdAt'> & { createdAt?: number }
+type NewBackup = Omit<Backup, 'id' | 'createdAt'> & { createdAt?: number }
 
 export async function addBackup(b: NewBackup): Promise<number> {
   const id = await db.backups.add({ ...b, createdAt: b.createdAt ?? Date.now() } as Backup)
@@ -52,23 +52,14 @@ export async function listBackups(filter: { deviceUuid?: string | null; kind?: C
   )
 }
 
-export function getBackup(id: number) {
-  return db.backups.get(id)
-}
-
 export async function deleteBackup(id: number) {
   await db.backups.delete(id)
   notify()
 }
 
-export async function renameBackup(id: number, title: string) {
-  await db.backups.update(id, { title })
-  notify()
-}
-
-/** Lets lists refresh when backups change. */
 type Listener = () => void
 const listeners = new Set<Listener>()
+/** Lets lists refresh when backups change. */
 export function onBackupsChanged(cb: Listener): () => void {
   listeners.add(cb)
   return () => void listeners.delete(cb)

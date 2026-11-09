@@ -1,19 +1,14 @@
-import { Archive, BatteryCharging, Layers, ShieldCheck, SlidersHorizontal, type LucideIcon } from 'lucide-react'
+import { Archive, BatteryCharging, Layers, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { PageTitle } from '../../ui/Primitives'
-import { LinkRow, RowGroup } from '../../ui/RowList'
-import type { TileColor } from '../../ui/rowStyles'
+import { LinkRow, RowGroup, type LinkRowProps } from '../../ui/RowList'
 
-type TuneRoute = '/modes' | '/regen' | '/abs' | '/config' | '/config/backups'
-
-type Item = { to: TuneRoute; icon: LucideIcon; color: TileColor; title: string; hint: string }
-
-const RIDING: Item[] = [
+const RIDING: LinkRowProps[] = [
   { to: '/modes', icon: Layers, color: 'blue', title: 'Ride modes', hint: 'Eco, Normal, Sport and your own; single or dual motor.' },
   { to: '/regen', icon: BatteryCharging, color: 'green', title: 'Regen', hint: 'Slows you down when you let go of the throttle.' },
   { to: '/abs', icon: ShieldCheck, color: 'orange', title: 'ABS', hint: 'Eases motor braking when a wheel starts to skid.' },
 ]
 
-const EVERY: Item[] = [
+const EVERY: LinkRowProps[] = [
   { to: '/config', icon: SlidersHorizontal, color: 'grey', title: 'Config', hint: 'Every motor and app setting, searchable, with help.' },
   { to: '/config/backups', icon: Archive, color: 'teal', title: 'Backups', hint: 'Saved before every write. Compare, restore, export.' },
 ]

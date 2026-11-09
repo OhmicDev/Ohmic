@@ -1,6 +1,4 @@
-// Shared looks for list rows (Connect, More, Setup).
-
-/** Flat colours for the small icon squares in lists, like macOS settings. */
+/** Flat colours for the small icon squares in lists and the sidebar, like macOS settings. */
 export const TILE = {
   blue: 'bg-[#2f7fd6]',
   green: 'bg-[#27ae60]',

@@ -13,7 +13,6 @@ export function ConnectionChip() {
   const link = useSession((s) => s.link)
   const vIn = useTelemetry((s) => s.dash?.vIn)
   const soc = useTelemetry((s) => s.dash?.soc)
-
   const show = useConnectSheet((s) => s.show)
 
   const base =
@@ -46,10 +45,11 @@ export function ConnectionChip() {
     )
   }
 
-  const dot = link === 'ok' ? 'bg-ok' : link === 'slow' ? 'bg-warn' : 'bg-danger'
+  const tone = link === 'ok' ? 'ok' : link === 'slow' ? 'warn' : 'danger'
+  const dot = { ok: 'bg-ok', warn: 'bg-warn', danger: 'bg-danger' }[tone]
   return (
     <Link to="/connect" className={base} title="Connection details">
-      <span className={cx('live-dot size-2 rounded-full', dot)} style={{ ['--pulse-color' as string]: `var(--color-${link === 'ok' ? 'ok' : link === 'slow' ? 'warn' : 'danger'})` }} />
+      <span className={cx('live-dot size-2 rounded-full', dot)} style={{ ['--pulse-color' as string]: `var(--color-${tone})` }} />
       <span className="max-w-[9rem] truncate font-medium">{kind === 'mock' ? 'Demo' : fw?.hwName}</span>
       {vIn !== undefined && (
         <span className="num hidden text-muted min-[380px]:inline">

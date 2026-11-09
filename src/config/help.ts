@@ -1,7 +1,7 @@
 // Plain-language help for the settings people change most. The original VESC
 // Tool description is always shown too; this only adds an easier explanation.
 
-export interface Curated {
+interface Curated {
   plain: string
   /** Friendlier names for an enum's options, in the same order. */
   options?: string[]

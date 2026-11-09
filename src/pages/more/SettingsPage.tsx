@@ -9,31 +9,30 @@ import { BackLink, Button, PageTitle, Segmented } from '../../ui/Primitives'
 import { Toggle } from '../../ui/Toggle'
 import { DataPanel, DeveloperPanel } from './DataSection'
 
-const JUMPS = [
-  ['look', 'Look'],
-  ['connection', 'Connection'],
-  ['vehicle', 'Vehicle'],
-  ['language', 'settings.language'],
-  ['data', 'settings.data'],
-  ['developer', 'settings.developer'],
-  ['about', 'About'],
-] as const
-
 export function SettingsPage() {
   const s = useSettings()
   const t = useT()
+  const jumps = [
+    ['look', 'Look'],
+    ['connection', 'Connection'],
+    ['vehicle', 'Vehicle'],
+    ['language', t('settings.language')],
+    ['data', t('settings.data')],
+    ['developer', t('settings.developer')],
+    ['about', 'About'],
+  ]
   return (
     <>
       <BackLink to="/more">More</BackLink>
       <PageTitle title="Settings" subtitle="How the app looks and connects, your vehicle, and your data." />
       <nav aria-label="Settings sections" className="-mt-1 mb-4 flex flex-wrap gap-1.5">
-        {JUMPS.map(([id, label]) => (
+        {jumps.map(([id, label]) => (
           <a
             key={id}
             href={`#${id}`}
             className="focus-ring rounded-full border border-line-strong px-3 py-1 text-xs text-muted transition-colors hover:border-text/25 hover:text-text"
           >
-            {label === 'settings.language' || label === 'settings.data' || label === 'settings.developer' ? t(label) : label}
+            {label}
           </a>
         ))}
       </nav>

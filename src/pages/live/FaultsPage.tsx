@@ -35,7 +35,6 @@ export function FaultsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Right now */}
       {activeList.length > 0 ? (
         activeList.map((e) => <ActiveFault key={e.uid} e={e} now={now} units={units} />)
       ) : connected ? (
@@ -48,7 +47,6 @@ export function FaultsPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* What the controllers stored */}
         <section className="card p-4 md:p-5" aria-labelledby="fault-logs">
           <div className="flex items-center gap-2">
             <ScrollText className="size-4 text-accent" />
@@ -74,7 +72,6 @@ export function FaultsPage() {
         {isDemo && connected && <DemoFaults motors={motors} />}
       </div>
 
-      {/* History kept by the app */}
       <section className="card overflow-hidden" aria-labelledby="fault-history">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3 md:px-5">
           <div>
@@ -249,7 +246,7 @@ function ControllerLog({ d }: { d: DeviceInfo }) {
           {d.fw?.hwName && <span className="font-normal text-muted"> · {d.fw.hwName}</span>}
         </span>
         <Button className="h-8 shrink-0 px-3 text-xs" onClick={() => void readLog(d.target)} disabled={reading}>
-          {reading ? <Loader2 className="size-3.5 animate-spin" /> : null}
+          {reading && <Loader2 className="size-3.5 animate-spin" />}
           {state?.status === 'ok' ? 'Read again' : 'Read fault log'}
         </Button>
       </div>

@@ -4,7 +4,7 @@
 const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
 const unlin = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055)
 
-export function parseHex(hex: string): [number, number, number] | null {
+function parseHex(hex: string): [number, number, number] | null {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
   if (!m) return null
   const n = parseInt(m[1], 16)
@@ -46,7 +46,7 @@ export function darken(hex: string, keep: number): string {
   return toHex(fromOklab([L * keep, a * keep, b * keep]))
 }
 
-export function relativeLuminance(hex: string): number {
+function relativeLuminance(hex: string): number {
   const rgb = parseHex(hex)
   if (!rgb) return 0
   const [r, g, b] = rgb.map(lin)

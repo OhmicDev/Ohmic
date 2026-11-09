@@ -26,7 +26,7 @@ import { useTelemetry } from './telemetry'
 
 export type ControlMode = 'current' | 'duty' | 'rpm' | 'pos' | 'brake' | 'handbrake'
 
-export interface ModeSpec {
+interface ModeSpec {
   mode: ControlMode
   label: string
   unit: string
@@ -41,7 +41,9 @@ export interface ModeSpec {
 }
 
 const n = (mc: ConfigValues, k: string) => Number(mc[k])
-const driveAmps = (mc: ConfigValues) => n(mc, 'l_current_max') * (Number.isFinite(n(mc, 'l_current_max_scale')) ? n(mc, 'l_current_max_scale') : 1)
+/** A current limit's scale setting, or 1 when the firmware has none. */
+const scaleOf = (mc: ConfigValues, k: string) => (Number.isFinite(n(mc, k)) ? n(mc, k) : 1)
+const driveAmps = (mc: ConfigValues) => n(mc, 'l_current_max') * scaleOf(mc, 'l_current_max_scale')
 
 export const MODES: ModeSpec[] = [
   {
@@ -92,7 +94,7 @@ export const MODES: ModeSpec[] = [
     digits: 1,
     step: 0.5,
     help: 'Brakes a turning motor with a set current. Spin the wheel up in another mode first, let go, then brake it.',
-    own: (mc) => Math.abs(n(mc, 'l_current_min')) * (Number.isFinite(n(mc, 'l_current_min_scale')) ? n(mc, 'l_current_min_scale') : 1),
+    own: (mc) => Math.abs(n(mc, 'l_current_min')) * scaleOf(mc, 'l_current_min_scale'),
   },
   {
     mode: 'handbrake',
@@ -119,9 +121,9 @@ const STALE_MS = 2000
 /** A wheel still coasting from a run here may be driven again this soon after. */
 const COAST_GRACE_MS = 10_000
 
-export const PRESETS = [0.1, 0.25, 0.5, 0.75, 1] as const
+const PRESETS = [0.1, 0.25, 0.5, 0.75, 1] as const
 
-export interface TestLimit {
+interface TestLimit {
   limit: number
   /** What sets it: the rider's bench limit, or a controller's own. */
   by: string
@@ -172,7 +174,7 @@ export function presetValues(mode: ControlMode, limit: number): number[] {
   return PRESETS.map((p) => Math.floor((limit * p) / step + 1e-9) * step)
 }
 
-export interface BenchRun {
+interface BenchRun {
   mode: ControlMode
   value: number
   limit: number
@@ -237,7 +239,7 @@ useSession.subscribe((s, prev) => {
 })
 
 /** Why bench control can't start right now, or null. */
-export function controlBlock(devs: DeviceConfig[], mode: ControlMode = get().mode): string | null {
+function controlBlock(devs: DeviceConfig[], mode: ControlMode = get().mode): string | null {
   if (useSession.getState().status !== 'connected' || !activeClient()) return 'Connect to a motor controller first.'
   const busy = useSession.getState().busy
   if (busy) return `Wait until ${busy} is done.`
@@ -436,8 +438,8 @@ export function nudge(direction: 1 | -1, big = false) {
     return 'error' in l ? null : l.limit
   })()
   if (limit === null) return
-  const now = Number(s.inputs[s.mode].trim().replace(',', '.'))
-  const base = Number.isFinite(now) ? now : 0
+  const typed = Number(s.inputs[s.mode].trim().replace(',', '.'))
+  const base = Number.isFinite(typed) ? typed : 0
   const lo = spec.signed ? -limit : 0
   let next = Math.round((base + direction * spec.step * (big ? 10 : 1)) / spec.step) * spec.step
   if (s.mode === 'pos') next = ((next % 360) + 360) % 360

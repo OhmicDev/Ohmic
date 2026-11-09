@@ -6,7 +6,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { darken } from '../lib/color'
 import { useSettings, type ThemePref } from '../state/settings'
 
-export type Theme = 'dark' | 'light'
+type Theme = 'dark' | 'light'
 
 /** How much of the accent the light theme keeps: 4.5:1 or better on every light surface for all accents. */
 export const LIGHT_ACCENT_KEEP = 0.55
@@ -26,16 +26,11 @@ export function resolveTheme(pref: ThemePref, prefersLight: boolean): Theme {
   return pref === 'system' ? (prefersLight ? 'light' : 'dark') : pref
 }
 
-/** The theme in effect now. */
+/** The theme in effect: the stored choice, with 'system' resolved. */
 export function useTheme(): Theme {
   const pref = useSettings((s) => s.theme)
   const light = useSyncExternalStore(subscribe, systemLight, () => false)
   return resolveTheme(pref, light)
-}
-
-/** The accent as drawn: the user's colour, darkened on the light theme. */
-export function accentFor(theme: Theme, accent: string): string {
-  return theme === 'light' ? darken(accent, LIGHT_ACCENT_KEEP) : accent
 }
 
 /** Applies the theme and accent to the page. Used once, by the app shell. */
@@ -45,10 +40,10 @@ export function useApplyTheme() {
   useEffect(() => {
     const root = document.documentElement
     root.dataset.theme = theme
-    root.style.setProperty('--accent', accentFor(theme, accent))
+    // The light theme draws the user's accent darker, so it stays readable.
+    root.style.setProperty('--accent', theme === 'light' ? darken(accent, LIGHT_ACCENT_KEEP) : accent)
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BG[theme])
   }, [theme, accent])
-  return theme
 }
 
 /** A CSS custom property's current value, for drawing on canvas (charts). */

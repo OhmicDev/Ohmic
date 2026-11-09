@@ -40,5 +40,15 @@ export function packCommands(exprs: string[], limit = MAX_CMD): string[] {
   return out
 }
 
+/**
+ * Reads the "(on n k id)" line a status program prints. 'unbound' means its
+ * variables don't exist: the program was never started since power-on.
+ */
+export function parseStatusLine(text: string): { on: boolean; count: number; beat: number; runId: number } | 'unbound' | null {
+  const m = /\(\s*(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\)/.exec(text)
+  if (m) return { on: m[1] === '1', count: Number(m[2]), beat: Number(m[3]), runId: Number(m[4]) }
+  return /not.?bound|undefined|variable|ohm-/i.test(text) ? 'unbound' : null
+}
+
 /** Collapses the whitespace used to lay programs out readably here. */
 export const squash = (code: string) => code.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')').trim()

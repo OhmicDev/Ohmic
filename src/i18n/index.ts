@@ -7,13 +7,13 @@ import { useSettings } from '../state/settings'
 import { en, type MessageKey } from './en'
 
 export type { MessageKey }
-export type Catalog = Partial<Record<MessageKey, string>>
+type Catalog = Partial<Record<MessageKey, string>>
 
 export const LANGUAGES: { code: string; name: string }[] = [{ code: 'en', name: 'English' }]
 
 const CATALOGS: Record<string, Catalog> = { en }
 
-export type Vars = Record<string, string | number>
+type Vars = Record<string, string | number>
 
 export function translate(lang: string, key: MessageKey, vars?: Vars): string {
   const text = CATALOGS[lang]?.[key] ?? en[key] ?? key
@@ -29,11 +29,6 @@ export function t(key: MessageKey, vars?: Vars): string {
 export function useT() {
   const lang = useSettings((s) => s.language)
   return useCallback((key: MessageKey, vars?: Vars) => translate(lang, key, vars), [lang])
-}
-
-/** A language the app has, else English. */
-export function supportedLanguage(code: string): string {
-  return CATALOGS[code] ? code : 'en'
 }
 
 /** Registers a catalog (tests, and languages loaded later). */

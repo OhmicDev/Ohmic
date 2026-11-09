@@ -21,6 +21,7 @@ import { NextStep } from './SetupSteps'
 import { toNum, useMotorDevices } from './helpers'
 
 const HOLD_MS = 1500
+const DETECT_STEPS = ['Settings', 'Measure', 'Check the result']
 const SENSORS: Record<number, string> = { 0: 'None (sensorless)', 1: 'Encoder', 2: 'Hall sensors', 3: 'HFI (sensorless)' }
 const MOTOR_TYPES: Record<number, string> = { 0: 'BLDC', 1: 'DC', 2: 'FOC', 3: 'GPD' }
 
@@ -116,7 +117,7 @@ function DetectSetup({ list }: { list: DeviceConfig[] }) {
     <>
       <BackToSetup />
       <PageTitle title="Motor detection" subtitle="Measures the motor and sets the controller up to match. Takes about a minute per motor." />
-      <Steps steps={['Settings', 'Measure', 'Check the result']} at={0} />
+      <Steps steps={DETECT_STEPS} at={0} />
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <section className="card space-y-4 p-5">
           {list.length > 1 && (
@@ -212,10 +213,10 @@ function DetectSetup({ list }: { list: DeviceConfig[] }) {
             A backup of the current settings is saved first. When it’s done you’ll see what changed and can put the old settings back.
           </p>
           <HoldToStart disabled={!canStart} onStart={start} label="Hold to start detection" />
-          {!canStart && !blocker && !issues.length && !lifted && (
+          {!blocker && !issues.length && !lifted && (
             <p className="text-xs text-muted">Tick the box above once the {chosen.length > 1 ? 'wheels are' : 'wheel is'} off the ground.</p>
           )}
-          {!canStart && !!issues.length && <p className="text-xs text-muted">Fix the values marked in red first.</p>}
+          {issues.length > 0 && <p className="text-xs text-muted">Fix the values marked in red first.</p>}
         </section>
       </div>
     </>
@@ -305,7 +306,7 @@ function Running() {
   return (
     <>
       <PageTitle title="Motor detection" subtitle="Keep clear of the wheel until this finishes." />
-      <Steps steps={['Settings', 'Measure', 'Check the result']} at={1} />
+      <Steps steps={DETECT_STEPS} at={1} />
       <section className="card space-y-4 p-5" aria-live="polite">
         <div className="flex items-center gap-3">
           <Loader2 className="size-6 animate-spin text-accent" />
@@ -368,7 +369,7 @@ function Result() {
     <>
       <BackToSetup />
       <PageTitle title="Motor detection" subtitle="Compare what was measured with what was set before." />
-      <Steps steps={['Settings', 'Measure', 'Check the result']} at={2} />
+      <Steps steps={DETECT_STEPS} at={2} />
       <section className="card space-y-4 p-5">
         {error && <p className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{error}</p>}
         {result && !result.ok && <p className="rounded-lg border border-warn/30 bg-warn/5 p-3 text-sm text-warn">{result.message}</p>}

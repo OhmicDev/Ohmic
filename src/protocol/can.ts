@@ -32,7 +32,7 @@ export function encodeSetCanMode(mode: number, store: boolean, ack: boolean): Ui
 }
 
 /** VESC CAN packet types (CAN_PACKET_ID in datatypes.h) the monitor names. */
-export const CAN_PACKET: Record<number, string> = {
+const CAN_PACKET: Record<number, string> = {
   0: 'SET_DUTY',
   1: 'SET_CURRENT',
   2: 'SET_CURRENT_BRAKE',
@@ -100,8 +100,6 @@ export interface VescCanInfo {
   text: string | null
 }
 
-const fmt = (v: number, digits: number) => (Number.isInteger(v) && digits === 0 ? String(v) : v.toFixed(digits))
-
 /** Reads a frame as VESC CAN traffic. Null for 11-bit frames, which VESC doesn't use. */
 export function describeVescFrame(f: CanFrame): VescCanInfo | null {
   if (!f.extended) return null
@@ -113,19 +111,19 @@ export function describeVescFrame(f: CanFrame): VescCanInfo | null {
   try {
     switch (type) {
       case 9:
-        text = `${fmt(r.i32(), 0)} ERPM · ${fmt(r.i16() / 10, 1)} A · duty ${fmt((r.i16() / 1000) * 100, 1)} %`
+        text = `${r.i32()} ERPM · ${(r.i16() / 10).toFixed(1)} A · duty ${((r.i16() / 1000) * 100).toFixed(1)} %`
         break
       case 14:
-        text = `${fmt(r.i32() / 1e4, 3)} Ah used · ${fmt(r.i32() / 1e4, 3)} Ah charged`
+        text = `${(r.i32() / 1e4).toFixed(3)} Ah used · ${(r.i32() / 1e4).toFixed(3)} Ah charged`
         break
       case 15:
-        text = `${fmt(r.i32() / 1e4, 2)} Wh used · ${fmt(r.i32() / 1e4, 2)} Wh charged`
+        text = `${(r.i32() / 1e4).toFixed(2)} Wh used · ${(r.i32() / 1e4).toFixed(2)} Wh charged`
         break
       case 16:
-        text = `MOSFET ${fmt(r.i16() / 10, 1)} °C · motor ${fmt(r.i16() / 10, 1)} °C · battery ${fmt(r.i16() / 10, 1)} A`
+        text = `MOSFET ${(r.i16() / 10).toFixed(1)} °C · motor ${(r.i16() / 10).toFixed(1)} °C · battery ${(r.i16() / 10).toFixed(1)} A`
         break
       case 27:
-        text = `tacho ${fmt(r.i32(), 0)} · ${fmt(r.i16() / 10, 1)} V`
+        text = `tacho ${r.i32()} · ${(r.i16() / 10).toFixed(1)} V`
         break
       case 18:
         text = 'answer to a ping'

@@ -120,7 +120,7 @@ export function hasBms(v: BmsValues): boolean {
   return v.cells.length > 0 || v.vTotal > 0.5
 }
 
-export interface CellSummary {
+interface CellSummary {
   min: number
   max: number
   spread: number

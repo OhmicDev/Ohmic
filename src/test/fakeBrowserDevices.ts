@@ -15,8 +15,6 @@ function bytesOf(data: BufferSource): Uint8Array {
   return new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
 }
 
-// ------------------------------------------------------------------ Serial
-
 export class FakeSerialPort {
   readonly info: { usbVendorId?: number; usbProductId?: number }
   readonly bus: MockBus
@@ -118,8 +116,6 @@ export class FakeSerial {
     return this as unknown as SerialApi
   }
 }
-
-// --------------------------------------------------------------- Bluetooth
 
 class FakeCharacteristic extends EventTarget {
   readonly uuid: string
@@ -288,8 +284,4 @@ export class FakeBluetooth {
   get api(): BluetoothApi {
     return this as unknown as BluetoothApi
   }
-}
-
-export function asBluetoothDevice(d: FakeBluetoothDevice): BluetoothDevice {
-  return d as unknown as BluetoothDevice
 }

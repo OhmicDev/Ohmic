@@ -8,10 +8,11 @@ import { allTunes, soundCapAmps, soundIssues, SOUND_MIN_AMPS, useMusic } from '.
 import { useSession } from '../../state/session'
 import { useSettings } from '../../state/settings'
 import { BackLink, Badge, Button, PageTitle } from '../../ui/Primitives'
+import { useMotorDevices } from '../setup/helpers'
 
 export function SoundsPage() {
-  const order = useConfig((s) => s.order)
   const devices = useConfig((s) => s.devices)
+  const list = useMotorDevices()
   const { custom, playing, sending, error, load, play, stop, addTune, removeTune } = useMusic()
   const amps = useSettings((s) => s.soundAmps)
   const setAmps = useSettings((s) => s.setSoundAmps)
@@ -22,11 +23,12 @@ export function SoundsPage() {
   useEffect(() => void load(), [load])
   useEffect(() => () => stopPreview.current?.(), [])
 
-  const list = order.map((k) => devices[k]).filter(Boolean)
   const d = (key && devices[key]) || list[0]
   const motion = useMotionBlock(d ? [d.target] : [], 'play sounds')
   const cap = d?.mcconf.device ? soundCapAmps(d.mcconf.device) : 2
-  const issue = d ? soundIssues(d, Math.min(amps, cap)) : 'Connect to a controller first.'
+  const volume = Math.min(amps, cap)
+  const issue = d ? soundIssues(d, volume) : 'Connect to a controller first.'
+  const blocked = issue || motion
   const tunes = allTunes(custom)
 
   // Keep the volume inside this motor's cap (never silently above it).
@@ -85,7 +87,7 @@ export function SoundsPage() {
             <div className="flex items-baseline justify-between">
               <span className="label">Volume</span>
               <span className="num text-sm font-semibold">
-                {fmt(Math.min(amps, cap), 1)} <span className="text-xs font-normal text-muted">A</span>
+                {fmt(volume, 1)} <span className="text-xs font-normal text-muted">A</span>
               </span>
             </div>
             <input
@@ -93,7 +95,7 @@ export function SoundsPage() {
               min={SOUND_MIN_AMPS}
               max={cap}
               step={0.5}
-              value={Math.min(amps, cap)}
+              value={volume}
               onChange={(e) => setAmps(Number(e.target.value))}
               aria-label="Volume in amps"
               className="mt-2 w-full accent-[var(--accent)]"
@@ -104,11 +106,7 @@ export function SoundsPage() {
             </p>
           </div>
 
-          {issue ? (
-            <p className="rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-sm text-warn">{issue}</p>
-          ) : motion ? (
-            <p className="rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-sm text-warn">{motion}</p>
-          ) : null}
+          {blocked && <p className="rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-sm text-warn">{blocked}</p>}
           {error && <p className="rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-sm text-warn">{error}</p>}
           {playing && (
             <div className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 px-3 py-2.5">
@@ -151,7 +149,7 @@ export function SoundsPage() {
                         <Button
                           variant="secondary"
                           className="h-8 px-2.5 text-xs"
-                          disabled={!connected || !!issue || !!motion || !!sending || !d}
+                          disabled={!connected || !!blocked || !!sending}
                           onClick={() => d && void play(t, d.key)}
                         >
                           {sending === t.id ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Motor

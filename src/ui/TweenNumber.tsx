@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { fmt } from '../lib/format'
-
-const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+import { prefersReducedMotion } from './reducedMotion'
 
 /**
  * A live number that glides to each new value instead of jumping. The animation writes the text
@@ -21,7 +20,7 @@ export function TweenNumber({ value, digits = 0, ms = 220, className }: { value:
       if (el.textContent !== text) el.textContent = text
     }
     cancelAnimationFrame(raf.current)
-    if (reducedMotion() || !Number.isFinite(target) || !Number.isFinite(current.current)) {
+    if (prefersReducedMotion() || !Number.isFinite(target) || !Number.isFinite(current.current)) {
       current.current = target
       show(target)
       return

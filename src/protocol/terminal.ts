@@ -11,12 +11,12 @@ export function encodeTerminalCmd(line: string): Uint8Array {
   return enc.encode(line)
 }
 
-/** COMM_PRINT body (after the ID byte) as text. Trailing NULs are dropped. */
+/** COMM_PRINT or COMM_LISP_PRINT body (after the ID byte) as text. Trailing NULs are dropped. */
 export function decodePrint(body: Uint8Array): string {
   return dec.decode(body).replace(/\0+$/, '')
 }
 
-export type CommandRisk =
+type CommandRisk =
   /** Drives the motor: wheel off the ground, nobody near it. */
   | 'spins'
   /** Drives the motor and saves new motor settings when it succeeds. */
@@ -103,8 +103,6 @@ export function parseHelp(text: string): TerminalCommand[] {
   return out
 }
 
-// ------------------------------------------------------------ `faults` output
-
 export interface FaultLogEntry {
   code: number
   /** FAULT_CODE_... as the firmware printed it. */
@@ -145,7 +143,8 @@ export function parseFaultLog(text: string): FaultLog | null {
   const activeMatch = /active fault:\s*(FAULT_CODE_\w+)/i.exec(text)
   if (!activeMatch && !/^fault\s*:/im.test(text)) return null
   const activeCode = activeMatch ? faultByName(activeMatch[1])?.code : undefined
-  const log: FaultLog = { active: activeCode ? activeCode : null, entries: [] }
+  // FAULT_CODE_NONE (0) means no fault is active.
+  const log: FaultLog = { active: activeCode || null, entries: [] }
   let cur: FaultLogEntry | null = null
   for (const raw of text.split('\n')) {
     const m = /^\s*([A-Za-z0-9_ ]+?)\s*:\s*(.*)$/.exec(raw)

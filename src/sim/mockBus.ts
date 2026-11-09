@@ -28,7 +28,7 @@ import { decodeWriteNewAppData } from '../protocol/firmware'
 import { decodePrint } from '../protocol/terminal'
 import { MockConfigStore } from './mockConfig'
 import { MockLisp } from './mockLisp'
-import { MockScripts } from './mockScripts'
+import { lispPrint, MockScripts } from './mockScripts'
 import { FAULT_LOG_LEN, runTerminal, type SimFaultRecord } from './mockTerminal'
 import { VehicleSim } from './vehicleSim'
 
@@ -52,17 +52,16 @@ function print(text: string): Uint8Array {
   return Uint8Array.from([COMM.PRINT, ...new TextEncoder().encode(text)])
 }
 
-function lispPrint(text: string): Uint8Array {
-  return Uint8Array.from([COMM.LISP_PRINT, ...new TextEncoder().encode(text)])
-}
-
 /** How long simulated FOC detection takes on one controller (s). */
-export const MOCK_DETECT_S = 8
+const MOCK_DETECT_S = 8
 
 /** How long a simulated controller takes to install new firmware and start again (ms). */
-export const MOCK_REBOOT_MS = 3000
+const MOCK_REBOOT_MS = 3000
 
-export class MockDevice {
+/** The demo hardware's current limit (A); detection never sets more. */
+const MOCK_HW_CURRENT = 100
+
+class MockDevice {
   readonly controllerId: number
   /** Which simulated motor this controller drives, or null for a non-motor module. */
   readonly motorIndex: number | null
@@ -467,7 +466,7 @@ export class MockDevice {
         return []
       }
       default:
-        // Real firmware ignores commands it doesn't handle (ALIVE included); so do we.
+        // Real firmware ignores commands it doesn't handle.
         return []
     }
   }
@@ -492,8 +491,6 @@ function fw(hwName: string, uuid: string, hwType: number = HW_TYPE.VESC): FwVers
   }
 }
 
-const MOCK_HW_CURRENT = 100
-
 export class MockBus {
   readonly sim: VehicleSim
   readonly now: () => number
@@ -503,15 +500,13 @@ export class MockBus {
   detectSeconds = MOCK_DETECT_S
   /** CAN mode of the controller on the cable (RAM). In comm-bridge mode it passes frames to the app instead of handling them. */
   canMode: number = CAN_MODE.VESC
-  /** Frames the app sent on the bus (tests look at them). */
-  readonly sentFrames: CanFrame[] = []
   private readonly bootedAt: number
   private framesUntil = 0
   private pendingFrames: CanFrame[] = []
 
-  constructor(opts: { now?: () => number; sim?: VehicleSim; layout?: MockLayout } = {}) {
+  constructor(opts: { now?: () => number; layout?: MockLayout } = {}) {
     this.now = opts.now ?? (() => performance.now())
-    this.sim = opts.sim ?? new VehicleSim()
+    this.sim = new VehicleSim()
     // As if the scooter was switched on a little before the app connected.
     this.bootedAt = this.now() - 41_000
     if (opts.layout === 'express') {
@@ -547,7 +542,7 @@ export class MockBus {
     return this.devices().find((d) => d.controllerId === id)?.motorIndex ?? null
   }
 
-  /** Every controller with settings, local first. */
+  /** Every device on the bus, local first. */
   devices(): MockDevice[] {
     return [this.local, ...this.remotes.values()]
   }
@@ -571,7 +566,6 @@ export class MockBus {
 
   /** A frame the app put on the bus. A VESC ping to a controller here gets its pong. */
   transmit(f: CanFrame) {
-    this.sentFrames.push(f)
     const type = (f.id >>> 8) & 0xffff
     const to = f.id & 0xff
     const dev = this.remotes.get(to)

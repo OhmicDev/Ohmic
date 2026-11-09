@@ -12,6 +12,7 @@ import { ConnectSheet } from './ConnectSheet'
 import { DeviceSwitcher } from './DeviceSwitcher'
 import { Logo } from './Logo'
 import { Onboarding } from './Onboarding'
+import { TILE } from './rowStyles'
 import { useApplyTheme } from './theme'
 
 type NavItem = {
@@ -25,15 +26,15 @@ type NavItem = {
 }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'nav.ride', icon: Gauge, tile: 'bg-[#2f7fd6]' },
-  { to: '/setup', label: 'nav.setup', icon: Wrench, tile: 'bg-[#7a7a80]' },
-  { to: '/live', label: 'nav.live', icon: Activity, tile: 'bg-[#27ae60]' },
-  { to: '/tune', label: 'nav.tune', icon: SlidersHorizontal, tile: 'bg-[#8e5bd0]', owns: ['/config', '/modes', '/abs', '/regen'] },
+  { to: '/', label: 'nav.ride', icon: Gauge, tile: TILE.blue },
+  { to: '/setup', label: 'nav.setup', icon: Wrench, tile: TILE.grey },
+  { to: '/live', label: 'nav.live', icon: Activity, tile: TILE.green },
+  { to: '/tune', label: 'nav.tune', icon: SlidersHorizontal, tile: TILE.purple, owns: ['/config', '/modes', '/abs', '/regen'] },
   {
     to: '/more',
     label: 'nav.more',
     icon: Ellipsis,
-    tile: 'bg-[#e08a0b]',
+    tile: TILE.orange,
     owns: ['/logs', '/sounds', '/calc', '/control', '/firmware', '/lisp', '/packages', '/bms', '/imu', '/can', '/settings', '/dev'],
   },
 ]
@@ -124,7 +125,6 @@ export function AppShell() {
       <Onboarding />
       <ConnectSheet />
 
-      {/* Phone tab bar, like iOS. */}
       <nav aria-label={t('nav.main')} className="glass fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="mx-auto grid h-14 max-w-lg grid-cols-5">
           {NAV.map((item) => (

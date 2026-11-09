@@ -9,9 +9,9 @@ import { quantize, wireInt } from './codec'
 import { validateValue } from './validate'
 import { CFG, TX, type ConfigDefs, type ConfigKind, type ConfigValue, type ConfigValues, type ParamDef } from './types'
 
-export const VT_CONFIG_VERSION = 4
+const VT_CONFIG_VERSION = 4
 
-export const XML_ROOT: Record<ConfigKind, string> = {
+const XML_ROOT: Record<ConfigKind, string> = {
   mcconf: 'MCConfiguration',
   appconf: 'APPConfiguration',
 }
@@ -27,7 +27,7 @@ function float32Text(v: number): string {
 }
 
 /** Text for one value. More digits than VESC Tool writes (it keeps 6), so nothing is lost. */
-export function valueText(p: ParamDef, v: ConfigValue): string {
+function valueText(p: ParamDef, v: ConfigValue): string {
   if (typeof v === 'string') return v
   if (p.typeId !== CFG.DOUBLE) return String(Math.trunc(v))
   if (p.txId === TX.DOUBLE32_AUTO) return float32Text(quantize(p, v) as number)

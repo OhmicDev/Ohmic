@@ -1,23 +1,16 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MockBus } from '../sim/mockBus'
+import { CAN2, LOCAL } from '../test/simulator'
+import { waitForWithin } from '../test/waitFor'
 import { MockTransport } from '../transport/MockTransport'
 import { db, listBackups } from './backups'
 import { pendingCount, useConfig } from './config'
-import { connectWith, useSession } from './session'
+import { activeClient, connectWith, useSession } from './session'
 import { useSettings } from './settings'
 import { planWrite, runWrites } from './writes'
 
-async function waitFor(check: () => boolean, timeoutMs = 4000) {
-  const start = Date.now()
-  while (!check()) {
-    if (Date.now() - start > timeoutMs) throw new Error('Timed out waiting')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
-
-const LOCAL = 'uuid:5e1a00000000000000000001'
-const CAN2 = 'uuid:5e1a00000000000000000002'
+const waitFor = waitForWithin(4000)
 const cfg = () => useConfig.getState()
 
 async function connect({ parked = true } = {}) {
@@ -133,7 +126,7 @@ describe('config editing and writing', () => {
   it('keeps unwritten edits through a dropped connection', async () => {
     const bus = await connect()
     cfg().edit(LOCAL, 'mcconf', { l_current_max: 66 })
-    const t = (await import('./session')).activeClient()!.transport as MockTransport
+    const t = activeClient()!.transport as MockTransport
     t.simulateDrop()
     await waitFor(() => useSession.getState().status === 'reconnecting')
     await waitFor(() => useSession.getState().status === 'connected')

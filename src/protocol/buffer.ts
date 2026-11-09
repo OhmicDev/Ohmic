@@ -41,12 +41,10 @@ export class BufferWriter {
     return this.i32(v >>> 0)
   }
 
-  /** Fixed-point 16-bit: int16(value * scale). */
   f16(v: number, scale: number): this {
     return this.i16(clampInt(Math.trunc(v * scale), -0x8000, 0x7fff))
   }
 
-  /** Fixed-point 32-bit: int32(value * scale). */
   f32(v: number, scale: number): this {
     return this.i32(clampInt(Math.trunc(v * scale), -0x80000000, 0x7fffffff))
   }
@@ -59,7 +57,6 @@ export class BufferWriter {
     return this
   }
 
-  /** Null-terminated string. */
   cstring(s: string): this {
     for (const b of new TextEncoder().encode(s)) this.bytes.push(b)
     this.bytes.push(0)

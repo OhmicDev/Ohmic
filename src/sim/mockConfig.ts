@@ -8,13 +8,13 @@ import { decodeConfig, encodeConfig, xmlDefaults } from '../config/codec'
 import { loadDefs, SUPPORTED_FW } from '../config/registry'
 import type { ConfigDefs, ConfigKind, ConfigValues } from '../config/types'
 
-export const MOCK_DEFS: Record<ConfigKind, ConfigDefs> = {
+const MOCK_DEFS: Record<ConfigKind, ConfigDefs> = {
   mcconf: mcDefsJson as ConfigDefs,
   appconf: appDefsJson as ConfigDefs,
 }
 
 /** What the simulated "SIM_75_100" hardware can take (HW_LIM_* in a real hw_*.h). */
-export const MOCK_HW_LIMITS: Record<string, [number, number]> = {
+const MOCK_HW_LIMITS: Record<string, [number, number]> = {
   l_current_max: [0, 100],
   l_current_min: [-100, 0],
   l_in_current_max: [0, 100],
@@ -80,13 +80,11 @@ export class MockConfigStore {
   /** The layouts this firmware uses; a firmware update may change them. */
   defs: Record<ConfigKind, ConfigDefs> = { ...MOCK_DEFS }
   private readonly controllerId: number
-  private readonly dualMotorHw: boolean
   /** Number of flash writes, so tests can see a write happened. */
   writes = 0
 
-  constructor(controllerId: number, opts: { dualMotorHw?: boolean } = {}) {
+  constructor(controllerId: number) {
     this.controllerId = controllerId
-    this.dualMotorHw = opts.dualMotorHw ?? false
     this.values = { mcconf: tunedMcconf(), appconf: hwDefaults('appconf', controllerId) }
   }
 
@@ -133,8 +131,6 @@ export class MockConfigStore {
       for (const [name, [lo, hi]] of Object.entries(MOCK_HW_LIMITS)) {
         if (typeof next[name] === 'number') next[name] = clamp(next[name] as number, lo, hi)
       }
-    } else if (this.dualMotorHw) {
-      next.controller_id = this.values.appconf.controller_id
     }
     this.values[kind] = next
     this.writes++

@@ -1,6 +1,6 @@
-// Phase 10: moving data between devices, translations, theme colours, and the protocol log.
+// App settings: saved settings, data export and import, translations and theme colours.
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { addCatalog, translate } from '../i18n'
 import { contrastRatio, darken } from '../lib/color'
 import { ACCENTS, useSettings } from './settings'
@@ -8,8 +8,26 @@ import { db } from './db'
 import { exportAll, importAll, readExport } from './dataTransfer'
 import { LIGHT_ACCENT_KEEP, resolveTheme } from '../ui/theme'
 
+// Settings saved by an older version, with the removed tuning assistant's settings. Node has no
+// localStorage, so this stands in for it before the settings store loads.
+vi.hoisted(() => {
+  const saved = new Map([['ohmic.settings', JSON.stringify({ state: { logRateHz: 20, ai: { enabled: true, accessCode: 'old' } }, version: 1 })]])
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => saved.get(k) ?? null,
+    setItem: (k: string, v: string) => saved.set(k, v),
+    removeItem: (k: string) => saved.delete(k),
+  })
+})
+
 beforeEach(async () => {
   await Promise.all(db.tables.map((t) => t.clear()))
+})
+
+describe('saved settings', () => {
+  it('loads settings from an older version and drops the ones this version no longer has', () => {
+    expect(useSettings.getState().logRateHz).toBe(20)
+    expect(useSettings.getState()).not.toHaveProperty('ai')
+  })
 })
 
 describe('data export and import', () => {
@@ -31,15 +49,14 @@ describe('data export and import', () => {
     await db.rides.put({ id: 'r1', startedAt: 5, endedAt: 9, name: 'Loop', source: 'recorded', demo: true, fileName: null, rateHz: 10, rows: 3, chunks: 1, hasGps: false } as never)
     await db.rideChunks.put({ rideId: 'r1', seq: 0, rows: 3, cols: { speed: Float32Array.of(1.5, 2.5, 3.5) } } as never)
     await db.drafts.put({ id: 'lisp', text: '(print 1)', name: null, savedAt: 3 })
-    useSettings.setState({ units: 'imperial', ai: { ...useSettings.getState().ai, accessCode: 'secret' } })
+    useSettings.setState({ units: 'imperial' })
 
     const file = await exportAll('Ohmic test')
     const text = JSON.stringify(file)
-    expect(text).not.toContain('secret')
 
     // A fresh device.
     await Promise.all(db.tables.map((t) => t.clear()))
-    useSettings.setState({ units: 'metric', ai: { ...useSettings.getState().ai, accessCode: 'mine' } })
+    useSettings.setState({ units: 'metric' })
     const plan = readExport(text)
     expect(plan.rides).toBe(1)
     expect(plan.backups).toBe(1)
@@ -53,13 +70,35 @@ describe('data export and import', () => {
     expect(chunk.cols.speed).toBeInstanceOf(Float32Array)
     expect([...chunk.cols.speed]).toEqual([1.5, 2.5, 3.5])
     expect(useSettings.getState().units).toBe('imperial')
-    expect(useSettings.getState().ai.accessCode).toBe('mine')
 
     // Importing the same file again adds nothing new.
     const again = await importAll(readExport(text))
     expect(again.added).toBe(0)
     expect(again.skipped).toBe(1)
     expect(await db.backups.count()).toBe(1)
+  })
+
+  it('imports a file from an older version, skipping tables and settings this version no longer has', async () => {
+    useSettings.setState({ units: 'metric' })
+    const old = {
+      format: 'ohmic-data',
+      version: 1,
+      app: 'Ohmic 0.9',
+      exportedAt: 1,
+      settings: { units: 'imperial', ai: { enabled: true, shareLive: true, shareRides: true, shareFaults: true, accessCode: '' } },
+      tables: {
+        drafts: [{ id: 'lisp', text: '(print 1)', name: null, savedAt: 3 }],
+        aiLog: [{ id: 1, at: 2, proposalId: 'p1', event: 'applied' }],
+        aiProfile: [{ id: 'vehicle', type: 'scooter' }],
+      },
+    }
+    const plan = readExport(JSON.stringify(old))
+    expect(plan.counts).toEqual({ drafts: 1 })
+    const res = await importAll(plan)
+    expect(res.added).toBe(1)
+    expect(await db.drafts.get('lisp')).toMatchObject({ text: '(print 1)' })
+    expect(useSettings.getState().units).toBe('imperial')
+    expect(useSettings.getState()).not.toHaveProperty('ai')
   })
 
   it('rejects files that aren’t Ohmic data', () => {

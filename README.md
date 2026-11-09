@@ -85,12 +85,11 @@ through the [hardware checklist](docs/hardware-checklist.md) on real hardware.
 
 ```bash
 npm run build
-npm run server       # serves dist/ and the /api routes on PORT (8787), Node 24+
+npm run server       # serves dist/ and the package archive proxy on PORT (8787), Node 24+
 ```
 
-Put it behind HTTPS (a reverse proxy such as Caddy or nginx). Set `TRUST_PROXY=1` there so rate limits see
-the visitor's address. The app itself is static; the server is only needed for the online package list, so
-`dist/` can also go on any static host.
+Put it behind HTTPS (a reverse proxy such as Caddy or nginx). The app itself is static; the server is only
+needed for the online package list, so `dist/` can also go on any static host.
 
 ### GitHub Pages
 
@@ -108,11 +107,6 @@ The workflow builds for that sub-folder by setting `BASE_PATH`. To try the same 
 
 GitHub Pages only serves files, so the online package list doesn't work there (packages can still be opened
 from a `.vescpkg` file).
-
-## AI Tune (switched off)
-
-The app no longer shows AI Tune. Its code is still in `src/ai` and `src/pages/tune` (with the server's
-`/api` relay), so it can be brought back by adding its route and a link to it on the Tune page.
 
 ## Package archive
 

@@ -18,7 +18,7 @@
 // absStep below is the reference: the simulator runs it and the tests check it.
 // absStartCommands produces the same logic for the controller.
 
-import { lf, li, packCommands, squash } from './lisp'
+import { lf, li, packCommands, parseStatusLine, squash } from './lisp'
 
 export interface AbsParams {
   /** Metres per second for each ERPM on this controller's wheel. */
@@ -119,8 +119,6 @@ export function absStep(s: AbsState, p: AbsParams, erpm: number, currentDir: num
   return target
 }
 
-// ------------------------------------------------------------ LispBM
-
 // The same logic for the controller. Settings live in globals (ohm-p*), so the
 // functions don't change between arming runs; ohm-k counts loop runs (to prove the
 // loop is alive) and ohm-id echoes the arming run (to prove these settings took).
@@ -199,10 +197,9 @@ export interface AbsStatus {
   runId: number | null
 }
 
-/** Reads ABS_STATUS_PROGRAM's output. An unknown variable means it was never started since power-on. */
+/** Reads ABS_STATUS_PROGRAM's output. */
 export function parseAbsStatus(text: string): AbsStatus | null {
-  const m = /\(\s*(-?\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\)/.exec(text)
-  if (m) return { on: m[1] === '1', interventions: Number(m[2]), beat: Number(m[3]), runId: Number(m[4]) }
-  if (/not.?bound|undefined|variable|ohm-/i.test(text)) return { on: false, interventions: 0, beat: null, runId: null }
-  return null
+  const st = parseStatusLine(text)
+  if (st === 'unbound') return { on: false, interventions: 0, beat: null, runId: null }
+  return st && { on: st.on, interventions: st.count, beat: st.beat, runId: st.runId }
 }

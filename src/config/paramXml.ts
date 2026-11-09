@@ -3,25 +3,20 @@
 // and in the browser for the settings a package brings (custom configs).
 
 import { computeSignature } from './signature.ts'
-import type { ConfigDefs, ConfigGroup, ConfigKind, ParamDef } from './types.ts'
+import { CFG, SEPARATOR, type ConfigDefs, type ConfigGroup, type ConfigKind, type ParamDef } from './types.ts'
 import { child, childText, decodeEntities, parseXml, type XmlElement } from '../lib/xml.ts'
-
-const CFG_DOUBLE = 1
-const CFG_STRING = 3
-const SEP = '::sep::'
 
 /** VESC Tool help is Qt rich text. Keep the words and paragraph breaks. */
 function htmlToText(html: string): string {
   if (!/<[a-z!/][\s\S]*>/i.test(html)) return html.trim()
-  let s = html
+  const stripped = html
     .replace(/<!DOCTYPE[^>]*>/gi, '')
     .replace(/<head[\s\S]*?<\/head>/gi, '')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<li[^>]*>/gi, '\n• ')
     .replace(/<\/(p|div|h[1-6]|li|tr|ul|ol|table)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
-  s = decodeEntities(s)
-  return s
+  return decodeEntities(stripped)
     .split('\n')
     .map((l) => l.replace(/[ \t ]+/g, ' ').trim())
     .join('\n')
@@ -39,7 +34,7 @@ function num(el: XmlElement, name: string, fallback: number): number {
 /** Field defaults match ConfigParam::reset() in VESC Tool. */
 function readParam(el: XmlElement): ParamDef {
   const typeId = num(el, 'type', 0)
-  const isDouble = typeId === CFG_DOUBLE
+  const isDouble = typeId === CFG.DOUBLE
   return {
     name: el.name,
     label: (childText(el, 'longName') ?? 'none').trim(),
@@ -55,7 +50,7 @@ function readParam(el: XmlElement): ParamDef {
     unit: (childText(el, 'suffix') ?? '').trim(),
     enums: el.children.filter((c) => c.name === 'enumNames').map((c) => c.text),
     maxLen: num(el, 'maxLen', 0),
-    def: typeId === CFG_STRING ? (childText(el, 'valString') ?? '') : isDouble ? num(el, 'valDouble', 0) : num(el, 'valInt', 0),
+    def: typeId === CFG.STRING ? (childText(el, 'valString') ?? '') : isDouble ? num(el, 'valDouble', 0) : num(el, 'valInt', 0),
     help: htmlToText(childText(el, 'description') ?? ''),
     cDefine: (childText(el, 'cDefine') ?? '').trim(),
   }
@@ -87,8 +82,8 @@ export function convertParamXml(xml: string, kind: ConfigKind, fw: string): Conf
         .filter((c) => c.name === 'param')
         .map((c) => c.text.trim())
         // Only settings the controller actually stores; VESC Tool-only notes are left out.
-        .filter((n) => n.startsWith(SEP) || n in params)
-      if (items.some((n) => !n.startsWith(SEP))) group.subgroups.push({ name: (childText(sg, 'subgroupName') ?? '').trim(), items })
+        .filter((n) => n.startsWith(SEPARATOR) || n in params)
+      if (items.some((n) => !n.startsWith(SEPARATOR))) group.subgroups.push({ name: (childText(sg, 'subgroupName') ?? '').trim(), items })
     }
     if (group.subgroups.length) groups.push(group)
   }

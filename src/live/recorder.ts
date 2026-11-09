@@ -4,7 +4,7 @@
 import { SIGNALS, type SignalInput } from './signals'
 
 /** Rows kept per controller: about 11 minutes at 50 Hz, 27 at 20 Hz. */
-export const CAPACITY = 32_768
+const CAPACITY = 32_768
 
 export class DeviceLog {
   readonly capacity: number

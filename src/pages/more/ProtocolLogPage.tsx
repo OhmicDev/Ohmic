@@ -22,8 +22,8 @@ export function ProtocolLogPage() {
   const [hidePolls, setHidePolls] = useState(true)
   const live = useMemo(() => protocolEntries(4000), [version]) // eslint-disable-line react-hooks/exhaustive-deps
   const rows = frozen ?? live
-  const f = filter.trim().toUpperCase()
-  const shown = rows.filter((e) => (!hidePolls || !/^(GET_VALUES|GET_IMU_DATA|ALIVE)$/.test(e.name)) && (!f || e.name.includes(f))).slice(0, SHOWN)
+  const query = filter.trim().toUpperCase()
+  const shown = rows.filter((e) => (!hidePolls || !/^(GET_VALUES|GET_IMU_DATA|ALIVE)$/.test(e.name)) && (!query || e.name.includes(query))).slice(0, SHOWN)
   const timeouts = rows.filter((e) => e.dir === 'timeout').length
 
   return (
@@ -76,7 +76,7 @@ export function ProtocolLogPage() {
       {!on && !count && <p className="card p-6 text-sm text-muted">Turn on Record packets, then use the app as usual. The log is kept in memory only, and cleared when the app closes.</p>}
       {rows.length > 0 && shown.length === 0 && (
         <p className="card p-6 text-sm text-muted">
-          {f ? `Nothing matches “${filter.trim()}”.` : 'So far there’s only live-data polling, which is hidden. Untick Hide live-data polling to see it.'}
+          {query ? `Nothing matches “${filter.trim()}”.` : 'So far there’s only live-data polling, which is hidden. Untick Hide live-data polling to see it.'}
         </p>
       )}
       {shown.length > 0 && (

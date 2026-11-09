@@ -22,7 +22,7 @@ export interface RideMode {
 
 export type ModeSetting = 'motorPct' | 'regenPct' | 'batteryPct' | 'maxSpeedKmh' | 'maxPowerW'
 
-export interface SettingInfo {
+interface SettingInfo {
   key: ModeSetting
   label: string
   unit: string

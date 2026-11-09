@@ -55,9 +55,8 @@ function RideDetail({ rideId }: { rideId: string }) {
     }
   }, [rideId])
 
-  const shown = listed ?? ride
   if (ride === undefined) return <Centered>Loading ride…</Centered>
-  if (ride === null || !shown)
+  if (ride === null)
     return (
       <Centered>
         This ride isn’t saved in this browser.{' '}
@@ -67,6 +66,7 @@ function RideDetail({ rideId }: { rideId: string }) {
       </Centered>
     )
 
+  const shown = listed ?? ride
   const s = shown.summary
   const u = unitLabels(units)
   const recording = shown.id === recordingId

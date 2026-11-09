@@ -1,5 +1,5 @@
 // User preferences. These are conveniences, so browser storage is fine here;
-// anything that matters (backups, logs) goes to IndexedDB in later phases.
+// anything that matters (backups, logs) goes to IndexedDB.
 
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -46,19 +46,7 @@ export type LatchSeconds = 5 | 10 | 30 | 60
 /** Ride log rows per second. */
 export type LogRateHz = 5 | 10 | 20
 
-/** What the tuning assistant may see and whether it's on. */
-export interface AiSettings {
-  enabled: boolean
-  shareLive: boolean
-  shareRides: boolean
-  shareFaults: boolean
-  /** For an AI server that asks for one (AI_ACCESS_CODE). */
-  accessCode: string
-}
-
-export const AI_DEFAULTS: AiSettings = { enabled: true, shareLive: true, shareRides: true, shareFaults: true, accessCode: '' }
-
-export interface LastConnection {
+interface LastConnection {
   kind: 'serial' | 'ble'
   name: string
   at: number
@@ -108,7 +96,6 @@ interface SettingsState {
   logGps: boolean
   /** Record lean and acceleration (the controller's IMU, else the phone's). */
   logImu: boolean
-  ai: AiSettings
   setAccent: (accent: string) => void
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: string) => void
@@ -138,7 +125,6 @@ interface SettingsState {
   setLogRateHz: (hz: LogRateHz) => void
   setLogGps: (on: boolean) => void
   setLogImu: (on: boolean) => void
-  setAi: (patch: Partial<AiSettings>) => void
 }
 
 export const useSettings = create<SettingsState>()(
@@ -171,7 +157,6 @@ export const useSettings = create<SettingsState>()(
       logRateHz: 10,
       logGps: true,
       logImu: false,
-      ai: AI_DEFAULTS,
       setAccent: (accent) => set({ accent }),
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
@@ -200,15 +185,15 @@ export const useSettings = create<SettingsState>()(
       setLogRateHz: (logRateHz) => set({ logRateHz }),
       setLogGps: (logGps) => set({ logGps }),
       setLogImu: (logImu) => set({ logImu }),
-      setAi: (patch) => set((s) => ({ ai: { ...s.ai, ...patch } })),
     }),
     {
       name: 'ohmic.settings',
       version: 1,
       storage: createJSONStorage(() => localStorage),
       merge: (persisted, current) => {
-        const p = { ...((persisted ?? {}) as Partial<SettingsState> & { includeCanInTotals?: unknown }) }
+        const p = { ...((persisted ?? {}) as Partial<SettingsState> & { includeCanInTotals?: unknown; ai?: unknown }) }
         delete p.includeCanInTotals // replaced by the device switcher
+        delete p.ai // the removed tuning assistant's settings
         if (p.accent === OLD_DEFAULT_ACCENT) delete p.accent
         if (persisted && p.onboarded === undefined) p.onboarded = true
         return {
@@ -217,7 +202,6 @@ export const useSettings = create<SettingsState>()(
           vehicle: { ...DEFAULT_VEHICLE, ...(p.vehicle ?? {}) },
           benchLimits: { ...DEFAULT_BENCH_LIMITS, ...(p.benchLimits ?? {}) },
           regen: { ...REGEN_DEFAULTS, ...(p.regen ?? {}) },
-          ai: { ...AI_DEFAULTS, ...(p.ai ?? {}) },
         }
       },
     },

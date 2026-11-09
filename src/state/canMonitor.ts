@@ -8,6 +8,7 @@
 // over CAN (dual motor setups) don't get commands. So it only starts at rest.
 
 import { create } from 'zustand'
+import { errorText } from '../lib/format'
 import { CAN_MODE, describeVescFrame, MOTOR_COMMAND_PACKETS, SETTING_PACKETS, type CanFrame, type VescCanInfo } from '../protocol/can'
 import { deviceKey, useConfig } from './config'
 import { isMotorController } from './devices'
@@ -119,6 +120,13 @@ function resetBuffers() {
   changed = true
 }
 
+function stopListening() {
+  unsub?.()
+  unsub = null
+  if (tick) clearInterval(tick)
+  tick = null
+}
+
 // Kept in memory too, for when storage is blocked: then it lasts as long as the tab.
 let memRestore: Restore | null = null
 
@@ -141,8 +149,6 @@ function loadRestore(): Restore | null {
     return memRestore
   }
 }
-
-const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 function localDevice() {
   return useSession.getState().devices.find((d) => d.target === 'local') ?? null
@@ -178,13 +184,6 @@ export function refusedFrame(f: CanFrame): string | null {
 }
 
 export const useCanMonitor = create<CanMonitorState>()((set, get) => {
-  const stopListening = () => {
-    unsub?.()
-    unsub = null
-    if (tick) clearInterval(tick)
-    tick = null
-  }
-
   const startTick = () => {
     lastTick = Date.now()
     tick = setInterval(() => {
@@ -248,7 +247,7 @@ export const useCanMonitor = create<CanMonitorState>()((set, get) => {
         // It may have switched before the reply was lost: try to put it back.
         const r = loadRestore()
         if (r) await client.setCanMode(r.mode, false).then(() => saveRestore(null), () => {})
-        set({ status: 'off', error: `Couldn’t start the monitor: ${errText(e)}` })
+        set({ status: 'off', error: `Couldn’t start the monitor: ${errorText(e)}` })
         return false
       }
     },
@@ -269,7 +268,7 @@ export const useCanMonitor = create<CanMonitorState>()((set, get) => {
         } catch (e) {
           set({
             status: 'off',
-            error: `Couldn’t switch the controller back to its CAN mode: ${errText(e)} Ohmic tries again on the next connection; turning the controller off and on also does it.`,
+            error: `Couldn’t switch the controller back to its CAN mode: ${errorText(e)} Ohmic tries again on the next connection; turning the controller off and on also does it.`,
           })
           return
         }
@@ -294,7 +293,7 @@ export const useCanMonitor = create<CanMonitorState>()((set, get) => {
         set({ error: null })
         return true
       } catch (e) {
-        set({ error: `Sending failed: ${errText(e)}` })
+        set({ error: `Sending failed: ${errorText(e)}` })
         return false
       }
     },
@@ -308,15 +307,14 @@ export const useCanMonitor = create<CanMonitorState>()((set, get) => {
   }
 })
 
+let restoring = false
+
 // Losing the link ends the monitor; the controller stays in bridge mode until
 // the next connection to it (or a power cycle), when it's switched back.
 useSession.subscribe((s, prev) => {
   const m = useCanMonitor.getState()
   if (s.status !== 'connected' && prev.status === 'connected' && (m.status === 'on' || m.status === 'starting')) {
-    unsub?.()
-    unsub = null
-    if (tick) clearInterval(tick)
-    tick = null
+    stopListening()
     useCanMonitor.setState({ status: 'off', error: 'The connection dropped while the monitor ran. Ohmic switches the controller back when you reconnect.' })
   }
   const local = s.devices.find((d) => d.target === 'local')
@@ -337,7 +335,6 @@ useSession.subscribe((s, prev) => {
       })
   }
 })
-let restoring = false
 
 // Closing the tab mid-monitor: try to switch back on the way out.
 if (typeof window !== 'undefined')

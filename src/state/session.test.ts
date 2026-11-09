@@ -4,17 +4,12 @@ import { BleTransport } from '../transport/BleTransport'
 import { MockTransport } from '../transport/MockTransport'
 import { SerialTransport } from '../transport/SerialTransport'
 import { FakeBluetoothDevice, FakeSerial, FakeSerialPort } from '../test/fakeBrowserDevices'
+import { waitForWithin } from '../test/waitFor'
 import { connectWith, useSession } from './session'
 import { useSettings } from './settings'
 import { useTelemetry } from './telemetry'
 
-async function waitFor(check: () => boolean, timeoutMs = 3000) {
-  const start = Date.now()
-  while (!check()) {
-    if (Date.now() - start > timeoutMs) throw new Error('Timed out waiting')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
+const waitFor = waitForWithin(3000)
 
 const fastMock = (layout: MockLayout = 'dual') =>
   new MockTransport({ bus: new MockBus({ layout }), connectDelayMs: 5, latencyMs: [1, 2] })

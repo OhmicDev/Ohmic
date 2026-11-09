@@ -10,6 +10,7 @@ import { useSettings } from '../../state/settings'
 import { Dialog } from '../../ui/Dialog'
 import { Button } from '../../ui/Primitives'
 import { Toggle } from '../../ui/Toggle'
+import { errorText } from '../../lib/format'
 
 const TABLE_LABELS: Record<string, string> = {
   backups: 'settings backups',
@@ -19,8 +20,6 @@ const TABLE_LABELS: Record<string, string> = {
   rideModes: 'ride modes',
   faults: 'fault records',
   tunes: 'motor sound tunes',
-  aiLog: 'AI history entries',
-  aiProfile: 'vehicle profile',
   drafts: 'script drafts',
 }
 
@@ -40,7 +39,7 @@ export function DataPanel() {
       const n = Object.values(file.tables).reduce((a, r) => a + (r?.length ?? 0), 0)
       setMessage({ tone: 'ok', text: `Exported ${n.toLocaleString()} records and your app settings.` })
     } catch (e) {
-      setMessage({ tone: 'error', text: `Export failed: ${e instanceof Error ? e.message : String(e)}` })
+      setMessage({ tone: 'error', text: `Export failed: ${errorText(e)}` })
     } finally {
       setBusy(null)
     }
@@ -53,7 +52,7 @@ export function DataPanel() {
     try {
       setPlan({ name: f.name, plan: readExport(f.text) })
     } catch (e) {
-      setMessage({ tone: 'error', text: `${f.name}: ${e instanceof Error ? e.message : String(e)}` })
+      setMessage({ tone: 'error', text: `${f.name}: ${errorText(e)}` })
     }
   }
 
@@ -69,7 +68,7 @@ export function DataPanel() {
         text: `Imported: ${r.added.toLocaleString()} added, ${r.replaced.toLocaleString()} updated${r.skipped ? `, ${r.skipped.toLocaleString()} already here` : ''}. App settings updated.`,
       })
     } catch (e) {
-      setMessage({ tone: 'error', text: `Import failed, nothing was changed: ${e instanceof Error ? e.message : String(e)}` })
+      setMessage({ tone: 'error', text: `Import failed, nothing was changed: ${errorText(e)}` })
     } finally {
       setBusy(null)
     }
@@ -126,7 +125,7 @@ export function DataPanel() {
                 ))}
               <li>app settings (theme, units, vehicle and so on)</li>
             </ul>
-            <p>Nothing here is deleted. Records that are already here are updated from the file; the rest are added. Your AI access code stays as it is.</p>
+            <p>Nothing here is deleted. Records that are already here are updated from the file; the rest are added.</p>
           </div>
         )}
       </Dialog>

@@ -19,7 +19,6 @@ const OLDEST = [6, 0]
 interface TreeEntry {
   path: string
   type: 'blob' | 'tree'
-  size?: number
 }
 
 async function tree(repo: string, branch: string): Promise<TreeEntry[]> {

@@ -26,11 +26,12 @@ import { useConfig } from '../../state/config'
 import { useSession } from '../../state/session'
 import { useTelemetry } from '../../state/telemetry'
 import { Dialog } from '../../ui/Dialog'
-import { BackLink, Badge, Button, PageTitle, Segmented } from '../../ui/Primitives'
+import { Badge, Button, PageTitle, Segmented } from '../../ui/Primitives'
 import { Toggle } from '../../ui/Toggle'
 import { useNow } from '../../ui/useNow'
 import { DemoPark } from '../config/LiveStrip'
 import { OfflineNote } from '../../ui/OfflineNote'
+import { BackToMore } from './ToolBits'
 
 const kb = (n: number) => `${Math.round(n / 1024).toLocaleString()} KB`
 
@@ -77,7 +78,6 @@ export function FirmwarePage() {
           : []
         : planBootloader(selected)
   const block = running ? null : updateBlock(plan) ?? (source === 'file' && !custom?.prepared ? 'Choose a firmware file.' : null)
-  const showProgress = jobs.length > 0
 
   const pickFile = async (f: File | undefined) => {
     if (!f) return
@@ -96,7 +96,7 @@ export function FirmwarePage() {
 
   return (
     <>
-      <BackLink to="/more">More</BackLink>
+      <BackToMore />
       <PageTitle
         title="Firmware"
         subtitle="See what each controller runs and update it from VESC’s official archive or your own file, one controller or all of them."
@@ -104,7 +104,7 @@ export function FirmwarePage() {
       />
       <OfflineNote what="firmware" />
 
-      {showProgress && <ProgressCard />}
+      {jobs.length > 0 && <ProgressCard />}
 
       {!connected ? (
         <p className="card p-5 text-sm text-muted">Connect to see and update your controllers’ firmware.</p>
@@ -210,9 +210,8 @@ export function FirmwarePage() {
 
 function ControllerRow({ c, checked, onToggle }: { c: UpdateCandidate; checked: boolean; onToggle: () => void }) {
   const newest = firmwareFor(archiveName(c.fw.hwName))[0]?.version ?? null
-  useTelemetry((s) => s.devices[c.key]?.vIn)
+  const v = useTelemetry((s) => s.devices[c.key]?.vIn)
   const battery = batteryProblem(c)
-  const v = useTelemetry.getState().devices[c.key]?.vIn
   return (
     <li>
       <label className={cx('flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5', checked ? 'border-accent/40 bg-accent/5' : 'border-line')}>
@@ -361,10 +360,13 @@ function ConfirmDialog({
   const noLimits = plan.some((j) => j.noHwLimits)
   const unmatched = source === 'file' && custom?.prepared ? plan.filter((j) => !fileNamesHardware(custom.prepared!, j.hwName)) : []
   const ready = stay && (!noLimits || limits) && (!unmatched.length || wrongHw)
-  const close = () => {
+  const untick = () => {
     setStay(false)
     setLimits(false)
     setWrongHw(false)
+  }
+  const close = () => {
+    untick()
     onCancel()
   }
   return (
@@ -383,9 +385,7 @@ function ConfirmDialog({
             variant={noLimits ? 'danger' : 'primary'}
             disabled={!ready}
             onClick={() => {
-              setStay(false)
-              setLimits(false)
-              setWrongHw(false)
+              untick()
               onGo()
             }}
           >

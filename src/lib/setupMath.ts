@@ -3,8 +3,6 @@
 
 import type { ConfigValues } from '../config/types'
 
-// ---------------------------------------------------------------- battery
-
 export type BatteryKind = 'liion' | 'lifepo4' | 'lead'
 
 export const BATTERY_KINDS: { value: BatteryKind; label: string; full: number; nominal: number; cutStart: number; cutEnd: number; type: number }[] = [
@@ -13,6 +11,8 @@ export const BATTERY_KINDS: { value: BatteryKind; label: string; full: number; n
   { value: 'lifepo4', label: 'LiFePO4', full: 3.65, nominal: 3.2, cutStart: 2.9, cutEnd: 2.6, type: 1 },
   { value: 'lead', label: 'Lead acid', full: 2.15, nominal: 2.0, cutStart: 1.95, cutEnd: 1.8, type: 2 },
 ]
+
+export const batteryKind = (kind: BatteryKind) => BATTERY_KINDS.find((b) => b.value === kind)!
 
 export interface BatteryInput {
   kind: BatteryKind
@@ -35,7 +35,7 @@ export function batteryIssues(b: BatteryInput): string[] {
 
 /** Settings for one controller, sharing battery current between `controllers`. */
 export function batterySettings(b: BatteryInput, controllers: number): ConfigValues {
-  const k = BATTERY_KINDS.find((x) => x.value === b.kind)!
+  const k = batteryKind(b.kind)
   const n = Math.max(1, controllers)
   const v: ConfigValues = {
     si_battery_type: k.type,
@@ -49,11 +49,11 @@ export function batterySettings(b: BatteryInput, controllers: number): ConfigVal
   return v
 }
 
-export const fullVoltage = (b: Pick<BatteryInput, 'kind' | 'cells'>) => BATTERY_KINDS.find((x) => x.value === b.kind)!.full * b.cells
+export const fullVoltage = (b: Pick<BatteryInput, 'kind' | 'cells'>) => batteryKind(b.kind).full * b.cells
 
 /** Guesses cells in series from a resting voltage (for a starting value). */
 export function guessCells(volts: number, kind: BatteryKind): number | null {
-  const k = BATTERY_KINDS.find((x) => x.value === kind)!
+  const k = batteryKind(kind)
   if (!(volts > 0)) return null
   const n = Math.round(volts / k.nominal)
   return n >= 1 && n <= 40 ? n : null
@@ -64,14 +64,12 @@ export function guessCells(volts: number, kind: BatteryKind): number | null {
  * A charged 13S pack and a flat 15S one read the same, so this is a range.
  */
 export function cellsRange(volts: number, kind: BatteryKind): [number, number] | null {
-  const k = BATTERY_KINDS.find((x) => x.value === kind)!
+  const k = batteryKind(kind)
   if (!(volts > 0)) return null
   const lo = Math.max(1, Math.ceil(volts / k.full - 1e-9))
   const hi = Math.min(40, Math.floor(volts / k.cutStart + 1e-9))
   return lo <= hi ? [lo, hi] : null
 }
-
-// ---------------------------------------------------------------- throttle calibration
 
 export interface Range {
   min: number
@@ -82,7 +80,7 @@ export const emptyRange = (): Range => ({ min: Infinity, max: -Infinity })
 export const widen = (r: Range, v: number): Range => (Number.isFinite(v) ? { min: Math.min(r.min, v), max: Math.max(r.max, v) } : r)
 
 /** At least this much travel (V) before a lever counts as calibrated. */
-export const MIN_ADC_SPAN = 0.5
+const MIN_ADC_SPAN = 0.5
 /** A little dead band at each end, so "released" never creeps and "full" is always reachable. */
 const DEAD_BAND = 0.04
 
@@ -117,8 +115,6 @@ export function appToUse(input: 'adc' | 'ppm', current: number): number {
   if (input === 'adc') return keepsUart ? 5 : 2
   return keepsUart ? 4 : 1
 }
-
-// ---------------------------------------------------------------- motor detection
 
 /** Motor speed constant (rpm per volt) from flux linkage, as VESC Tool shows it. */
 export function kvFromFlux(fluxWb: number, motorPoles: number): number | null {

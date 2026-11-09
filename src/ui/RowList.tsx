@@ -24,19 +24,9 @@ export function RowGroup({ id, title, children }: { id: string; title: string; c
   )
 }
 
-export function LinkRow({
-  to,
-  icon,
-  color,
-  title,
-  hint,
-}: {
-  to: LinkProps['to']
-  icon: LucideIcon
-  color: TileColor
-  title: string
-  hint: string
-}) {
+export type LinkRowProps = { to: LinkProps['to']; icon: LucideIcon; color: TileColor; title: string; hint: string }
+
+export function LinkRow({ to, icon, color, title, hint }: LinkRowProps) {
   return (
     <li>
       <Link

@@ -39,7 +39,7 @@ export function loadDefs(fw: string, kind: ConfigKind): Promise<ConfigDefs> | nu
   return p
 }
 
-export type DefsResolution =
+type DefsResolution =
   | { status: 'ok'; defs: ConfigDefs }
   | { status: 'readonly'; defs: ConfigDefs; reason: string }
   | { status: 'unsupported'; reason: string }

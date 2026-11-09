@@ -2,14 +2,13 @@
 // field's range first (out-of-range values are refused, not trimmed), so these
 // functions can assume sensible numbers.
 
-import { BATTERY_KINDS, type BatteryKind } from './setupMath'
+import { batteryKind, type BatteryKind } from './setupMath'
 
 export interface FieldSpec {
   label: string
   unit: string
   min: number
   max: number
-  /** Whole numbers only. */
   integer?: boolean
 }
 
@@ -26,11 +25,7 @@ export function fieldProblem(spec: FieldSpec, text: string): string | null {
 
 export const parseField = (text: string) => Number(text.trim().replace(',', '.'))
 
-const kind = (k: BatteryKind) => BATTERY_KINDS.find((b) => b.value === k)!
-
-// ---------------------------------------------------------------- battery
-
-export interface PackInput {
+interface PackInput {
   chemistry: BatteryKind
   series: number
   parallel: number
@@ -40,7 +35,7 @@ export interface PackInput {
   cellMaxA: number
 }
 
-export interface PackResult {
+interface PackResult {
   fullV: number
   nominalV: number
   /** Where a typical cut-off stops the motor. */
@@ -54,7 +49,7 @@ export interface PackResult {
 }
 
 export function pack(p: PackInput): PackResult {
-  const k = kind(p.chemistry)
+  const k = batteryKind(p.chemistry)
   const ah = p.parallel * p.cellAh
   const nominalV = p.series * k.nominal
   const maxA = p.parallel * p.cellMaxA
@@ -70,10 +65,8 @@ export function pack(p: PackInput): PackResult {
 }
 
 /** Pack energy (Wh) from cells in series and the pack's amp hours. */
-export const packWhFrom = (chemistry: BatteryKind, series: number, ah: number) => series * kind(chemistry).nominal * ah
-export const fullVoltage = (chemistry: BatteryKind, series: number) => series * kind(chemistry).full
-
-// ---------------------------------------------------------------- range
+export const packWhFrom = (chemistry: BatteryKind, series: number, ah: number) => series * batteryKind(chemistry).nominal * ah
+export const fullVoltage = (chemistry: BatteryKind, series: number) => series * batteryKind(chemistry).full
 
 /** Distance (km) on a charge, using only part of it (a pack is rarely run flat). */
 export function rangeKm(wh: number, usablePct: number, whPerKm: number): number {
@@ -88,9 +81,7 @@ export const TYPICAL_WH_PER_KM = [
   { label: 'Fast scooter', value: 30 },
 ] as const
 
-// ---------------------------------------------------------------- speed
-
-export interface SpeedInput {
+interface SpeedInput {
   volts: number
   /** Motor rpm per volt. */
   kv: number
@@ -116,8 +107,6 @@ export function erpmAt(kmh: number, poles: number, wheelMm: number, gearRatio: n
   return wheelRpm * gearRatio * (poles / 2)
 }
 
-// ---------------------------------------------------------------- charging
-
 /** Most chargers give full current up to about here, then taper. */
 const CV_FROM_PCT = 80
 
@@ -135,9 +124,7 @@ export function chargeHours(packAh: number, chargerA: number, fromPct: number, t
 /** Charge rate as a multiple of capacity (1 C fills the pack in about an hour). */
 export const cRate = (chargerA: number, packAh: number) => chargerA / packAh
 
-// ---------------------------------------------------------------- gearing
-
-export interface GearResult {
+interface GearResult {
   ratio: number
   /** Wheel torque compared to direct drive. */
   torqueX: number
@@ -150,8 +137,6 @@ export function gearing(motorTeeth: number, wheelTeeth: number): GearResult {
   return { ratio, torqueX: ratio, speedX: 1 / ratio }
 }
 
-// ---------------------------------------------------------------- power
-
 export const watts = (volts: number, amps: number) => volts * amps
 export const amps = (volts: number, w: number) => w / volts
 export const horsepower = (w: number) => w / 745.7
@@ -162,9 +147,7 @@ export const horsepower = (w: number) => w / 745.7
  */
 export const batteryAmpsFromMotor = (motorA: number, dutyPct: number) => (motorA * dutyPct) / 100
 
-// ---------------------------------------------------------------- what if
-
-export interface WhatIfSetup {
+interface WhatIfSetup {
   chemistry: BatteryKind
   series: number
   ah: number
@@ -173,7 +156,7 @@ export interface WhatIfSetup {
   batteryA: number
 }
 
-export interface WhatIfShared {
+interface WhatIfShared {
   kv: number
   gearRatio: number
   maxDutyPct: number
@@ -181,7 +164,7 @@ export interface WhatIfShared {
   usablePct: number
 }
 
-export interface WhatIfResult {
+interface WhatIfResult {
   fullV: number
   nominalV: number
   wh: number
@@ -192,7 +175,7 @@ export interface WhatIfResult {
 }
 
 export function whatIf(s: WhatIfSetup, shared: WhatIfShared): WhatIfResult {
-  const k = kind(s.chemistry)
+  const k = batteryKind(s.chemistry)
   const nominalV = s.series * k.nominal
   const wh = nominalV * s.ah
   return {

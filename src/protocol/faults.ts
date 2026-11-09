@@ -2,7 +2,7 @@
 // with plain-language help. Every fault stops the motor output for the
 // "Fault Stop Time" setting (500 ms by default), then the controller retries.
 
-export type FaultSeverity = 'info' | 'warn' | 'danger'
+type FaultSeverity = 'info' | 'warn' | 'danger'
 
 export interface FaultInfo {
   code: number

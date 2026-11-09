@@ -1,7 +1,7 @@
 import { BatteryCharging, Scale, Thermometer } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { TimeoutError } from '../../client/VescClient'
-import { cx, fmt } from '../../lib/format'
+import { cx, errorText, fmt } from '../../lib/format'
 import { cellSummary, hasBms, type BmsValues } from '../../protocol/bms'
 import { HW_TYPE } from '../../protocol/commands'
 import { targetKey, targetLabel, type DeviceInfo } from '../../state/devices'
@@ -39,7 +39,7 @@ function useBms(device: DeviceInfo | null, connected: boolean): Reading {
           if (stop) break
           if (e instanceof TimeoutError) {
             if (misses >= 3) setReading({ status: 'none', at: Date.now() })
-          } else setReading({ status: 'error', message: e instanceof Error ? e.message : String(e) })
+          } else setReading({ status: 'error', message: errorText(e) })
         }
         await new Promise((r) => setTimeout(r, Math.max(100, POLL_MS - (Date.now() - started))))
       }

@@ -58,8 +58,7 @@ export function ExportDialog({
 
   const download = () => {
     const [from, to] = span()
-    const csv = buildCsv(liveLogs, cols, from, to, units)
-    downloadText(`ohmic-live-${stamp()}.csv`, csv, 'text/csv')
+    downloadText(`ohmic-live-${stamp()}.csv`, buildCsv(liveLogs, cols, from, to, units), 'text/csv')
     onClose()
   }
 

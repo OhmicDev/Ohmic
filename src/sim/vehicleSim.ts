@@ -6,7 +6,7 @@ import { regenInit, regenStep, type RegenParams, type RegenState } from '../onbo
 import { emptyImu, type ImuData } from '../protocol/imu'
 import { emptyValues, type Values } from '../protocol/messages'
 
-export interface SimParams {
+interface SimParams {
   cellsSeries: number
   cellsParallel: number
   cellAh: number
@@ -29,7 +29,7 @@ export interface SimParams {
   startSoc: number // 0..1
 }
 
-export const DEFAULT_SIM: SimParams = {
+const DEFAULT_SIM: SimParams = {
   cellsSeries: 13,
   cellsParallel: 4,
   cellAh: 3.5,
@@ -88,7 +88,7 @@ function interp(table: [number, number][], x: number): number {
 }
 
 /** Limits each controller enforces; config writes change these. */
-export interface MotorLimits {
+interface MotorLimits {
   /** Drive current, scale included (l_current_max x l_current_max_scale). */
   motorCurrentMax: number
   /** Braking current before its scale (l_current_min, negative). */
@@ -111,7 +111,7 @@ const GRIP_WET = 0.2
 const WHEEL_MASS = 4
 
 /** Bench control of a lifted wheel, as the motor control panel drives it. */
-export type BenchMode = 'current' | 'duty' | 'pos' | 'handbrake'
+type BenchMode = 'current' | 'duty' | 'pos' | 'handbrake'
 
 interface MotorState {
   limits: MotorLimits
@@ -161,10 +161,10 @@ export class VehicleSim {
   distanceM = 0
   /** Demo control: brake to a stop and stay there (so settings can be written). */
   parked = false
-  /** Demo control: low grip until this sim time, so hard braking skids. */
-  wetUntil = 0
-  /** Demo control: the rider brakes hard until this sim time. */
-  hardBrakeUntil = 0
+  /** Low grip until this sim time, so hard braking skids. */
+  private wetUntil = 0
+  /** The rider brakes hard until this sim time. */
+  private hardBrakeUntil = 0
   private accel = 0
   private heading = 0
   private roll = 0
@@ -178,8 +178,8 @@ export class VehicleSim {
   /** One-pedal regen, run by the throttle's controller (master) for itself and its followers. */
   private regen: { master: number; followers: number[]; s: RegenState; p: RegenParams; beat: number; amps: number | null } | null = null
 
-  constructor(params: Partial<SimParams> = {}) {
-    this.p = { ...DEFAULT_SIM, ...params }
+  constructor() {
+    this.p = { ...DEFAULT_SIM }
     this.soc = this.p.startSoc
     this.vBat = this.ocv()
     this.motors = Array.from({ length: this.p.motors }, (_, i) => ({
@@ -337,21 +337,12 @@ export class VehicleSim {
     return r && r.master === master ? { on: true, engagements: r.s.engagements, beat: r.beat, active: r.s.active } : null
   }
 
-  /** Demo control: the road is wet for a few seconds. */
-  wetPatch(seconds = 8) {
-    this.wetUntil = this.time + seconds
-  }
-
   /** Demo control: a wet road and a full brake, to see ABS work. False when too slow to show anything. */
   skidTest(): boolean {
     if (this.speed < 4 || this.parked) return false
     this.wetUntil = this.time + 3.5
     this.hardBrakeUntil = this.time + 2.5
     return true
-  }
-
-  isSlipping(motorIndex: number): boolean {
-    return this.motors[motorIndex]?.slipping ?? false
   }
 
   limitsFor(motorIndex: number): MotorLimits {
@@ -437,10 +428,9 @@ export class VehicleSim {
     // Regen on the throttle's controller, 100 times a second like the on-controller loop.
     const regen = this.regen
     if (regen) {
-      const mm = this.motors[regen.master]
-      const erpmM = (mm.wheel / wheelCirc) * 60 * p.gearRatio * (p.motorPoles / 2)
       const input = this.inputs()
-      regen.amps = regenStep(regen.s, regen.p, { throttle: input.throttle, lever: input.brake, erpm: erpmM, outputDisabled: false })
+      const erpm = this.erpmFor(this.motors[regen.master].wheel)
+      regen.amps = regenStep(regen.s, regen.p, { throttle: input.throttle, lever: input.brake, erpm, outputDisabled: false })
       regen.beat = (regen.beat + 1) % 100_000
     }
 
@@ -607,7 +597,7 @@ export class VehicleSim {
     const maxI = lim.motorCurrentMax
     const clampI = (i: number) => Math.max(-maxI, Math.min(maxI, i))
     const w = m.wheel * m.testSign // signed wheel speed (m/s)
-    const rpm = ((w / wheelCirc) * 60 * p.gearRatio)
+    const rpm = (w / wheelCirc) * 60 * p.gearRatio
     const emf = rpm / p.kv
 
     if (b.mode === 'pos') {

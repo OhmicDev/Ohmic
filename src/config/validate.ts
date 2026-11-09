@@ -114,7 +114,7 @@ const RULES: Rule[] = [
   },
 ]
 
-export interface ValidateOptions {
+interface ValidateOptions {
   /** Values currently on the controller; fields equal to these are "untouched". */
   base?: ConfigValues
 }

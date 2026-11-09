@@ -1,8 +1,6 @@
 // The app's IndexedDB database (Dexie). Important data lives here, never in localStorage.
 
 import Dexie, { type EntityTable, type Table } from 'dexie'
-import type { AiLogEntry } from '../ai/log'
-import type { VehicleProfile } from '../ai/profile'
 import type { Backup } from './backups'
 import type { RideChunk, RideLog } from './rideLogs'
 import type { FaultEvent } from './faults'
@@ -10,7 +8,7 @@ import type { CustomTune } from './onboard'
 import type { LiveLimitsRecord, RideMode } from './rideModes'
 
 /** Text the user is working on (the LispBM editor), so a reload doesn't lose it. */
-export interface Draft {
+interface Draft {
   id: string
   text: string
   name: string | null
@@ -18,7 +16,7 @@ export interface Draft {
 }
 
 /** A package's settings as they were before Ohmic wrote them. */
-export interface PackageBackup {
+interface PackageBackup {
   id: number
   createdAt: number
   deviceUuid: string | null
@@ -39,8 +37,6 @@ class OhmicDb extends Dexie {
   tunes!: EntityTable<CustomTune, 'id'>
   rides!: EntityTable<RideLog, 'id'>
   rideChunks!: Table<RideChunk, [string, number]>
-  aiLog!: EntityTable<AiLogEntry, 'id'>
-  aiProfile!: EntityTable<VehicleProfile, 'id'>
   drafts!: EntityTable<Draft, 'id'>
   packageBackups!: EntityTable<PackageBackup, 'id'>
 
@@ -74,6 +70,11 @@ class OhmicDb extends Dexie {
     this.version(6).stores({
       drafts: 'id',
       packageBackups: '++id, createdAt, deviceUuid, signature',
+    })
+    // The tuning assistant was removed; null deletes its tables on existing devices.
+    this.version(7).stores({
+      aiLog: null,
+      aiProfile: null,
     })
   }
 }

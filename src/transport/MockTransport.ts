@@ -5,7 +5,7 @@ import { encodePacket, PacketDecoder } from '../protocol/packet'
 import { MockBus, type MockReply } from '../sim/mockBus'
 import { Emitter, type Transport } from './types'
 
-export interface MockTransportOptions {
+interface MockTransportOptions {
   latencyMs?: [number, number]
   chunkSize?: number
   connectDelayMs?: number

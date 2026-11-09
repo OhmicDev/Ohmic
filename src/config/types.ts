@@ -53,7 +53,7 @@ export interface ParamDef {
   cDefine: string
 }
 
-export interface ConfigSubgroup {
+interface ConfigSubgroup {
   name: string
   /** Parameter names, plus `::sep::Label` separators as in VESC Tool. */
   items: string[]

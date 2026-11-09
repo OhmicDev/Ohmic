@@ -9,7 +9,7 @@ export function Button({ variant = 'secondary', className, ...props }: ButtonHTM
 }
 
 /** Where a page sits: the section it belongs to, shown above its title. */
-export type BackTo = '/setup' | '/tune' | '/more' | '/settings' | '/logs'
+type BackTo = '/setup' | '/tune' | '/more' | '/settings' | '/logs'
 
 export function BackLink({ to, children }: { to: BackTo; children: ReactNode }) {
   return (
@@ -86,16 +86,6 @@ export function Segmented<T extends string | number>({
           {o.label}
         </button>
       ))}
-    </div>
-  )
-}
-
-export function ComingSoon({ phase, title, children }: { phase: number; title: string; children: ReactNode }) {
-  return (
-    <div className="card p-6 md:p-8">
-      <Badge tone="accent">Phase {phase}</Badge>
-      <h2 className="wide mt-3 text-lg font-semibold">{title}</h2>
-      <div className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{children}</div>
     </div>
   )
 }

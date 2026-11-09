@@ -114,7 +114,7 @@ again for each new firmware version or controller family.
 ## App
 
 - [ ] Install to the home screen (Android) or as an app (desktop): it opens on its own window.
-- [ ] Go offline (flight mode) and open the app: everything but AI Tune and firmware downloads works,
+- [ ] Go offline (flight mode) and open the app: everything but firmware downloads works,
       including the demo and the last package list.
 - [ ] After a new deploy, the app offers to reload, and never while a write is running.
 - [ ] Ride at 50 Hz on a mid-range Android phone: numbers glide, nothing stutters, and the phone doesn't get

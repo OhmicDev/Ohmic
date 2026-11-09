@@ -24,7 +24,7 @@ export interface ImportedLog {
   notes: string[]
 }
 
-export interface ImportOptions {
+interface ImportOptions {
   fileName: string
   /** File's last-modified time (ms), used for the date when the name doesn't carry one. */
   lastModified?: number
@@ -125,9 +125,7 @@ export function rateOf(d: RideData): number {
   return Math.round((1000 / median) * 10) / 10
 }
 
-// ---------------------------------------------------------------- log analysis format
-
-/** VESC Tool's keys this app reads, and what it does with each. */
+/** The Log Analysis keys this app reads. */
 const ANALYSIS_KEYS = new Set([
   't_day', 't_day_pos', 't_trip', 'kmh_vesc', 'kmh_gnss', 'trip_vesc', 'trip_vesc_abs', 'trip_gnss',
   'setup_curr_motor', 'setup_curr_battery', 'setup_power', 'erpm', 'duty', 'fault', 'v_in', 'soc',
@@ -214,8 +212,6 @@ function parseAnalysis(lines: string[], sep: string, header: string[], opts: Imp
   return finish(data, timeKey === 't_day' ? clock.start : null, opts, 'vesc-tool', skipped, notes)
 }
 
-// ---------------------------------------------------------------- realtime format
-
 function parseRealtime(lines: string[], sep: string, header: string[], opts: ImportOptions): ImportedLog {
   const at = new Map(header.map((h, i) => [h, i]))
   const known = new Set(REALTIME_NAMES)
@@ -294,8 +290,6 @@ const REALTIME_NAMES = [
   'roll', 'pitch', 'yaw', 'accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'gnss_posTime', 'gnss_lat', 'gnss_lon', 'gnss_alt',
   'gnss_gVel', 'gnss_vVel', 'gnss_hAcc', 'gnss_vAcc',
 ]
-
-// ---------------------------------------------------------------- export
 
 interface ExportColumn {
   key: string

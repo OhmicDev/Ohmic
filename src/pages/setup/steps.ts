@@ -1,7 +1,7 @@
 import { BatteryCharging, Cpu, Gauge, RotateCw, type LucideIcon } from 'lucide-react'
-import type { SetupStep } from '../../state/setupProgress'
+import { SETUP_ORDER, type SetupStep, type StepsDone } from '../../state/setupProgress'
 
-export type StepRoute = '/setup/motor' | '/setup/input' | '/setup/direction' | '/setup/battery'
+type StepRoute = '/setup/motor' | '/setup/input' | '/setup/direction' | '/setup/battery'
 
 export const STEPS: Record<SetupStep, { to: StepRoute; icon: LucideIcon; title: string; hint: string }> = {
   motor: { to: '/setup/motor', icon: Cpu, title: 'Motor detection', hint: 'Measures the motor and sets the controller up to match.' },
@@ -14,3 +14,5 @@ export const STEPS: Record<SetupStep, { to: StepRoute; icon: LucideIcon; title: 
   },
   battery: { to: '/setup/battery', icon: BatteryCharging, title: 'Battery', hint: 'Cells, capacity, current and safe cut-off voltages.' },
 }
+
+export const countDone = (done: StepsDone | undefined) => SETUP_ORDER.filter((s) => done?.[s]).length

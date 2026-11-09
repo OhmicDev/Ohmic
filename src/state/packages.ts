@@ -7,23 +7,24 @@
 // config) are edited in the package settings panel instead.
 
 import { create } from 'zustand'
-import { ClosedError, TimeoutError, type Target } from '../client/VescClient'
+import type { Target } from '../client/VescClient'
 import { qCompress } from '../lib/qcompress'
 import { BufferWriter } from '../protocol/buffer'
 import { lispStorageBlob, unpackLispProgram } from '../protocol/lisp'
 import { readRcc } from '../packages/rcc'
 import { sameBytes, unpackVescPackage, type VescPackage } from '../packages/vescpkg'
 import { useCustomConfig } from './customConfig'
-import { targetKey, targetLabel } from './devices'
+import { targetKey, targetLabel, type DeviceInfo } from './devices'
+import { controllerErrorText } from './errors'
 import { readStoredProgram, scriptMotionBlock, scriptSupport, writeStorage } from './lisp'
 import { activeClient, useSession } from './session'
 
-export const ARCHIVE_URL = `${import.meta.env.BASE_URL}api/pkg/archive`
+const ARCHIVE_URL = `${import.meta.env.BASE_URL}api/pkg/archive`
 const NO_SERVER = 'The online package list needs the Ohmic server, and this site doesn’t have one. You can still open a .vescpkg file.'
 /** VESC Tool's limit for a stored QML screen. */
-export const QML_MAX = 120 * 1024
+const QML_MAX = 120 * 1024
 
-export type PackageSource = 'archive' | 'file' | 'demo'
+type PackageSource = 'archive' | 'file' | 'demo'
 
 export interface PackageEntry {
   id: string
@@ -31,7 +32,7 @@ export interface PackageEntry {
   pkg: VescPackage
 }
 
-export interface InstalledState {
+interface InstalledState {
   checkedAt: number
   /** The stored script program, or null when there's none. */
   program: Uint8Array | null
@@ -64,8 +65,8 @@ interface PackagesState {
   dismiss: () => void
 }
 
-const errText = (e: unknown) =>
-  e instanceof TimeoutError ? 'The controller didn’t answer.' : e instanceof ClosedError ? 'The connection closed.' : e instanceof Error ? e.message : String(e)
+/** The controller reports a stored package screen (QML app). */
+const hasQmlScreen = (d: DeviceInfo) => (d.fw?.qmlApp ?? 0) > 0
 
 /** Every package in an archive file, libraries marked, sorted by name. */
 export async function packagesFromArchive(bytes: Uint8Array): Promise<PackageEntry[]> {
@@ -83,7 +84,7 @@ export async function packagesFromArchive(bytes: Uint8Array): Promise<PackageEnt
 }
 
 /** The QML screen as VESC Tool stores it: [u16 1 or 2 (fullscreen)][qCompressed QML with its imports]. */
-export async function qmlStorageBlob(qml: string, fullscreen: boolean): Promise<{ blob: Uint8Array; compressedLength: number }> {
+async function qmlStorageBlob(qml: string, fullscreen: boolean): Promise<{ blob: Uint8Array; compressedLength: number }> {
   const text = 'import Vedder.vesc.vescinterface 1.0;import "qrc:/mobile";' + qml
   const compressed = await qCompress(new TextEncoder().encode(text))
   const vb = new BufferWriter().u16(fullscreen ? 2 : 1).raw(compressed).toUint8Array()
@@ -141,7 +142,7 @@ export const usePackages = create<PackagesState>()((set, get) => {
         if (!entries.length) throw new Error('The archive had no packages in it.')
         set({ archive: { status: 'ready', entries, error: null, fetchedAt: Date.now() } })
       } catch (e) {
-        const msg = e instanceof TypeError ? 'Couldn’t reach the package server. Check the connection; you can still open a .vescpkg file.' : errText(e)
+        const msg = e instanceof TypeError ? 'Couldn’t reach the package server. Check the connection; you can still open a .vescpkg file.' : controllerErrorText(e)
         set((s) => ({ archive: { ...s.archive, status: 'error', error: msg } }))
       }
     },
@@ -153,7 +154,7 @@ export const usePackages = create<PackagesState>()((set, get) => {
         set((s) => ({ files: [entry, ...s.files.filter((f) => f.id !== entry.id)], error: null, notice: `Opened ${pkg.name}.` }))
         return entry
       } catch (e) {
-        set({ error: `${file.name}: ${errText(e)}`, notice: null })
+        set({ error: `${file.name}: ${controllerErrorText(e)}`, notice: null })
         return null
       }
     },
@@ -176,14 +177,14 @@ export const usePackages = create<PackagesState>()((set, get) => {
               program,
               code: program ? unpackLispProgram(program).code : null,
               matchId: match?.id ?? null,
-              hasQml: (info.fw?.qmlApp ?? 0) > 0,
+              hasQml: hasQmlScreen(info),
               error: null,
             },
           },
         }))
       } catch (e) {
         set((s) => ({
-          installed: { ...s.installed, [key]: { checkedAt: Date.now(), program: null, code: null, matchId: null, hasQml: false, error: errText(e) } },
+          installed: { ...s.installed, [key]: { checkedAt: Date.now(), program: null, code: null, matchId: null, hasQml: false, error: controllerErrorText(e) } },
         }))
       }
     },
@@ -207,7 +208,7 @@ export const usePackages = create<PackagesState>()((set, get) => {
           await writeStorage({ erase: (n) => client.qmlErase(n, target), write: (o, d) => client.qmlWrite(o, d, target) }, blob, compressedLength + 100, (p) =>
             step('Writing the package’s screen (for VESC Tool)', p),
           )
-        } else if ((info.fw?.qmlApp ?? 0) > 0) {
+        } else if (hasQmlScreen(info)) {
           step('Removing the previous package’s screen')
           if (!(await client.qmlErase(16, target))) throw new Error('The controller refused to erase the old screen.')
         }
@@ -228,7 +229,7 @@ export const usePackages = create<PackagesState>()((set, get) => {
         set({ busy: null, notice: `Installed ${pkg.name} on ${targetLabel(target)}.` })
         return true
       } catch (e) {
-        set({ busy: null, error: `Installing ${pkg.name} failed: ${errText(e)} The controller may be left without a working package; install again or remove it.` })
+        set({ busy: null, error: `Installing ${pkg.name} failed: ${controllerErrorText(e)} The controller may be left without a working package; install again or remove it.` })
         await get().checkInstalled(target).catch(() => {})
         return false
       }
@@ -240,13 +241,13 @@ export const usePackages = create<PackagesState>()((set, get) => {
       const { client, info } = r
       set({ busy: { what: 'Removing the package', progress: null }, error: null, notice: null })
       try {
-        if ((info.fw?.qmlApp ?? 0) > 0 && !(await client.qmlErase(16, target))) throw new Error('The controller refused to erase the package’s screen.')
+        if (hasQmlScreen(info) && !(await client.qmlErase(16, target))) throw new Error('The controller refused to erase the package’s screen.')
         if (!(await client.lispErase(16, target))) throw new Error('The controller refused to erase the script.')
         await afterChange(target)
         set({ busy: null, notice: `${targetLabel(target)} has no package now.` })
         return true
       } catch (e) {
-        set({ busy: null, error: `Removing failed: ${errText(e)}` })
+        set({ busy: null, error: `Removing failed: ${controllerErrorText(e)}` })
         return false
       }
     },

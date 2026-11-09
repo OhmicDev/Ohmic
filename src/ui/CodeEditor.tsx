@@ -50,18 +50,14 @@ export function CodeEditor({
   onChange,
   onSubmit,
   label,
-  readOnly = false,
   errorLine = null,
-  className = 'h-[52dvh] min-h-72',
 }: {
   value: string
   onChange: (v: string) => void
   onSubmit?: () => void
   label: string
-  readOnly?: boolean
   /** A line to mark (1-based), e.g. an unclosed bracket. */
   errorLine?: number | null
-  className?: string
 }) {
   const ta = useRef<HTMLTextAreaElement>(null)
   const pre = useRef<HTMLPreElement>(null)
@@ -98,7 +94,6 @@ export function CodeEditor({
       onSubmit?.()
       return
     }
-    if (readOnly) return
     if (e.key === 'Tab' && !escaped.current && !e.altKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault()
       const { selectionStart: s, selectionEnd: en } = t
@@ -122,7 +117,7 @@ export function CodeEditor({
   }
 
   return (
-    <div className={`code-surface relative overflow-hidden font-mono text-[12.5px] leading-[1.65] ${className}`}>
+    <div className="code-surface relative h-[52dvh] min-h-72 overflow-hidden font-mono text-[12.5px] leading-[1.65]">
       <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-11 overflow-hidden border-r border-line bg-surface-2/60 text-right text-faint select-none">
         <div ref={gutter} className="px-2 py-3">
           {Array.from({ length: lines }, (_, i) => (
@@ -141,7 +136,6 @@ export function CodeEditor({
         onChange={(e) => onChange(e.target.value)}
         onScroll={sync}
         onKeyDown={onKey}
-        readOnly={readOnly}
         aria-label={label}
         aria-describedby={hintId}
         spellCheck={false}

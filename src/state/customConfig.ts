@@ -3,7 +3,7 @@
 // checks and write steps as the motor and app settings, with their own backups.
 
 import { create } from 'zustand'
-import { ClosedError, TimeoutError, type Target } from '../client/VescClient'
+import type { Target } from '../client/VescClient'
 import { decodeConfig, xmlDefaults } from '../config/codec'
 import { convertParamXml } from '../config/paramXml'
 import type { ConfigDefs, ConfigValue, ConfigValues } from '../config/types'
@@ -13,6 +13,7 @@ import { CUSTOM_XML_CHUNK } from '../protocol/customConfig'
 import { deviceKey, deviceName } from './config'
 import { db } from './db'
 import { targetKey } from './devices'
+import { controllerErrorText } from './errors'
 import { scriptSupport } from './lisp'
 import { activeClient, useSession } from './session'
 
@@ -45,9 +46,6 @@ interface CustomConfigState {
   /** Drops what was read from a device (after a package change). */
   forget: (target: Target) => void
 }
-
-const errText = (e: unknown) =>
-  e instanceof TimeoutError ? 'The controller didn’t answer.' : e instanceof ClosedError ? 'The connection closed.' : e instanceof Error ? e.message : String(e)
 
 export const customKey = (devKey: string, index: number) => `${devKey}#${index}`
 
@@ -105,7 +103,7 @@ export const useCustomConfig = create<CustomConfigState>()((set, get) => ({
       const name = defs.groups[0]?.name || base.name
       set((s) => ({ configs: { ...s.configs, [key]: { ...base, name, status: 'ready', defs, device, defaults, draft: { ...device } } } }))
     } catch (e) {
-      set((s) => ({ configs: { ...s.configs, [key]: { ...base, status: 'error', error: `Couldn’t read these settings: ${errText(e)}` } } }))
+      set((s) => ({ configs: { ...s.configs, [key]: { ...base, status: 'error', error: `Couldn’t read these settings: ${controllerErrorText(e)}` } } }))
     }
   },
 
@@ -188,10 +186,4 @@ export const useCustomConfig = create<CustomConfigState>()((set, get) => ({
 
 function diffOnly(before: ConfigValues, after: ConfigValues): ConfigValues {
   return Object.fromEntries(Object.entries(after).filter(([k, v]) => before[k] !== v))
-}
-
-/** The newest backup of a custom config on this device (matched by layout). */
-export async function latestPackageBackup(deviceUuid: string | null, signature: number) {
-  const all = await db.packageBackups.where('signature').equals(signature).reverse().sortBy('createdAt')
-  return all.find((b) => b.deviceUuid === deviceUuid) ?? null
 }

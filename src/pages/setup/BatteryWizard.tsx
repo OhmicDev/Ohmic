@@ -1,7 +1,7 @@
 import { Check, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { cx, fmt } from '../../lib/format'
-import { BATTERY_KINDS, batteryIssues, batterySettings, cellsRange, fullVoltage, guessCells, type BatteryInput, type BatteryKind } from '../../lib/setupMath'
+import { BATTERY_KINDS, batteryIssues, batteryKind, batterySettings, cellsRange, fullVoltage, guessCells, type BatteryInput, type BatteryKind } from '../../lib/setupMath'
 import { pendingCount, useConfig, type DeviceConfig } from '../../state/config'
 import { targetKey } from '../../state/devices'
 import { markSetupDone } from '../../state/setupProgress'
@@ -42,7 +42,7 @@ function BatteryForm({ list }: { list: DeviceConfig[] }) {
   }
   const issues = batteryIssues(input)
   const full = issues.length ? NaN : fullVoltage(input)
-  const k = BATTERY_KINDS.find((x) => x.value === kind)!
+  const chemistry = batteryKind(kind)
   const tooHigh = list.filter((d) => Number.isFinite(full) && full > Number(d.mcconf.device?.l_max_vin))
   const pending = list.some((d) => pendingCount(d.mcconf) > 0)
   const fits = cellsRange(vNow ?? 0, kind)
@@ -124,9 +124,9 @@ function BatteryForm({ list }: { list: DeviceConfig[] }) {
               <dt className="text-muted">Full charge</dt>
               <dd className="num text-right">{fmt(full, 1)} V</dd>
               <dt className="text-muted">Power starts fading at</dt>
-              <dd className="num text-right">{fmt(k.cutStart * input.cells, 1)} V</dd>
+              <dd className="num text-right">{fmt(chemistry.cutStart * input.cells, 1)} V</dd>
               <dt className="text-muted">Power stops at</dt>
-              <dd className="num text-right">{fmt(k.cutEnd * input.cells, 1)} V</dd>
+              <dd className="num text-right">{fmt(chemistry.cutEnd * input.cells, 1)} V</dd>
               {input.maxDischargeA !== null && (
                 <>
                   <dt className="text-muted">Battery current per controller</dt>

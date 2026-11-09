@@ -9,7 +9,7 @@ import { cx } from '../../lib/format'
 import { Toggle } from '../../ui/Toggle'
 import { describeValue } from './describe'
 
-export interface ParamRowProps {
+interface ParamRowProps {
   p: ParamDef
   value: ConfigValue | undefined
   /** What the controller has. */
@@ -29,8 +29,8 @@ function shownNumber(p: ParamDef, v: number) {
 }
 
 function sliderSpec(p: ParamDef) {
-  const s = displaySpec(p)
   if (p.typeId !== CFG.DOUBLE && p.typeId !== CFG.INT) return null
+  const s = displaySpec(p)
   const steps = (s.max - s.min) / (s.step || 1)
   // A slider only helps when the whole range is meaningful (percentages, small ranges).
   if (!(p.percent || (steps > 1 && steps <= 200))) return null
@@ -39,12 +39,16 @@ function sliderSpec(p: ParamDef) {
 
 function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: number; readOnly: boolean; onCommit: (v: number) => void }) {
   const spec = displaySpec(p)
-  const id = useId()
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [drag, setDrag] = useState<number | null>(null)
   const slider = sliderSpec(p)
   const shown = shownNumber(p, value)
+
+  const clearTyping = () => {
+    setText(null)
+    setError(null)
+  }
 
   const tryCommit = (raw: string): boolean => {
     const n = Number(raw.trim().replace(',', '.'))
@@ -58,10 +62,14 @@ function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: nu
       setError(problem)
       return false
     }
-    setError(null)
-    setText(null)
+    clearTyping()
     if (!sameOnWire(p, v, value)) onCommit(v)
     return true
+  }
+
+  const releaseSlider = () => {
+    if (drag !== null) tryCommit(String(drag))
+    setDrag(null)
   }
 
   const stepBy = (dir: 1 | -1) => {
@@ -72,8 +80,7 @@ function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: nu
     const rounded = Number(next.toFixed(Math.max(spec.decimals, 6)))
     const v = fromDisplay(p, rounded)
     if (validateValue(p, v)) return
-    setText(null)
-    setError(null)
+    clearTyping()
     onCommit(v)
   }
 
@@ -84,8 +91,7 @@ function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: nu
     if (e.key === 'Enter') {
       if (tryCommit(e.currentTarget.value)) e.currentTarget.blur()
     } else if (e.key === 'Escape') {
-      setText(null)
-      setError(null)
+      clearTyping()
       e.currentTarget.blur()
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault()
@@ -106,14 +112,8 @@ function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: nu
             disabled={readOnly}
             value={drag ?? value * spec.factor}
             onChange={(e) => setDrag(Number(e.target.value))}
-            onPointerUp={() => {
-              if (drag !== null) tryCommit(String(drag))
-              setDrag(null)
-            }}
-            onKeyUp={() => {
-              if (drag !== null) tryCommit(String(drag))
-              setDrag(null)
-            }}
+            onPointerUp={releaseSlider}
+            onKeyUp={releaseSlider}
             onBlur={() => setDrag(null)}
             className="h-1.5 w-full min-w-24 cursor-pointer accent-[var(--accent)] sm:w-32 disabled:opacity-40"
           />
@@ -138,7 +138,6 @@ function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: nu
             </button>
           )}
           <input
-            id={id}
             aria-label={p.label}
             aria-invalid={!!error}
             inputMode="decimal"
@@ -173,13 +172,7 @@ function NumberEditor({ p, value, readOnly, onCommit }: { p: ParamDef; value: nu
         <p role="alert" className="text-xs text-danger">
           {error}
           {text !== null && (
-            <button
-              className="ml-2 underline decoration-danger/40 underline-offset-2"
-              onClick={() => {
-                setText(null)
-                setError(null)
-              }}
-            >
+            <button className="ml-2 underline decoration-danger/40 underline-offset-2" onClick={clearTyping}>
               Undo typing
             </button>
           )}

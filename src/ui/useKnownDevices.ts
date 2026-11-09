@@ -20,7 +20,7 @@ export function useKnownDevices(enabled: boolean) {
       void BleTransport.granted().then((d) => live && setBle(d))
     }
     refresh()
-    const serial = typeof navigator !== 'undefined' && 'serial' in navigator ? navigator.serial : undefined
+    const serial = 'serial' in navigator ? navigator.serial : undefined
     serial?.addEventListener('connect', refresh)
     serial?.addEventListener('disconnect', refresh)
     return () => {

@@ -15,7 +15,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     // Offline use: the app itself is precached; the package archive and map tiles are
-    // cached as they're fetched. AI Tune and firmware downloads always need the network.
+    // cached as they're fetched. Firmware downloads always need the network.
     !process.env.VITEST &&
       VitePWA({
         registerType: 'prompt',
@@ -77,7 +77,7 @@ export default defineConfig({
       }),
   ],
   server: {
-    // AI Tune talks to the Ohmic server (npm run server) during development.
+    // The package archive comes from the Ohmic server (npm run server) during development.
     proxy: { '/api': { target: 'http://localhost:8787', changeOrigin: false } },
   },
   test: {

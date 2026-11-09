@@ -5,6 +5,7 @@ import { MAX_PLOTTED_HINT, plotPanes } from '../../live/plot'
 import { seriesColor } from '../../live/palette'
 import { formatSignal, SIGNAL_GROUPS, SIGNALS, unitLabel, type SignalDef } from '../../live/signals'
 import { cx } from '../../lib/format'
+import type { Units } from '../../lib/vehicle'
 import { targetFromKey, targetKey, targetLabel } from '../../state/devices'
 import { liveLogs, MAX_PLOTTED, plotKey, useLiveData, useLiveView, useLiveViewer, WINDOWS, type WindowSec } from '../../state/live'
 import { maxPollHz, useSession } from '../../state/session'
@@ -16,6 +17,8 @@ import { LiveChart } from './LiveChart'
 import { useLiveTick } from './useLiveTick'
 
 const WINDOW_LABEL: Record<WindowSec, string> = { 10: '10 s', 30: '30 s', 60: '1 min', 300: '5 min' }
+
+const labelOf = (key: string) => targetLabel(targetFromKey(key))
 
 export function SignalsPage() {
   useLiveViewer()
@@ -34,7 +37,6 @@ export function SignalsPage() {
   const connected = status === 'connected' || status === 'reconnecting'
   // Controllers with data: anything recorded, plus motor controllers on this connection.
   const targets = [...new Set([...devices.filter((d) => d.motor).map((d) => targetKey(d.target)), ...liveLogs.keys()])]
-  const hwOf = (key: string) => devices.find((x) => targetKey(x.target) === key)?.fw?.hwName
   const fallback = primary !== null ? targetKey(primary) : (targets[0] ?? null)
   const selected = view.device && targets.includes(view.device) ? view.device : fallback
 
@@ -56,7 +58,7 @@ export function SignalsPage() {
     )
   }
 
-  const panes = plotPanes(view.plotted, units, (key) => targetLabel(targetFromKey(key)))
+  const panes = plotPanes(view.plotted, units, labelOf)
   const log = selected ? liveLogs.get(selected) : undefined
   const rate = log && connected ? log.rate(lastAt) : 0
   const maxHz = maxPollHz(kind)
@@ -78,7 +80,7 @@ export function SignalsPage() {
             label="Controller"
             value={selected ?? ''}
             onChange={(k) => view.setDevice(k)}
-            options={targets.map((k) => ({ value: k, label: targetLabel(targetFromKey(k)) }))}
+            options={targets.map((k) => ({ value: k, label: labelOf(k) }))}
           />
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -136,13 +138,13 @@ export function SignalsPage() {
 
         <SignalList
           target={selected}
-          title={selected ? targetLabel(targetFromKey(selected)) : 'Signals'}
-          subtitle={selected ? hwOf(selected) : undefined}
+          title={selected ? labelOf(selected) : 'Signals'}
+          subtitle={devices.find((d) => targetKey(d.target) === selected)?.fw?.hwName}
           onReset={() => useLiveData.getState().resetMinMax()}
         />
       </div>
 
-      <ExportDialog open={exporting} onClose={() => setExporting(false)} selected={selected} targets={targets} labelOf={(k) => targetLabel(targetFromKey(k))} />
+      <ExportDialog open={exporting} onClose={() => setExporting(false)} selected={selected} targets={targets} labelOf={labelOf} />
     </div>
   )
 }
@@ -190,14 +192,15 @@ function SignalList({ target, title, subtitle, onReset }: { target: string | nul
                 {defs.map((d) => {
                   const key = target ? plotKey(target, d.id) : ''
                   const slot = plotted.find((p) => p.key === key)?.slot
+                  const i = SIGNALS.indexOf(d)
                   return (
                     <li key={d.id}>
                       <SignalRow
                         def={d}
                         units={units}
-                        value={log ? log.latestFinite(SIGNALS.indexOf(d)) : NaN}
-                        min={log ? log.min[SIGNALS.indexOf(d)] : NaN}
-                        max={log ? log.max[SIGNALS.indexOf(d)] : NaN}
+                        value={log ? log.latestFinite(i) : NaN}
+                        min={log ? log.min[i] : NaN}
+                        max={log ? log.max[i] : NaN}
                         slot={slot}
                         disabled={!target || (slot === undefined && full)}
                         onToggle={() => target && toggle(key)}
@@ -225,7 +228,7 @@ function SignalRow({
   onToggle,
 }: {
   def: SignalDef
-  units: ReturnType<typeof useSettings.getState>['units']
+  units: Units
   value: number
   min: number
   max: number

@@ -12,6 +12,7 @@ import { Dialog } from '../../ui/Dialog'
 import { Button } from '../../ui/Primitives'
 import { DemoPark } from '../config/LiveStrip'
 import { DevicePicker } from '../setup/common'
+import { useMotorDevices } from '../setup/helpers'
 
 const PHASE_TEXT = {
   checking: 'Checking ABS is running…',
@@ -22,9 +23,8 @@ const PHASE_TEXT = {
 
 /** Tests ABS with the wheel lifted: hold to spin up and brake hard, then see if ABS stepped in. */
 export function AbsTestDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const order = useConfig((s) => s.order)
   const devices = useConfig((s) => s.devices)
-  const list = order.map((k) => devices[k]).filter(Boolean)
+  const list = useMotorDevices()
   const [key, setKey] = useState<string | null>(null)
   const [lifted, setLifted] = useState(false)
   const test = useAbsTest()

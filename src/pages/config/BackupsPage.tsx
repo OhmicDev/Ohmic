@@ -7,7 +7,7 @@ import type { ConfigDefs, ConfigKind, ConfigValues } from '../../config/types'
 import { validateValue } from '../../config/validate'
 import { detectKind, exportConfigXml, importConfigXml } from '../../config/xmlFile'
 import { canShareFiles, downloadText, pickTextFile, safeFileName, shareText, stamp } from '../../lib/files'
-import { cx } from '../../lib/format'
+import { cx, errorText, plural } from '../../lib/format'
 import { addBackup, deleteBackup, type Backup } from '../../state/backups'
 import { useConfig, type DeviceConfig } from '../../state/config'
 import { withoutRideMode } from '../../state/rideModes'
@@ -19,7 +19,6 @@ import { describeValue } from './describe'
 import { useBackups } from './useBackups'
 
 const kindWord = (k: ConfigKind) => (k === 'mcconf' ? 'Motor' : 'App')
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 function timeAgo(t: number): string {
   const s = Math.round((Date.now() - t) / 1000)
@@ -205,7 +204,7 @@ function BackupCard({
 export function BackupsPage() {
   const navigate = useNavigate()
   const [kind, setKind] = useState<'all' | ConfigKind>('all')
-  const [device, setDevice] = useState<string>('all')
+  const [device, setDevice] = useState('all')
   const { backups, error } = useBackups()
   const [selected, setSelected] = useState<number[]>([])
   const [compare, setCompare] = useState<{ a: Backup; b: { label: string; values: ConfigValues } } | null>(null)
@@ -278,7 +277,7 @@ export function BackupsPage() {
       }
       setNotice(saved ? `Saved ${plural(saved, 'backup')} of ${d.name}.` : 'Nothing to back up yet.')
     } catch (e) {
-      setNotice(`Couldn’t back up: ${e instanceof Error ? e.message : String(e)}`)
+      setNotice(`Couldn’t back up: ${errorText(e)}`)
     } finally {
       setBusy(false)
     }
@@ -317,7 +316,7 @@ export function BackupsPage() {
           (r.missing.length ? `; ${plural(r.missing.length, 'setting')} missing from the file use VESC Tool’s defaults.` : '.'),
       )
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : String(e))
+      setNotice(errorText(e))
     }
   }
 

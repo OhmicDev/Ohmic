@@ -10,6 +10,7 @@
 import { create } from 'zustand'
 import type { Target } from '../client/VescClient'
 import type { ConfigValues } from '../config/types'
+import { errorText } from '../lib/format'
 import { speedPerErpm } from '../lib/rideModes'
 import { ABS_DEFAULTS, ABS_STATUS_PROGRAM, ABS_STOP_PROGRAM, absStartCommands, parseAbsStatus, SLIP_DECEL, type AbsParams, type AbsStatus } from '../onboard/abs'
 import {
@@ -28,17 +29,15 @@ import {
 } from '../onboard/regen'
 import { BUILT_IN_TUNES, MAX_NOTES, parseRtttl, playCommands, previewOnSpeaker, STOP_PROGRAM, TuneError, tuneMs, type Tune } from '../onboard/music'
 import type { FwVersion } from '../protocol/messages'
-import { useConfig, type DeviceConfig } from './config'
+import { motorDevices, useConfig, type DeviceConfig } from './config'
 import { targetKey } from './devices'
 import { motionBlock } from './motion'
 import { activeClient, useSession } from './session'
 import { useSettings } from './settings'
 import { useTelemetry } from './telemetry'
 
-// ------------------------------------------------------------------ console queue
-
 /** The firmware drops console commands closer together than 0.5 s. */
-export const LISP_GAP_MS = 650
+const LISP_GAP_MS = 650
 /** How long to listen for a result. */
 const RESULT_MS = 1500
 
@@ -98,15 +97,8 @@ async function sendInterleaved(plans: { target: Target; cmds: string[] }[], onSt
   }
 }
 
-// ------------------------------------------------------------------ checks
-
 const atLeast = (fw: FwVersion, major: number, minor: number) => fw.major > major || (fw.major === major && fw.minor >= minor)
 const fwText = (major: number, minor: number) => `${major}.${String(minor).padStart(2, '0')}`
-
-function motorDevices(): DeviceConfig[] {
-  const { devices, order } = useConfig.getState()
-  return order.map((k) => devices[k]).filter((d): d is DeviceConfig => !!d)
-}
 
 /** Why on-controller programs can't run on this controller, or null. */
 function cantRun(d: DeviceConfig, minFw: [number, number], what: string): string | null {
@@ -117,11 +109,55 @@ function cantRun(d: DeviceConfig, minFw: [number, number], what: string): string
 }
 
 const num = (mc: ConfigValues, k: string) => Number(mc[k])
-const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
+const newRunId = () => 1 + Math.floor(Math.random() * 99_998)
 
-// ------------------------------------------------------------------ ABS
+/** On when any controller reports it running (partly on counts as on, so the button offers Off); null when unknown. */
+function reportedOn(status: Record<string, { on: boolean | null }>, list = motorDevices()): boolean | null {
+  if (!list.length) return null
+  const s = list.map((d) => status[d.key]?.on ?? null)
+  if (s.some((x) => x === true)) return true
+  if (s.some((x) => x === null)) return null
+  return false
+}
 
-export interface AbsDeviceStatus {
+/**
+ * Stops a program on every controller first, then checks each one, so normal
+ * braking is back as fast as possible. True when every controller confirmed it.
+ */
+async function stopEverywhere(list: DeviceConfig[], stopProgram: string, read: (d: DeviceConfig) => Promise<{ on: boolean } | null>) {
+  let ok = true
+  for (const d of list) {
+    try {
+      await runLisp(d.target, stopProgram, 0)
+    } catch {
+      ok = false
+    }
+  }
+  for (const d of list) {
+    try {
+      const st = await read(d)
+      if (!st || st.on) ok = false
+    } catch {
+      ok = false
+    }
+  }
+  return ok
+}
+
+/** Re-reads the status of every controller that can run programs. One that doesn't answer keeps its last status. */
+async function readEach(read: (d: DeviceConfig) => Promise<unknown>): Promise<DeviceConfig[]> {
+  const list = motorDevices().filter((d) => atLeast(d.fw, 6, 0) && d.mcconf.status === 'ready')
+  for (const d of list) {
+    try {
+      await read(d)
+    } catch {
+      // leave as it was
+    }
+  }
+  return list
+}
+
+interface AbsDeviceStatus {
   on: boolean | null
   interventions: number
   checkedAt: number
@@ -139,21 +175,13 @@ interface AbsStore {
   refresh: () => Promise<void>
 }
 
-export function absParamsFor(mc: ConfigValues): AbsParams | null {
+function absParamsFor(mc: ConfigValues): AbsParams | null {
   const spe = speedPerErpm(mc)
   if (!Number.isFinite(spe) || spe <= 0) return null
   return { ...ABS_DEFAULTS, speedPerErpm: spe, slipDecel: SLIP_DECEL[useSettings.getState().absSensitivity] }
 }
 
-/** On only when every motor controller reports it running; null when unknown. */
-export function absIsOn(status: Record<string, AbsDeviceStatus>, list = motorDevices()): boolean | null {
-  if (!list.length) return null
-  const s = list.map((d) => status[d.key]?.on ?? null)
-  // Partly on counts as on, so the button offers Off.
-  if (s.some((x) => x === true)) return true
-  if (s.some((x) => x === null)) return null
-  return false
-}
+export const absIsOn = reportedOn
 
 /** Asks one controller for its ABS status (and keeps the store's copy fresh). */
 export async function readAbs(d: DeviceConfig): Promise<AbsStatus | null> {
@@ -192,7 +220,7 @@ export const useAbs = create<AbsStore>()((set, get) => ({
     const noWheel = params.find((x) => !x.p)
     if (noWheel) return fail(`${noWheel.d.name} has no wheel size or motor poles set, so ABS can’t tell how fast the wheel turns.`)
 
-    const runId = 1 + Math.floor(Math.random() * 99_998)
+    const runId = newRunId()
     set({ busy: true, error: null, step: 'Sending ABS to the controllers' })
     try {
       await sendInterleaved(
@@ -216,31 +244,14 @@ export const useAbs = create<AbsStore>()((set, get) => ({
       // Half-on ABS would brake unevenly: switch it off everywhere.
       set({ busy: false, step: null })
       await get().turnOff()
-      return fail(`ABS wasn’t turned on: ${errText(e)}`)
+      return fail(`ABS wasn’t turned on: ${errorText(e)}`)
     }
   },
 
   turnOff: async () => {
     if (!activeClient()) return false
-    const list = motorDevices()
     set({ busy: true, step: 'Turning ABS off' })
-    let ok = true
-    // Stop everywhere first, then check, so braking is normal again as fast as possible.
-    for (const d of list) {
-      try {
-        await runLisp(d.target, ABS_STOP_PROGRAM, 0)
-      } catch {
-        ok = false
-      }
-    }
-    for (const d of list) {
-      try {
-        const st = await readAbs(d)
-        if (!st || st.on) ok = false
-      } catch {
-        ok = false
-      }
-    }
+    const ok = await stopEverywhere(motorDevices(), ABS_STOP_PROGRAM, readAbs)
     if (ok) useSettings.getState().setAbsArmed([])
     set({
       busy: false,
@@ -251,21 +262,12 @@ export const useAbs = create<AbsStore>()((set, get) => ({
   },
 
   refresh: async () => {
-    const list = motorDevices().filter((d) => atLeast(d.fw, 6, 0) && d.mcconf.status === 'ready')
-    for (const d of list) {
-      try {
-        await readAbs(d)
-      } catch {
-        // leave as it was
-      }
-    }
+    const list = await readEach(readAbs)
     if (list.length && list.every((d) => get().status[d.key]?.on === false)) useSettings.getState().setAbsArmed([])
   },
 }))
 
-// ------------------------------------------------------------------ regen
-
-export interface RegenPlan {
+interface RegenPlan {
   /** The controller the throttle is wired to; regen runs there. */
   master: DeviceConfig
   source: ThrottleSource
@@ -322,7 +324,7 @@ export function regenPlan(settings: RegenSettings = useSettings.getState().regen
   }
 }
 
-export interface RegenDeviceStatus {
+interface RegenDeviceStatus {
   on: boolean | null
   engagements: number
   checkedAt: number
@@ -340,16 +342,9 @@ interface RegenStore {
   refresh: () => Promise<void>
 }
 
-/** On when any controller reports it running; null when unknown. */
-export function regenIsOn(status: Record<string, RegenDeviceStatus>, list = motorDevices()): boolean | null {
-  if (!list.length) return null
-  const s = list.map((d) => status[d.key]?.on ?? null)
-  if (s.some((x) => x === true)) return true
-  if (s.some((x) => x === null)) return null
-  return false
-}
+export const regenIsOn = reportedOn
 
-export async function readRegen(d: DeviceConfig): Promise<RegenStatus | null> {
+async function readRegen(d: DeviceConfig): Promise<RegenStatus | null> {
   const st = parseRegenStatus(await runLisp(d.target, REGEN_STATUS_PROGRAM))
   useRegen.setState((s) => ({
     status: { ...s.status, [d.key]: { on: st ? st.on : null, engagements: st?.engagements ?? 0, checkedAt: Date.now() } },
@@ -379,7 +374,7 @@ export const useRegen = create<RegenStore>()((set, get) => ({
       'turn regen on',
     )
     if (block) return fail(block)
-    const runId = 1 + Math.floor(Math.random() * 99_998)
+    const runId = newRunId()
     set({ busy: true, error: null, step: `Sending regen to ${plan.master.name}` })
     try {
       // Another controller may still run an earlier regen (the throttle moved): stop it.
@@ -398,30 +393,14 @@ export const useRegen = create<RegenStore>()((set, get) => ({
     } catch (e) {
       set({ busy: false, step: null })
       await get().turnOff()
-      return fail(`Regen wasn’t turned on: ${errText(e)}`)
+      return fail(`Regen wasn’t turned on: ${errorText(e)}`)
     }
   },
 
   turnOff: async () => {
     if (!activeClient()) return false
-    const list = motorDevices()
     set({ busy: true, step: 'Turning regen off' })
-    let ok = true
-    for (const d of list) {
-      try {
-        await runLisp(d.target, REGEN_STOP_PROGRAM, 0)
-      } catch {
-        ok = false
-      }
-    }
-    for (const d of list) {
-      try {
-        const st = await readRegen(d)
-        if (!st || st.on) ok = false
-      } catch {
-        ok = false
-      }
-    }
+    const ok = await stopEverywhere(motorDevices(), REGEN_STOP_PROGRAM, readRegen)
     if (ok) useSettings.getState().setRegenArmed([])
     set({
       busy: false,
@@ -433,22 +412,13 @@ export const useRegen = create<RegenStore>()((set, get) => ({
   },
 
   refresh: async () => {
-    const list = motorDevices().filter((d) => atLeast(d.fw, 6, 0) && d.mcconf.status === 'ready')
-    for (const d of list) {
-      try {
-        await readRegen(d)
-      } catch {
-        // leave as it was
-      }
-    }
+    const list = await readEach(readRegen)
     if (list.length && list.every((d) => get().status[d.key]?.on === false)) {
       useSettings.getState().setRegenArmed([])
       set({ applied: null })
     }
   },
 }))
-
-// ------------------------------------------------------------------ motor sounds
 
 /** The most current tunes may use: a quarter of the motor limit, and never more than 10 A. */
 export function soundCapAmps(mc: ConfigValues): number {
@@ -480,7 +450,7 @@ interface MusicStore {
   custom: Tune[]
   loaded: boolean
   playing: { tuneId: string; key: string; until: number } | null
-  /** Sending a tune: the id of the tune. */
+  /** The id of the tune being sent. */
   sending: string | null
   error: string | null
   load: () => Promise<void>
@@ -564,15 +534,14 @@ export const useMusic = create<MusicStore>()((set, get) => ({
     try {
       notes = parseRtttl(tune.rtttl).notes.slice(0, MAX_NOTES)
     } catch (e) {
-      return fail(errText(e))
+      return fail(errorText(e))
     }
     const mc = d.mcconf.device!
     const vBat = useTelemetry.getState().devices[targetKey(d.target)]?.vIn ?? 0
     if (!(vBat > 5)) return fail('Waiting for a battery voltage reading.')
     set({ sending: tune.id, error: null })
     try {
-      const runId = 1 + Math.floor(Math.random() * 99_998)
-      const cmds = playCommands(notes, amps, { r: num(mc, 'foc_motor_r'), l: num(mc, 'foc_motor_l'), vBat }, runId)
+      const cmds = playCommands(notes, amps, { r: num(mc, 'foc_motor_r'), l: num(mc, 'foc_motor_l'), vBat }, newRunId())
       await sendInterleaved([{ target: d.target, cmds }])
       const ms = tuneMs(notes)
       if (useSession.getState().transportKind === 'mock') {
@@ -585,7 +554,7 @@ export const useMusic = create<MusicStore>()((set, get) => ({
       set({ sending: null, playing: { tuneId: tune.id, key, until: Date.now() + ms } })
       return true
     } catch (e) {
-      return fail(`Couldn’t play: ${errText(e)}`)
+      return fail(`Couldn’t play: ${errorText(e)}`)
     }
   },
 
@@ -607,21 +576,18 @@ export const useMusic = create<MusicStore>()((set, get) => ({
   },
 }))
 
-// ------------------------------------------------------------------ connection
-
-// After connecting, if this app last left ABS on, check whether it still is (a
-// power cycle switches it off). Nothing is sent to controllers otherwise.
-let checkedFor: string | null = null
+// After connecting, if this app last left ABS or regen on, check whether it still
+// is (a power cycle switches both off). Nothing is sent to controllers otherwise.
+let absCheckedFor: string | null = null
 let regenCheckedFor: string | null = null
 useConfig.subscribe((s) => {
   if (useSession.getState().status !== 'connected') return
   const ready = (keys: string[]) => keys.length > 0 && keys.every((k) => s.devices[k]?.mcconf.status === 'ready')
   const abs = s.order.filter((k) => useSettings.getState().absArmed.includes(k))
-  if (ready(abs) && checkedFor !== abs.join(',')) {
-    checkedFor = abs.join(',')
+  if (ready(abs) && absCheckedFor !== abs.join(',')) {
+    absCheckedFor = abs.join(',')
     void useAbs.getState().refresh()
   }
-  // Regen too: a power cycle switches it off.
   const regen = s.order.filter((k) => useSettings.getState().regenArmed.includes(k))
   if (ready(regen) && regenCheckedFor !== regen.join(',')) {
     regenCheckedFor = regen.join(',')
@@ -631,7 +597,7 @@ useConfig.subscribe((s) => {
 
 useSession.subscribe((s, prev) => {
   if (s.status === 'idle' && prev.status !== 'idle') {
-    checkedFor = null
+    absCheckedFor = null
     regenCheckedFor = null
     lastAt.clear()
     stopDemoSound?.()

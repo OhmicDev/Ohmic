@@ -1,8 +1,8 @@
 // What this browser can do, so the UI can explain it and point to one that works
 // instead of failing.
 
-export type Platform = 'ios' | 'android' | 'desktop'
-export type BrowserName = 'chrome' | 'edge' | 'samsung' | 'opera' | 'firefox' | 'safari' | 'other'
+type Platform = 'ios' | 'android' | 'desktop'
+type BrowserName = 'chrome' | 'edge' | 'samsung' | 'opera' | 'firefox' | 'safari' | 'other'
 
 export interface BrowserSupport {
   serial: boolean
@@ -44,7 +44,7 @@ export function chromeIntentUrl(pageUrl: string): string {
   return `intent://${u.host}${u.pathname}${u.search}${u.hash}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;end`
 }
 
-export interface HelpAction {
+interface HelpAction {
   label: string
   /** A link to open, or 'copy' to copy the page address. */
   href: string | 'copy'

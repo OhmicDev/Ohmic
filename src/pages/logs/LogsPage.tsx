@@ -44,15 +44,15 @@ export function LogsPage() {
     if (!files.length) return
     setImporting(true)
     const out: ImportResult[] = []
-    for (const f of files) {
+    for (const file of files) {
       try {
-        const log = parseVescCsv(await f.text(), { fileName: f.name, lastModified: f.lastModified, vehicle: useSettings.getState().vehicle })
-        const id = await saveImportedRide(log, f.name)
+        const log = parseVescCsv(await file.text(), { fileName: file.name, lastModified: file.lastModified, vehicle: useSettings.getState().vehicle })
+        const id = await saveImportedRide(log, file.name)
         const notes = [...log.notes]
         if (log.skipped.length) notes.push(`${log.skipped.length} column${log.skipped.length === 1 ? '' : 's'} this app doesn’t use ${log.skipped.length === 1 ? 'was' : 'were'} left out.`)
-        out.push({ name: f.name, id, notes })
+        out.push({ name: file.name, id, notes })
       } catch (e) {
-        out.push({ name: f.name, error: e instanceof LogFileError ? e.message : 'The file couldn’t be read.', notes: [] })
+        out.push({ name: file.name, error: e instanceof LogFileError ? e.message : 'The file couldn’t be read.', notes: [] })
       }
     }
     setImporting(false)

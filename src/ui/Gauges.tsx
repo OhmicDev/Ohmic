@@ -37,12 +37,14 @@ export function PowerBar({ power, peakDrive, peakRegen }: { power: number; peakD
   )
 }
 
-export function BatteryGauge({ soc, segments = 12 }: { soc: number; segments?: number }) {
-  const filled = (soc / 100) * segments
+const BATTERY_SEGMENTS = 12
+
+export function BatteryGauge({ soc }: { soc: number }) {
+  const filled = (soc / 100) * BATTERY_SEGMENTS
   const color = soc < 10 ? 'bg-danger' : soc < 25 ? 'bg-warn' : 'bg-accent'
   return (
     <div className="flex h-3 gap-[3px]" role="meter" aria-valuenow={Math.round(soc)} aria-valuemin={0} aria-valuemax={100} aria-label="Battery">
-      {Array.from({ length: segments }, (_, i) => {
+      {Array.from({ length: BATTERY_SEGMENTS }, (_, i) => {
         const fill = Math.max(0, Math.min(1, filled - i))
         return (
           <div key={i} className="relative flex-1 overflow-hidden rounded-[3px] bg-surface-3">

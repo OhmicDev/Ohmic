@@ -15,10 +15,10 @@ import { imuWanted, useLiveData, type LiveSample } from './live'
 import { useSettings, type PollHz } from './settings'
 import { useTelemetry } from './telemetry'
 
-export type SessionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'
-export type LinkHealth = 'ok' | 'slow' | 'lost'
+type SessionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'
+type LinkHealth = 'ok' | 'slow' | 'lost'
 
-export interface ReconnectState {
+interface ReconnectState {
   attempt: number
   reason: string
   startedAt: number
@@ -57,7 +57,7 @@ interface SessionState {
 }
 
 /** How long to keep trying after a drop before giving up. */
-export const RECONNECT_WINDOW_MS = 3 * 60_000
+const RECONNECT_WINDOW_MS = 3 * 60_000
 
 /** Bluetooth links can't keep up with more than about 20 updates a second. */
 export function maxPollHz(kind: TransportKind | null): PollHz {
@@ -185,7 +185,7 @@ export const useSession = create<SessionState>()((set, get) => ({
   },
 }))
 
-/** Connects through any transport. Exported for tests and the demo. */
+/** Connects through any transport. Exported for tests. */
 export async function connectWith(transport: Transport) {
   const set = useSession.setState
   if (useSession.getState().status === 'connecting') return
@@ -455,7 +455,7 @@ function isCancel(e: unknown) {
   return e instanceof Error && e.name === 'NotFoundError' && !/adapter/i.test(e.message)
 }
 
-export function friendlyError(e: unknown, kind: TransportKind | null = null): string {
+function friendlyError(e: unknown, kind: TransportKind | null = null): string {
   if (!(e instanceof Error)) return String(e)
   switch (e.name) {
     case 'ConnectError':
@@ -512,7 +512,7 @@ export function expectReboot(withinMs = 60_000) {
   rebootExpectedUntil = Date.now() + withinMs
 }
 
-/** For tests and devtools. */
+/** The open link's client, or null when there's no link. */
 export function activeClient(): VescClient | null {
   return active?.client ?? null
 }

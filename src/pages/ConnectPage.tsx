@@ -27,7 +27,7 @@ import { useSettings } from '../state/settings'
 import { portName } from '../transport/SerialTransport'
 import { bluetoothHelp, detectSupport, supportMessage, type Help } from '../transport/support'
 import { Badge, Button, PageTitle } from '../ui/Primitives'
-import { ROW_FOCUS } from '../ui/rowStyles'
+import { ROW_FOCUS, TILE } from '../ui/rowStyles'
 import { buttonClass } from '../ui/buttonClass'
 import { ReconnectBanner } from '../ui/ReconnectBanner'
 import { useKnownDevices } from '../ui/useKnownDevices'
@@ -138,7 +138,7 @@ export function ConnectPanel() {
             <Choice
               key={`ble-${d.id}`}
               icon={Bluetooth}
-              tile="bg-[#2f7fd6]"
+              tile={TILE.blue}
               title={d.name || 'Bluetooth device'}
               detail="Bluetooth · used before"
               onClick={pick(() => connectBleDevice(d))}
@@ -148,7 +148,7 @@ export function ConnectPanel() {
             <Choice
               key={`usb-${i}`}
               icon={Cable}
-              tile="bg-[#27ae60]"
+              tile={TILE.green}
               title={portName(port)}
               detail="USB · plugged in"
               onClick={pick(() => connectPort(port))}
@@ -160,7 +160,7 @@ export function ConnectPanel() {
       <Group title={hasKnown ? 'Find another device' : 'Find your controller'}>
         <Choice
           icon={Bluetooth}
-          tile="bg-[#2f7fd6]"
+          tile={TILE.blue}
           title="Bluetooth"
           detail={bleHelp ? 'Not in this browser' : 'VESC Express or a VESC Bluetooth module'}
           onClick={pick(() => connectBluetooth())}
@@ -170,7 +170,7 @@ export function ConnectPanel() {
         </Choice>
         <Choice
           icon={Cable}
-          tile="bg-[#27ae60]"
+          tile={TILE.green}
           title="USB cable"
           detail={usbNote ?? 'Fastest. Best for setup and firmware updates.'}
           onClick={pick(() => connectUsb())}
@@ -179,7 +179,7 @@ export function ConnectPanel() {
         {demo && (
           <Choice
             icon={PlayCircle}
-            tile="bg-[#7f8c8d]"
+            tile={TILE.grey}
             title="Demo scooter"
             detail="Simulated, for testing"
             onClick={pick(() => connectDemo())}
@@ -337,7 +337,7 @@ function DeviceDetails() {
               This is a {deviceKind(local)}, not a motor controller.{' '}
               {primary === null
                 ? 'No motor controller answered on its CAN bus, so there are no riding values to show.'
-                : `Live values come from the motor controllers on its CAN bus.`}
+                : 'Live values come from the motor controllers on its CAN bus.'}
             </p>
           )}
           <div className="mt-5 flex flex-wrap gap-2">

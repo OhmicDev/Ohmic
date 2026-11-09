@@ -12,7 +12,7 @@ import { parseHelp, type TerminalCommand } from '../protocol/terminal'
 import { targetKey } from './devices'
 import { activeClient, sessionEvents, useSession } from './session'
 
-export type LineKind = 'cmd' | 'out' | 'note' | 'error'
+type LineKind = 'cmd' | 'out' | 'note' | 'error'
 
 export interface TermLine {
   id: number

@@ -7,9 +7,9 @@
 import { speedKmh, type VehicleSetup } from '../../lib/vehicle'
 
 /** A wheel slower than this is drawn standing still (km/h). */
-export const STILL_KMH = 0.5
+const STILL_KMH = 0.5
 /** Degrees per second the drawing turns for each km/h. */
-export const DEG_PER_KMH = 20
+const DEG_PER_KMH = 20
 /** Above this speed the drawing turns no faster (km/h). */
 export const MAX_SPIN_KMH = 45
 /** Spokes in the drawing, evenly spaced. */

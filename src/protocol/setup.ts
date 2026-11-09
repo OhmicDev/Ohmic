@@ -4,8 +4,6 @@
 import { BufferReader, BufferWriter } from './buffer'
 import { faultInfo } from './faults'
 
-// ---------------------------------------------------------------- temporary limits
-
 /**
  * The live limits COMM_SET_MCCONF_TEMP changes. They're fields of the motor config,
  * changed in RAM only: a reboot (or a normal config write) puts the stored values back.
@@ -109,8 +107,6 @@ export function encodeTempLimitsReply(l: TempLimits, wheel: { motorPoles: number
   return w.toUint8Array()
 }
 
-// ---------------------------------------------------------------- FOC detection
-
 export interface DetectArgs {
   /** Also detect every motor controller on the CAN bus. */
   detectCan: boolean
@@ -147,7 +143,7 @@ export function decodeDetectArgs(body: Uint8Array): DetectArgs {
   }
 }
 
-export type DetectSensor = 'sensorless' | 'hall' | 'encoder'
+type DetectSensor = 'sensorless' | 'hall' | 'encoder'
 
 export type DetectResult =
   | { ok: true; code: number; sensor: DetectSensor }
@@ -166,8 +162,6 @@ export function detectResult(code: number): DetectResult {
   }
   return { ok: false, code, message: `Detection failed (code ${code}).` }
 }
-
-// ---------------------------------------------------------------- throttle and brake input
 
 export interface DecodedAdc {
   /** Throttle (ADC1) as the app maps it: 0..1, or -1..1 with reverse/centre modes. */
@@ -205,8 +199,6 @@ export function encodeDecodedPpm(d: DecodedPpm): Uint8Array {
   return new BufferWriter().i32(Math.round(d.level * 1e6)).i32(Math.round(d.pulseMs * 1e6)).toUint8Array()
 }
 
-// ---------------------------------------------------------------- motor commands
-
 /** COMM_SET_RPM: hold an electrical RPM. Resets the controller's command timeout. */
 export const encodeSetRpm = (erpm: number) => new BufferWriter().i32(Math.round(erpm)).toUint8Array()
 
@@ -222,8 +214,6 @@ export const encodeSetPos = (deg: number) => new BufferWriter().i32(Math.round(d
 /** COMM_SET_HANDBRAKE: holding current in amps (a float the firmware reads ×1000, so the same as mA). */
 export const encodeSetHandbrake = (amps: number) => new BufferWriter().i32(Math.round(amps * 1000)).toUint8Array()
 
-// ---------------------------------------------------------------- LispBM REPL
-
 const enc = new TextEncoder()
 const dec = new TextDecoder()
 
@@ -238,9 +228,4 @@ export function encodeReplCmd(code: string): Uint8Array {
 export function decodeReplCmd(body: Uint8Array): string {
   const end = body.indexOf(0)
   return dec.decode(end === -1 ? body : body.subarray(0, end))
-}
-
-/** COMM_LISP_PRINT body: text, no terminator. */
-export function decodeLispPrint(body: Uint8Array): string {
-  return dec.decode(body).replace(/\0+$/, '')
 }

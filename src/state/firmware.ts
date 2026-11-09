@@ -14,6 +14,8 @@ import { fwKey } from '../config/registry'
 import type { ConfigKind } from '../config/types'
 import { bootloaderFor, downloadFirmware, firmwareFor, type Fetcher } from '../firmware/archive'
 import { FirmwareFileError, namesHardware, prepareBootloader, prepareFirmware, type PreparedImage } from '../firmware/image'
+import { errorText } from '../lib/format'
+import { sleep } from '../lib/time'
 import type { FwVersion } from '../protocol/messages'
 import { useAbsTest } from './absTest'
 import { addBackup } from './backups'
@@ -77,7 +79,7 @@ export interface PlannedJob {
   problem: string | null
 }
 
-export interface ArchiveChoice {
+interface ArchiveChoice {
   version: string
   /** File name of the build, e.g. "VESC_default.bin". */
   file: string
@@ -158,7 +160,7 @@ export function updateBlock(jobs: PlannedJob[]): string | null {
   return null
 }
 
-export type JobPhase = 'waiting' | 'downloading' | 'backing-up' | 'erasing' | 'writing' | 'restarting' | 'verifying' | 'done' | 'failed' | 'skipped'
+type JobPhase = 'waiting' | 'downloading' | 'backing-up' | 'erasing' | 'writing' | 'restarting' | 'verifying' | 'done' | 'failed' | 'skipped'
 
 export interface JobState extends PlannedJob {
   phase: JobPhase
@@ -188,9 +190,6 @@ export const useFirmware = create<FirmwareState>()(() => ({ running: false, canc
 class FwError extends Error {}
 class Cancelled extends Error {}
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
 function patchJob(key: string, patch: Partial<JobState>) {
   useFirmware.setState((s) => ({ jobs: s.jobs.map((j) => (j.key === key ? { ...j, ...patch } : j)) }))
 }
@@ -209,7 +208,7 @@ export function clearUpdate() {
   useFirmware.setState({ jobs: [], error: null, finishedAt: null })
 }
 
-export interface StartOptions {
+interface StartOptions {
   source: FwSource
   /** A custom file's bytes (source "file"). */
   file?: Uint8Array
@@ -266,7 +265,7 @@ export async function startUpdate(planned: PlannedJob[], opts: StartOptions): Pr
           images.set(url, prepared)
         }
       } catch (e) {
-        throw new FwError(e instanceof FirmwareFileError ? e.message : msg(e))
+        throw new FwError(e instanceof FirmwareFileError ? e.message : errorText(e))
       }
       images.set(j.key, prepared)
       patchJob(j.key, { phase: 'waiting', uploadBytes: prepared.uploadBytes, compressed: prepared.compressed })
@@ -279,9 +278,9 @@ export async function startUpdate(planned: PlannedJob[], opts: StartOptions): Pr
         await updateOne(j, images.get(j.key)!, signal)
       } catch (e) {
         if (e instanceof Cancelled) throw e
-        patchJob(j.key, { phase: 'failed', error: msg(e) })
+        patchJob(j.key, { phase: 'failed', error: errorText(e) })
         for (const rest of useFirmware.getState().jobs) if (rest.phase === 'waiting') patchJob(rest.key, { phase: 'skipped' })
-        useFirmware.setState({ error: `${j.name}: ${msg(e)}` })
+        useFirmware.setState({ error: `${j.name}: ${errorText(e)}` })
         return
       }
     }
@@ -289,7 +288,7 @@ export async function startUpdate(planned: PlannedJob[], opts: StartOptions): Pr
     for (const rest of useFirmware.getState().jobs) {
       if (rest.phase !== 'done' && rest.phase !== 'failed') patchJob(rest.key, { phase: 'skipped', progress: 0 })
     }
-    useFirmware.setState({ error: e instanceof Cancelled ? 'Cancelled. Controllers that hadn’t restarted keep their current firmware.' : msg(e) })
+    useFirmware.setState({ error: e instanceof Cancelled ? 'Cancelled. Controllers that hadn’t restarted keep their current firmware.' : errorText(e) })
   } finally {
     release()
     window.removeEventListener('beforeunload', guard)
@@ -367,7 +366,7 @@ async function updateOne(j: JobState, image: PreparedImage, signal: AbortSignal)
     try {
       ok = await client().writeNewAppData(chunk.offset, chunk.data, j.target)
     } catch (e) {
-      throw new FwError(`Writing stopped at ${Math.round((done / total) * 100)} %: ${msg(e)}. The controller keeps its current firmware; try again.`)
+      throw new FwError(`Writing stopped at ${Math.round((done / total) * 100)} %: ${errorText(e)}. The controller keeps its current firmware; try again.`)
     }
     if (!ok) throw new FwError(`The controller refused the data at byte ${chunk.offset.toLocaleString()}. It keeps its current firmware.`)
     done += chunk.data.length

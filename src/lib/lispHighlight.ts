@@ -2,7 +2,7 @@
 // comments, strings, characters, numbers (with LispBM's type suffixes), quote
 // marks, brackets, special forms, t/nil and extension calls (get-…, set-…).
 
-export type TokenKind = 'comment' | 'string' | 'number' | 'keyword' | 'builtin' | 'constant' | 'quote' | 'paren' | 'symbol' | 'space'
+type TokenKind = 'comment' | 'string' | 'number' | 'keyword' | 'builtin' | 'constant' | 'quote' | 'paren' | 'symbol' | 'space'
 
 export interface Token {
   kind: TokenKind
