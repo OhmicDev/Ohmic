@@ -142,7 +142,10 @@ export function WelcomePage() {
       <main id="main" tabIndex={-1} className="outline-none">
         {/* Hero */}
         <section className="relative isolate">
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+          >
             <div className="welcome-glow absolute -top-24 left-[8%] size-[380px] rounded-full bg-accent/25 blur-[90px] md:size-[520px]" />
             <div
               className="welcome-glow absolute top-40 right-[-10%] size-[320px] rounded-full bg-[#8e5bd0]/20 blur-[90px] md:size-[440px]"
