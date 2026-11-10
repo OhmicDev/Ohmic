@@ -122,7 +122,7 @@ export function ConfigPage() {
     return (
       <>
         <BackLink to="/tune">Tune</BackLink>
-        <PageTitle title="Config" subtitle="Every motor and app setting, searchable, with plain-language help." actions={backupsLink} />
+        <PageTitle title="Config" subtitle="Every setting, searchable, with help." actions={backupsLink} />
         {status === 'reconnecting' && <ReconnectBanner />}
         <EmptyState
           action={
@@ -506,7 +506,7 @@ function Editor({
               </div>
             </div>
 
-            <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-10 md:bottom-4">
+            <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 md:bottom-4">
               <div
                 className={cx(
                   'glass flex flex-nowrap items-center gap-1.5 rounded-[var(--radius-card)] border border-line-strong p-1.5 shadow-[0_12px_40px_-12px_rgb(0_0_0/0.6)] md:gap-2 md:p-2',

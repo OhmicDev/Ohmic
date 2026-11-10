@@ -5,15 +5,19 @@
 // 100 times a second. While the rider has let go of the throttle (and isn't on
 // the brake lever) and the vehicle is moving, it takes over from the input app
 // for a moment at a time and brakes with a set current, sending the same to the
-// other motor controllers over CAN. Touching the throttle or the brake lever,
-// slowing below walking pace, or the program stopping for any reason hands
-// control straight back to the input app:
+// other motor controllers over CAN. Opening the throttle, slowing below walking
+// pace, or the program stopping for any reason hands control straight back to
+// the input app; the brake lever takes over within 30 ms:
 //   - it only ever borrows control for 60 ms at a time (app-disable-output), so
 //     if the program stops, the throttle works again within 60 ms;
 //   - it only acts after the throttle was used, so a wheel spun on the bench
 //     (or pushed by hand) is never braked;
 //   - it builds up over the ramp time and fades out at low speed, so it never
 //     snatches, and you can always come to a stop;
+//   - a blip on the throttle or lever reading (a noisy sensor, a thumb resting
+//     on the throttle) shorter than 30 ms is ridden out at the same braking, and
+//     after a short drop it carries on from where it was instead of starting
+//     over, so regen doesn't pulse;
 //   - braking current is still limited by the motor's braking limit, so ABS
 //     (which lowers that limit in a skid) eases regen too.
 //
@@ -56,6 +60,10 @@ const RELEASED = 0.05
 const PRESSED = 0.1
 /** Never acts below this speed: 2 km/h, so you can always stop and stand. */
 export const REGEN_MIN_SPEED = 2 / 3.6
+/** Steps a blip in the inputs may last without ending regen (30 ms). */
+const BLIP_STEPS = 3
+/** Once regen has ended, its level falls to zero over this time; coming back sooner carries on from there. */
+const FALL_S = 0.25
 
 /** The rider's regen settings, as the app keeps them. */
 export interface RegenSettings {
@@ -140,11 +148,15 @@ export interface RegenState {
   level: number
   /** Steps since letting go. */
   wait: number
+  /** Steps the inputs have said "stop" while regen was on. */
+  blip: number
+  /** The braking current last applied (A). */
+  amps: number
   /** How many times regen has started. */
   engagements: number
 }
 
-export const regenInit = (): RegenState => ({ armed: false, active: false, level: 0, wait: 0, engagements: 0 })
+export const regenInit = (): RegenState => ({ armed: false, active: false, level: 0, wait: 0, blip: 0, amps: 0, engagements: 0 })
 
 interface RegenInputs {
   /** 0..1 for ADC; -1..1 for PPM. */
@@ -164,18 +176,23 @@ export function regenStep(s: RegenState, p: RegenParams, x: RegenInputs): number
   if (v < p.minSpeed) s.armed = false
   const letGo = s.armed && x.throttle < RELEASED && brake < RELEASED && v > p.minSpeed && (s.active || !x.outputDisabled)
   if (!letGo) {
+    s.blip++
+    if (s.active && s.armed && x.throttle < PRESSED && s.blip <= BLIP_STEPS) return s.amps
+    s.blip = 0
     s.wait = 0
-    s.level = 0
+    s.level = !s.armed || x.throttle > PRESSED ? 0 : Math.max(0, s.level - REGEN_DT / FALL_S)
     s.active = false
     return null
   }
+  s.blip = 0
   s.wait++
-  if (s.wait <= Math.round(p.delayS / REGEN_DT)) return null
+  if (s.level === 0 && s.wait <= Math.round(p.delayS / REGEN_DT)) return null
   if (!s.active) s.engagements++
   s.active = true
   s.level = Math.min(1, s.level + REGEN_DT / p.rampS)
   const fade = v >= p.fadeSpeed ? 1 : (v - p.minSpeed) / (p.fadeSpeed - p.minSpeed)
-  return p.amps * s.level * fade
+  s.amps = p.amps * s.level * fade
+  return s.amps
 }
 
 // Settings live in globals (ohm-g*), so the functions don't change between runs;
@@ -192,14 +209,24 @@ const REGEN_READ = squash(`(defun ohm-g1 () (progn
 
 const REGEN_DECIDE = squash(`(defun ohm-g2 () (if (and (= ohm-gx 1) (< ohm-gq ${lf(RELEASED)}) (< ohm-gb ${lf(RELEASED)}) (> ohm-gv ohm-gm)
     (or (= ohm-gy 1) (not (app-is-output-disabled))))
-  (progn (def ohm-gt (+ ohm-gt 1)) (if (> ohm-gt ohm-gw) (ohm-g3) nil))
-  (progn (def ohm-gt 0) (def ohm-gz 0.0) (if (= ohm-gy 1) (ohm-g5) nil))))`)
+  (progn (def ohm-go 0) (def ohm-gt (+ ohm-gt 1)) (if (or (> ohm-gz 0.0) (> ohm-gt ohm-gw)) (ohm-g3) nil))
+  (progn (def ohm-go (+ ohm-go 1))
+    (if (and (= ohm-gy 1) (= ohm-gx 1) (< ohm-gq ${lf(PRESSED)}) (< ohm-go ${BLIP_STEPS + 1})) (ohm-g4) (ohm-g6)))))`)
+
+/** Regen stops: the level falls away (or resets after the throttle or a stop), then control goes back. */
+const REGEN_END = squash(`(defun ohm-g6 () (progn (def ohm-go 0) (def ohm-gt 0)
+  (def ohm-gz (if (or (= ohm-gx 0) (> ohm-gq ${lf(PRESSED)})) 0.0 (if (> ohm-gz ${lf(REGEN_DT / FALL_S)}) (- ohm-gz ${lf(REGEN_DT / FALL_S)}) 0.0)))
+  (if (= ohm-gy 1) (ohm-g5) nil)))`)
 
 const REGEN_APPLY = squash(`(defun ohm-g3 () (progn
   (if (= ohm-gy 0) (def ohm-regen-n (+ ohm-regen-n 1)) nil)
   (def ohm-gy 1)
   (def ohm-gz (if (< (+ ohm-gz ohm-gu) 1.0) (+ ohm-gz ohm-gu) 1.0))
   (def ohm-gi (* ohm-ga ohm-gz (if (> ohm-gv ohm-gh) 1.0 (/ (- ohm-gv ohm-gm) (- ohm-gh ohm-gm)))))
+  (ohm-g4)))`)
+
+/** Applies (or keeps applying) the current braking on this controller and the others. */
+const REGEN_HOLD = squash(`(defun ohm-g4 () (progn
   (app-disable-output 60)
   (set-brake ohm-gi)
   (loopforeach i ohm-gc (canset-brake i ohm-gi))))`)
@@ -236,8 +263,11 @@ export function regenStartCommands(p: RegenParams, runId: number): string[] {
     p.followers.length ? `(def ohm-gc '(${p.followers.map(li).join(' ')}))` : '(def ohm-gc nil)',
     `(def ohm-gid ${li(runId)})`,
   ]
-  const state = ['(def ohm-regen-n 0)', '(def ohm-gk 0)', '(def ohm-gz 0.0)', ...['x', 'y', 't'].map((v) => `(def ohm-g${v} 0)`)]
-  return [REGEN_STOP_PROGRAM, ...packCommands([...settings, ...state, REGEN_READ, REGEN_DECIDE, REGEN_APPLY, REGEN_RELEASE, REGEN_START])]
+  const state = ['(def ohm-regen-n 0)', '(def ohm-gk 0)', '(def ohm-gz 0.0)', '(def ohm-gi 0.0)', ...['x', 'y', 't', 'o'].map((v) => `(def ohm-g${v} 0)`)]
+  return [
+    REGEN_STOP_PROGRAM,
+    ...packCommands([...settings, ...state, REGEN_READ, REGEN_DECIDE, REGEN_END, REGEN_APPLY, REGEN_HOLD, REGEN_RELEASE, REGEN_START]),
+  ]
 }
 
 /** Prints "(on n k id)": on 1/0, n = times regen started, k = loop runs, id = the run. */

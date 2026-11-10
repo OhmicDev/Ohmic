@@ -99,7 +99,7 @@ export function FirmwarePage() {
       <BackToMore />
       <PageTitle
         title="Firmware"
-        subtitle="See what each controller runs and update it from VESC’s official archive or your own file, one controller or all of them."
+        subtitle="Update one controller or all, from VESC’s archive or a file."
         actions={<DemoPark />}
       />
       <OfflineNote what="firmware" />

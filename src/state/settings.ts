@@ -78,6 +78,9 @@ interface SettingsState {
   /** The controller (config device key) that keeps driving in single-motor mode. */
   singleMotorKey: string | null
   absSensitivity: AbsSensitivity
+  /** ABS waits until braking has been on for absDelayS, so the brakes coming on isn't taken for a skid. */
+  absAfterRelease: boolean
+  absDelayS: number
   /** The rider has read what ABS does and doesn't do. */
   absAcknowledged: boolean
   /** Motor sound volume, as current through the windings (A). */
@@ -114,6 +117,8 @@ interface SettingsState {
   rememberView: (uuid: string, view: View) => void
   setSingleMotorKey: (key: string | null) => void
   setAbsSensitivity: (s: AbsSensitivity) => void
+  setAbsAfterRelease: (on: boolean) => void
+  setAbsDelayS: (s: number) => void
   acknowledgeAbs: () => void
   setSoundAmps: (a: number) => void
   setAbsArmed: (keys: string[]) => void
@@ -146,6 +151,8 @@ export const useSettings = create<SettingsState>()(
       deviceViews: {},
       singleMotorKey: null,
       absSensitivity: 'normal',
+      absAfterRelease: false,
+      absDelayS: 0.3,
       absAcknowledged: false,
       soundAmps: 3,
       absArmed: [],
@@ -174,6 +181,8 @@ export const useSettings = create<SettingsState>()(
       rememberView: (uuid, view) => set((s) => ({ deviceViews: { ...s.deviceViews, [uuid]: view } })),
       setSingleMotorKey: (singleMotorKey) => set({ singleMotorKey }),
       setAbsSensitivity: (absSensitivity) => set({ absSensitivity }),
+      setAbsAfterRelease: (absAfterRelease) => set({ absAfterRelease }),
+      setAbsDelayS: (absDelayS) => set({ absDelayS }),
       acknowledgeAbs: () => set({ absAcknowledged: true }),
       setSoundAmps: (soundAmps) => set({ soundAmps }),
       setAbsArmed: (absArmed) => set({ absArmed }),

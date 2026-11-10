@@ -87,7 +87,7 @@ export function PackagesPage() {
       <BackToMore />
       <PageTitle
         title="Packages"
-        subtitle="Packages add features to a controller: a script that runs on it, often with its own settings. Install from the VESC package archive or a .vescpkg file."
+        subtitle="Add features to a controller, from the VESC archive or a file."
         actions={
           <Button variant="ghost" onClick={() => void openFile()}>
             <FileUp className="size-4" /> Open .vescpkg

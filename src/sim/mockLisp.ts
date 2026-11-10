@@ -97,6 +97,7 @@ export class MockLisp {
         holdS: n('ohm-ph') * ABS_DT,
         rampS: ((1 - rel) * ABS_DT) / n('ohm-ps'),
         maxReleaseS: n('ohm-px') * ABS_DT,
+        armS: n('ohm-pa') * ABS_DT,
       })
       return ['> 3']
     }

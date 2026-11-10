@@ -11,6 +11,8 @@
 // remote, CAN from the other controller) is covered, and a power cycle always
 // brings back normal braking. Safety rules built in:
 //   - below a minimum speed it never interferes, so you can always stop;
+//   - it can wait until braking has been on for a moment (armS), so the jolt
+//     of regen or the brake coming on isn't mistaken for a skid;
 //   - one release can't last longer than maxReleaseS: full braking comes back and
 //     ABS stands down for 2 s;
 //   - when switched off, it puts the braking limit back before it exits.
@@ -35,6 +37,8 @@ export interface AbsParams {
   rampS: number
   /** The longest one release may last before full braking returns (s). */
   maxReleaseS: number
+  /** Braking must have been on this long before ABS may act (s); 0 = straight away. */
+  armS: number
 }
 
 export type AbsSensitivity = 'gentle' | 'normal' | 'sensitive'
@@ -48,7 +52,11 @@ export const ABS_DEFAULTS: Omit<AbsParams, 'speedPerErpm' | 'slipDecel'> = {
   holdS: 0.08,
   rampS: 0.25,
   maxReleaseS: 1,
+  armS: 0,
 }
+
+/** The wait after the brakes come on that riders may choose, in seconds. */
+export const ABS_ARM_RANGE = { min: 0.1, max: 1 }
 
 export const ABS_DT = 0.01
 const WINDOW = 4 // deceleration over the last 40 ms, which smooths ERPM noise
@@ -65,12 +73,14 @@ export interface AbsState {
   hold: number
   releasedSteps: number
   lockout: number
+  /** Steps braking has been on. */
+  braking: number
   releasing: boolean
   interventions: number
 }
 
 export function absInit(scale: number): AbsState {
-  return { base: scale, set: scale, speeds: Array(WINDOW).fill(0), hold: 0, releasedSteps: 0, lockout: 0, releasing: false, interventions: 0 }
+  return { base: scale, set: scale, speeds: Array(WINDOW).fill(0), hold: 0, releasedSteps: 0, lockout: 0, braking: 0, releasing: false, interventions: 0 }
 }
 
 /**
@@ -92,23 +102,27 @@ export function absStep(s: AbsState, p: AbsParams, erpm: number, currentDir: num
   if (s.lockout > 0) {
     s.lockout--
   } else if ((erpm < 0 ? -1 : 1) * currentDir < -BRAKING_A && v > p.minSpeed) {
-    if (decel > p.slipDecel) {
-      target = s.base * p.releaseFraction
-      s.hold = holdSteps
-    } else if (s.hold > 0) {
-      s.hold--
-      target = s.base * p.releaseFraction
-    } else {
-      target = Math.min(s.base, s.set + rampStep)
-    }
-    s.releasedSteps = target < s.base - 0.001 ? s.releasedSteps + 1 : 0
-    if (s.releasedSteps > maxSteps) {
-      s.lockout = LOCKOUT_STEPS
-      s.releasedSteps = 0
-      s.hold = 0
-      target = s.base
+    s.braking = Math.min(s.braking + 1, 100000)
+    if (s.braking > Math.round(p.armS / ABS_DT)) {
+      if (decel > p.slipDecel) {
+        target = s.base * p.releaseFraction
+        s.hold = holdSteps
+      } else if (s.hold > 0) {
+        s.hold--
+        target = s.base * p.releaseFraction
+      } else {
+        target = Math.min(s.base, s.set + rampStep)
+      }
+      s.releasedSteps = target < s.base - 0.001 ? s.releasedSteps + 1 : 0
+      if (s.releasedSteps > maxSteps) {
+        s.lockout = LOCKOUT_STEPS
+        s.releasedSteps = 0
+        s.hold = 0
+        target = s.base
+      }
     }
   } else {
+    s.braking = 0
     s.hold = 0
     s.releasedSteps = 0
   }
@@ -137,10 +151,13 @@ const ABS_MEASURE = squash(`(defun ohm-a1 () (progn
 
 const ABS_DECIDE = squash(`(defun ohm-a2 () (if (> ohm-l 0) (def ohm-l (- ohm-l 1))
   (if (and (< (* (if (< ohm-e 0) -1.0 1.0) (get-current-dir)) ${lf(-BRAKING_A)}) (> ohm-v ohm-pm))
-    (progn (ohm-a3)
-      (if (< ohm-t (- ohm-b 0.001)) (def ohm-r (+ ohm-r 1)) (def ohm-r 0))
-      (if (> ohm-r ohm-px) (progn (def ohm-l ${LOCKOUT_STEPS}) (def ohm-r 0) (def ohm-h 0) (def ohm-t ohm-b)) nil))
-    (progn (def ohm-h 0) (def ohm-r 0)))))`)
+    (progn (def ohm-q (if (< ohm-q 100000) (+ ohm-q 1) ohm-q)) (if (> ohm-q ohm-pa) (ohm-a5) nil))
+    (progn (def ohm-q 0) (def ohm-h 0) (def ohm-r 0)))))`)
+
+/** Braking for long enough: release on a skid, and stand down if a release runs too long. */
+const ABS_ACT = squash(`(defun ohm-a5 () (progn (ohm-a3)
+  (if (< ohm-t (- ohm-b 0.001)) (def ohm-r (+ ohm-r 1)) (def ohm-r 0))
+  (if (> ohm-r ohm-px) (progn (def ohm-l ${LOCKOUT_STEPS}) (def ohm-r 0) (def ohm-h 0) (def ohm-t ohm-b)) nil)))`)
 
 const ABS_RELEASE = squash(`(defun ohm-a3 () (if (> ohm-a ohm-pd) (progn (def ohm-t (* ohm-b ohm-pr)) (def ohm-h ohm-ph))
   (if (> ohm-h 0) (progn (def ohm-h (- ohm-h 1)) (def ohm-t (* ohm-b ohm-pr)))
@@ -173,6 +190,7 @@ export function absStartCommands(p: AbsParams, runId: number): string[] {
     `(def ohm-ps ${lf(((1 - p.releaseFraction) * ABS_DT) / p.rampS)})`,
     `(def ohm-ph ${li(p.holdS / ABS_DT)})`,
     `(def ohm-px ${li(p.maxReleaseS / ABS_DT)})`,
+    `(def ohm-pa ${li(p.armS / ABS_DT)})`,
     `(def ohm-id ${li(runId)})`,
   ]
   const state = [
@@ -181,9 +199,9 @@ export function absStartCommands(p: AbsParams, runId: number): string[] {
     "(def ohm-b (conf-get 'l-current-min-scale))",
     '(def ohm-s ohm-b)',
     ...['v1', 'v2', 'v3', 'v4'].map((v) => `(def ohm-${v} 0.0)`),
-    ...['h', 'r', 'l', 'w'].map((v) => `(def ohm-${v} 0)`),
+    ...['h', 'r', 'l', 'w', 'q'].map((v) => `(def ohm-${v} 0)`),
   ]
-  return [ABS_STOP_PROGRAM, ...packCommands([...settings, ...state, ABS_DIFF, ABS_MEASURE, ABS_DECIDE, ABS_RELEASE, ABS_APPLY, ABS_START])]
+  return [ABS_STOP_PROGRAM, ...packCommands([...settings, ...state, ABS_DIFF, ABS_MEASURE, ABS_DECIDE, ABS_ACT, ABS_RELEASE, ABS_APPLY, ABS_START])]
 }
 
 /** Prints "(on n k id)": on 1/0, n = brake releases, k = loop runs, id = arming run. */

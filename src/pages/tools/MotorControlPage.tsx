@@ -92,7 +92,7 @@ export function MotorControlPage() {
       <BackToMore />
       <PageTitle
         title="Motor control"
-        subtitle="Drive a motor from here to test it on the bench: by current, duty, speed, position or braking."
+        subtitle="Drive a motor on the bench to test it."
         actions={<DemoPark />}
       />
       {!connected || !list.length ? (

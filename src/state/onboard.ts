@@ -12,7 +12,7 @@ import type { Target } from '../client/VescClient'
 import type { ConfigValues } from '../config/types'
 import { errorText } from '../lib/format'
 import { speedPerErpm } from '../lib/rideModes'
-import { ABS_DEFAULTS, ABS_STATUS_PROGRAM, ABS_STOP_PROGRAM, absStartCommands, parseAbsStatus, SLIP_DECEL, type AbsParams, type AbsStatus } from '../onboard/abs'
+import { ABS_ARM_RANGE, ABS_DEFAULTS, ABS_STATUS_PROGRAM, ABS_STOP_PROGRAM, absStartCommands, parseAbsStatus, SLIP_DECEL, type AbsParams, type AbsStatus } from '../onboard/abs'
 import {
   parseRegenStatus,
   REGEN_MIN_SPEED,
@@ -169,16 +169,33 @@ interface AbsStore {
   /** What's happening while busy, e.g. "Sending ABS to CAN 2 (3 of 8)". */
   step: string | null
   error: string | null
+  /** The ABS settings last sent (absSettingsKey), so the page can offer to apply changes. */
+  applied: string | null
   turnOn: () => Promise<boolean>
   turnOff: () => Promise<boolean>
   /** Asks each controller whether ABS is running and how often it has released the brake. */
   refresh: () => Promise<void>
 }
 
+/** The rider's ABS settings in one comparable string. */
+export function absSettingsKey(): string {
+  const { absSensitivity, absAfterRelease, absDelayS } = useSettings.getState()
+  return `${absSensitivity}|${absAfterRelease ? absDelayS : 0}`
+}
+
 function absParamsFor(mc: ConfigValues): AbsParams | null {
   const spe = speedPerErpm(mc)
   if (!Number.isFinite(spe) || spe <= 0) return null
-  return { ...ABS_DEFAULTS, speedPerErpm: spe, slipDecel: SLIP_DECEL[useSettings.getState().absSensitivity] }
+  const { absSensitivity, absAfterRelease, absDelayS } = useSettings.getState()
+  return { ...ABS_DEFAULTS, speedPerErpm: spe, slipDecel: SLIP_DECEL[absSensitivity], armS: absAfterRelease ? absDelayS : 0 }
+}
+
+/** Why the ABS wait can't be used, or null. Values outside the range are refused, never trimmed. */
+function absDelayProblem(): string | null {
+  const { absAfterRelease, absDelayS } = useSettings.getState()
+  if (!absAfterRelease) return null
+  const { min, max } = ABS_ARM_RANGE
+  return Number.isFinite(absDelayS) && absDelayS >= min && absDelayS <= max ? null : `The ABS wait must be from ${min} to ${max} s.`
 }
 
 export const absIsOn = reportedOn
@@ -197,6 +214,7 @@ export const useAbs = create<AbsStore>()((set, get) => ({
   busy: false,
   step: null,
   error: null,
+  applied: null,
 
   turnOn: async () => {
     if (get().busy) return false
@@ -216,6 +234,8 @@ export const useAbs = create<AbsStore>()((set, get) => ({
       'turn ABS on',
     )
     if (block) return fail(block)
+    const badDelay = absDelayProblem()
+    if (badDelay) return fail(badDelay)
     const params = list.map((d) => ({ d, p: absParamsFor(d.mcconf.device!) }))
     const noWheel = params.find((x) => !x.p)
     if (noWheel) return fail(`${noWheel.d.name} has no wheel size or motor poles set, so ABS can’t tell how fast the wheel turns.`)
@@ -238,7 +258,7 @@ export const useAbs = create<AbsStore>()((set, get) => ({
         if (a.beat === b.beat) throw new Error(`ABS on ${d.name} started but isn’t running its checks.`)
       }
       useSettings.getState().setAbsArmed(list.map((d) => d.key))
-      set({ busy: false, step: null })
+      set({ busy: false, step: null, applied: absSettingsKey() })
       return true
     } catch (e) {
       // Half-on ABS would brake unevenly: switch it off everywhere.

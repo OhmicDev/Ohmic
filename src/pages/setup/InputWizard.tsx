@@ -152,7 +152,7 @@ function InputSteps({ list }: { list: DeviceConfig[] }) {
   return (
     <>
       <BackToSetup />
-      <PageTitle title="Throttle and brake" subtitle="Reads your throttle and brake while you move them, then sets the controller to match." />
+      <PageTitle title="Throttle and brake" subtitle="Move them through their range; Ohmic sets the rest." />
       <Steps steps={steps} at={at} />
 
       <section className="card space-y-4 p-5">

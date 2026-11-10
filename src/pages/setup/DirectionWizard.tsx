@@ -43,7 +43,7 @@ function DirectionChecks({ list }: { list: DeviceConfig[] }) {
       <BackToSetup />
       <PageTitle
         title="Motor direction"
-        subtitle="Check each wheel turns forward when told to. If one turns backwards, Ohmic flips that controller’s direction setting for you."
+        subtitle="Check each wheel turns forward. Ohmic flips any that don’t."
       />
       <div className="card mb-4 flex gap-3 border-warn/30 bg-warn/5 p-4 text-sm">
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" />

@@ -17,7 +17,7 @@ const BUTTON_STYLES: Record<ButtonVariant, string> = {
 export function buttonClass(variant: ButtonVariant = 'secondary', className?: string) {
   return twMerge(
     cx(
-      'focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-lg px-3.5 text-[13px] font-medium whitespace-nowrap transition select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 max-md:min-h-9 md:h-9',
+      'focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3.5 text-[13px] font-medium whitespace-nowrap transition select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 max-md:min-h-9 md:h-9',
       BUTTON_STYLES[variant],
     ),
     className,

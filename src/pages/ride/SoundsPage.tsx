@@ -57,7 +57,7 @@ export function SoundsPage() {
       <BackLink to="/more">More</BackLink>
       <PageTitle
         title="Motor sounds"
-        subtitle="Play tunes and effects through the motor: the windings hum at each note’s pitch without turning the wheel. Only while stopped; a tune stops by itself if the wheel moves."
+        subtitle="Tunes through the motor, without turning the wheel. Only while stopped."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">

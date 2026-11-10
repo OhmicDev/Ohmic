@@ -56,7 +56,7 @@ function BatteryForm({ list }: { list: DeviceConfig[] }) {
   return (
     <>
       <BackToSetup />
-      <PageTitle title="Battery" subtitle="Tell Ohmic about the battery; it works out the settings, which you review before they’re written to every motor controller." />
+      <PageTitle title="Battery" subtitle="Describe the pack. Ohmic works out the settings for you to review." />
       {written && (
         <section className="card mb-4 space-y-3 border-ok/30 p-5" aria-label="Battery set up">
           <p className="flex items-center gap-2 text-sm text-ok">

@@ -41,7 +41,7 @@ export function MorePage() {
     <>
       <PageTitle
         title="More"
-        subtitle="Ride logs, controller tools, add-ons, and the app’s settings."
+        subtitle="Logs, tools, add-ons and settings."
         actions={
           <Link to="/settings" className={buttonClass('secondary')}>
             <Settings className="size-4" aria-hidden /> Settings

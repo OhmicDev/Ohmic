@@ -21,9 +21,10 @@ const angles = (n: number) => Array.from({ length: n }, (_, i) => (i * 360) / n)
 
 /**
  * Bottom corner of the dashboard: a little wheel for each motor controller, turning with
- * that wheel's speed. One wheel on a single-motor vehicle, two on a dual.
+ * that wheel's speed. One wheel on a single-motor vehicle, two on a dual. `inline` puts it
+ * in the one-screen layout's grid instead, as a cell `span` columns wide.
  */
-export function WheelSpeeds() {
+export function WheelSpeeds({ inline = false, span = 1 }: { inline?: boolean; span?: number }) {
   const devices = useSession((s) => s.devices)
   // Values stop when the link drops: the wheels stop too, rather than spin on at the last speed.
   const frozen = useSession((s) => s.status === 'reconnecting' || s.link === 'lost')
@@ -33,19 +34,23 @@ export function WheelSpeeds() {
   return (
     <aside
       aria-label={many ? 'Wheel speeds' : 'Wheel speed'}
+      style={inline && span > 1 ? { gridColumn: `span ${span}` } : undefined}
       className={cx(
-        'glass pointer-events-none fixed right-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 flex gap-1.5 rounded-[var(--radius-card)] border border-line-strong px-2 py-1.5 shadow-xl transition-opacity md:right-6 md:bottom-6 md:gap-2 md:px-2.5 md:py-2',
+        'transition-opacity',
+        inline
+          ? 'card fit-tile flex min-w-0 items-center justify-center gap-3 overflow-hidden px-1 py-1.5'
+          : 'glass pointer-events-none fixed right-3 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20 flex gap-1.5 rounded-[var(--radius-card)] border border-line-strong px-2 py-1.5 shadow-xl md:right-6 md:bottom-6 md:gap-2 md:px-2.5 md:py-2',
         frozen && 'opacity-55',
       )}
     >
       {motors.map((d) => (
-        <Wheel key={targetKey(d.target)} target={d.target} label={many ? targetLabel(d.target) : null} frozen={frozen} />
+        <Wheel key={targetKey(d.target)} target={d.target} label={many ? targetLabel(d.target) : null} frozen={frozen} inline={inline} />
       ))}
     </aside>
   )
 }
 
-function Wheel({ target, label, frozen }: { target: Target; label: string | null; frozen: boolean }) {
+function Wheel({ target, label, frozen, inline }: { target: Target; label: string | null; frozen: boolean; inline: boolean }) {
   const key = targetKey(target)
   const erpm = useTelemetry((s) => s.devices[key]?.rpm ?? 0)
   const perErpm = useConfig((s) => {
@@ -98,8 +103,9 @@ function Wheel({ target, label, frozen }: { target: Target; label: string | null
   const fade = `fade-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
 
   return (
-    <div className="flex w-11 flex-col items-center md:w-16">
-      <svg viewBox="0 0 64 70" className="h-auto w-full" aria-hidden>
+    <div className={cx('flex flex-col items-center', inline ? 'min-w-0' : 'w-11 md:w-16')}>
+      {/* In the grid the drawing takes the cell's height, less the lines of text under it. */}
+      <svg viewBox="0 0 64 70" className={inline ? 'h-[clamp(20px,calc(100cqh_-_30px),52px)] w-auto' : 'h-auto w-full'} aria-hidden>
         <defs>
           <linearGradient id={fade} x1="0" x2="64" y1="0" y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0" stopColor="currentColor" stopOpacity="0" />
@@ -162,7 +168,7 @@ function Wheel({ target, label, frozen }: { target: Target; label: string | null
         <span className="ml-0.5 text-[10px] font-normal text-muted">{unitLabels(units).speed}</span>
       </div>
       {(label || backwards) && (
-        <div className="text-[10px] leading-tight whitespace-nowrap text-faint">
+        <div className={cx('text-[10px] leading-tight whitespace-nowrap text-faint', inline && 'fit-sub')}>
           {label}
           {backwards && <span className="text-muted">{label ? ' · ' : ''}backwards</span>}
         </div>

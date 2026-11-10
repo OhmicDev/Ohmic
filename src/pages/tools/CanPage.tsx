@@ -32,7 +32,7 @@ export function CanPage() {
   return (
     <>
       <BackToMore />
-      <PageTitle title="CAN bus" subtitle="The devices on the CAN bus, and a monitor that shows the raw traffic between them." />
+      <PageTitle title="CAN bus" subtitle="Devices on the bus and the raw traffic." />
       {!connected && <Banner tone="info">Connect to a controller to see its CAN bus.</Banner>}
       {m.error && (
         <Banner tone="danger" onClose={m.dismiss}>

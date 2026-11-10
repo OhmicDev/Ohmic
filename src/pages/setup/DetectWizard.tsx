@@ -116,7 +116,7 @@ function DetectSetup({ list }: { list: DeviceConfig[] }) {
   return (
     <>
       <BackToSetup />
-      <PageTitle title="Motor detection" subtitle="Measures the motor and sets the controller up to match. Takes about a minute per motor." />
+      <PageTitle title="Motor detection" subtitle="Measures each motor and sets it up. About a minute each." />
       <Steps steps={DETECT_STEPS} at={0} />
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <section className="card space-y-4 p-5">

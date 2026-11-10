@@ -41,8 +41,9 @@ export function NextStep({ step }: { step: SetupStep }) {
 /**
  * On the dashboard, until the vehicle is set up (or the rider says it already is):
  * the way into Setup, so it's one of the first things a new build sees.
+ * `compact` is one line, for the one-screen phone dashboard.
  */
-export function SetupPrompt() {
+export function SetupPrompt({ compact = false }: { compact?: boolean }) {
   const vehicle = useVehicleKey()
   const done = useStepsDone(vehicle)
   const dismissed = useSetupProgress((s) => (vehicle ? !!s.dismissed[vehicle] : true))
@@ -52,6 +53,28 @@ export function SetupPrompt() {
   const next = nextStep(done)
   if (!vehicle || dismissed || readOnly || next === null) return null
   const count = countDone(done)
+  const hide = 'Stop showing this for this vehicle. Setup stays in the Setup tab.'
+  if (compact)
+    return (
+      <section aria-label="Setup" className="card flex items-center gap-2.5 border-accent/30 py-2 pr-1.5 pl-3">
+        <Wrench className="size-4 shrink-0 text-accent" strokeWidth={1.9} aria-hidden />
+        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+          {count === 0 ? 'New build? Set it up first' : `Setup: ${count} of ${SETUP_ORDER.length} done`}
+        </span>
+        <Link to={count === 0 ? '/setup' : STEPS[next].to} className={buttonClass('primary', 'h-8 px-3 text-xs')}>
+          {count === 0 ? 'Start' : 'Continue'}
+        </Link>
+        <button
+          type="button"
+          onClick={() => dismiss(vehicle)}
+          aria-label="It’s already set up"
+          title={hide}
+          className="focus-ring flex size-9 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-surface-3 hover:text-text"
+        >
+          <X className="size-4" aria-hidden />
+        </button>
+      </section>
+    )
   return (
     <section aria-label="Setup" className="card flex flex-wrap items-center gap-x-4 gap-y-3 border-accent/30 p-4">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
@@ -73,7 +96,7 @@ export function SetupPrompt() {
           type="button"
           onClick={() => dismiss(vehicle)}
           className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs text-muted hover:bg-surface-3 hover:text-text"
-          title="Stop showing this for this vehicle. Setup stays in the Setup tab."
+          title={hide}
         >
           <X className="size-3.5" aria-hidden /> It’s already set up
         </button>

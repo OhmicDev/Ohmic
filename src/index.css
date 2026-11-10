@@ -2,18 +2,18 @@
 @import '@fontsource-variable/inter/opsz.css';
 @import '@fontsource-variable/jetbrains-mono';
 
-/* Design tokens. Flat charcoal surfaces and flat status colours, with macOS-style
-   rounding, hairlines and frosted bars. The accent is set at runtime from the user's choice. */
+/* Design tokens. Near-black surfaces with a cool tint, hairline borders and flat status
+   colours, like an instrument panel at night. The accent is set at runtime from the user's choice. */
 @theme {
-  --color-bg: #191919;
-  --color-surface: #202020;
-  --color-surface-2: #262626;
-  --color-surface-3: #2f2f2f;
-  --color-line: rgb(255 255 255 / 0.07);
-  --color-line-strong: rgb(255 255 255 / 0.12);
-  --color-text: #ececec;
-  --color-muted: #a8a8a8;
-  --color-faint: #929292;
+  --color-bg: #0a0b0f;
+  --color-surface: #111318;
+  --color-surface-2: #171a20;
+  --color-surface-3: #1f232a;
+  --color-line: rgb(255 255 255 / 0.065);
+  --color-line-strong: rgb(255 255 255 / 0.11);
+  --color-text: #eef0f4;
+  --color-muted: #9ba1ad;
+  --color-faint: #8b919c;
   --color-ok: #2ecc71;
   --color-warn: #f39c12;
   --color-danger: #ef5b4c;
@@ -22,11 +22,11 @@
   --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
 
-  /* macOS proportions: 8 px controls, 10 px fields and buttons, 12 px cards, 14 px sheets. */
+  /* 8 px controls, 12 px fields and buttons, 16 px cards and sheets. */
   --radius-lg: 0.5rem;
-  --radius-xl: 0.625rem;
-  --radius-2xl: 0.875rem;
-  --radius-card: 0.75rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-card: 1rem;
 }
 
 @theme inline {
@@ -37,9 +37,9 @@
   --accent: #4c9be8;
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
-  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.025) inset;
-  --bar-bg: rgb(32 32 32 / 0.72);
-  --chart-axis: #a8a8a8;
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  --bar-bg: rgb(13 15 20 / 0.78);
+  --chart-axis: #9ba1ad;
   --chart-grid: rgb(255 255 255 / 0.06);
   --chart-tick: rgb(255 255 255 / 0.09);
   --chart-cursor: rgb(255 255 255 / 0.3);
@@ -115,14 +115,22 @@ body {
   font-feature-settings: 'tnum' 1;
 }
 
-/* Section and field labels: small capitals in a muted grey. */
+/* Section and field labels: small, spaced-out capitals in a muted grey. */
 @utility label {
-  font-size: 11px;
+  font-size: 10.5px;
   line-height: 1.25;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-muted);
+}
+
+/* Big readings: light and tight, so large numbers stay calm. */
+@utility readout {
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 /* Headings: tight, like a system large title. */
@@ -275,9 +283,53 @@ input[type='number'] {
   accent-color: var(--accent);
 }
 
+/* One-screen phone dashboard. Its tiles share whatever height is left, and each shows more as
+   it gets taller: a bigger number, then the small print, then the graph. Heights are the tile's inside. */
+.fit-tile {
+  container-type: size;
+}
+.fit-value {
+  font-size: min(22px, 24cqw);
+}
+.fit-sub,
+.fit-spark {
+  display: none;
+}
+@container (min-height: 44px) {
+  .fit-value {
+    font-size: min(27px, 24cqw);
+  }
+}
+@container (min-height: 56px) {
+  .fit-sub {
+    display: block;
+  }
+}
+/* A narrow tile needs the icon's room for its label. */
+@container (max-width: 99px) {
+  .fit-icon {
+    display: none;
+  }
+}
+@container (min-height: 76px) {
+  .fit-spark {
+    display: block;
+  }
+}
+@container (min-height: 96px) {
+  .fit-value {
+    font-size: min(33px, 24cqw);
+  }
+}
+@container (min-height: 124px) {
+  .fit-value {
+    font-size: min(42px, 26cqw);
+  }
+}
+
 /* Code editor and consoles (LispBM, terminal). Light values are with the light theme above. */
 :root {
-  --code-bg: #141414;
+  --code-bg: #0d0f13;
   --syn-comment: #5f6b79;
   --syn-string: #a6e3a1;
   --syn-number: #fab387;

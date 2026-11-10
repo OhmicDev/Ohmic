@@ -1,5 +1,5 @@
 import { Check, Loader2, Pencil, Plus, Stamp, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import type { ConfigValues } from '../../config/types'
 import { cx, fmt } from '../../lib/format'
 import {
@@ -22,6 +22,7 @@ import { Dialog } from '../../ui/Dialog'
 import { BackLink, Badge, Button, PageTitle } from '../../ui/Primitives'
 import { WriteDialog } from '../config/WriteDialog'
 import { useMotorDevices } from '../setup/helpers'
+import { modeLook } from './modeLook'
 
 export function RideModesPage() {
   const { modes, activeId, busy, error, load, apply, save, remove, addFromTemplate, clearError } = useRideModes()
@@ -37,10 +38,7 @@ export function RideModesPage() {
   return (
     <>
       <BackLink to="/tune">Tune</BackLink>
-      <PageTitle
-        title="Ride modes"
-        subtitle="Each mode lowers a few limits on top of your controller settings. Switching is instant and works while riding; the controllers forget the mode when powered off, and your stored settings never change unless you make a mode permanent."
-      />
+      <PageTitle title="Ride modes" subtitle="Switch instantly, even while riding. Your stored settings stay as they are." />
 
       {error && (
         <div role="alert" className="card mb-4 flex items-start gap-2 border-warn/30 bg-warn/5 p-3 text-sm text-warn">
@@ -52,60 +50,81 @@ export function RideModesPage() {
       )}
 
       <div className="grid gap-3 lg:grid-cols-2">
-        {sorted.map((m) => (
-          <div key={m.id} className={cx('card p-4', m.id === activeId && 'border-accent/40')}>
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold">{m.name}</span>
-                  {m.id === activeId && <Badge tone="accent">In use</Badge>}
+        {sorted.map((m, i) => {
+          const { icon: Icon, color } = modeLook(m, i)
+          const on = m.id === activeId
+          return (
+            <div
+              key={m.id}
+              style={{ '--mode': color } as CSSProperties}
+              className={cx('card p-4', on && 'border-[color-mix(in_oklab,var(--mode)_55%,transparent)] shadow-[0_0_32px_-14px_var(--mode)]')}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={cx(
+                    'flex size-10 shrink-0 items-center justify-center rounded-xl',
+                    on ? 'bg-[var(--mode)] text-white' : 'bg-[color-mix(in_oklab,var(--mode)_16%,transparent)] text-[var(--mode)]',
+                  )}
+                >
+                  <Icon className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">{m.name}</span>
+                    {on && <Badge tone="ok">In use</Badge>}
+                  </div>
+                  <p className="mt-0.5 text-sm text-muted">{describeMode(m, fmtSpeed)}</p>
                 </div>
-                <p className="mt-0.5 text-sm text-muted">{describeMode(m, fmtSpeed)}</p>
-              </div>
-              <Button
-                variant={m.id === activeId ? 'secondary' : 'primary'}
-                className="h-9 px-3"
-                disabled={!ready || busy}
-                onClick={() => void apply(m.id === activeId ? null : m.id)}
-              >
-                {m.id === activeId ? 'Stop using' : 'Use'}
-              </Button>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
-              <Button variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => setEditing({ ...m })}>
-                <Pencil className="size-3.5" /> Edit
-              </Button>
-              <Button variant="ghost" className="h-8 px-2.5 text-xs" disabled={!ready} onClick={() => setPermanent(m)}>
-                <Stamp className="size-3.5" /> Make permanent
-              </Button>
-              {!m.starter && (
-                <Button variant="ghost" className="h-8 px-2.5 text-xs text-danger hover:text-danger" onClick={() => void remove(m.id)}>
-                  <Trash2 className="size-3.5" /> Delete
+                <Button
+                  variant={m.id === activeId ? 'secondary' : 'primary'}
+                  className="h-9 px-3"
+                  disabled={!ready || busy}
+                  onClick={() => void apply(m.id === activeId ? null : m.id)}
+                >
+                  {m.id === activeId ? 'Stop using' : 'Use'}
                 </Button>
-              )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
+                <Button variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => setEditing({ ...m })}>
+                  <Pencil className="size-3.5" /> Edit
+                </Button>
+                <Button variant="ghost" className="h-8 px-2.5 text-xs" disabled={!ready} onClick={() => setPermanent(m)}>
+                  <Stamp className="size-3.5" /> Make permanent
+                </Button>
+                {!m.starter && (
+                  <Button variant="ghost" className="h-8 px-2.5 text-xs text-danger hover:text-danger" onClick={() => void remove(m.id)}>
+                    <Trash2 className="size-3.5" /> Delete
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <section className="mt-6">
         <h2 className="label mb-2">Add from a template</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {TEMPLATES.map((t, i) => (
-            <button
-              key={t.name}
-              onClick={() => void addFromTemplate(i).then((m) => setEditing({ ...m }))}
-              className="card focus-ring flex items-start gap-3 p-3.5 text-left transition-colors hover:border-line-strong"
-            >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                <Plus className="size-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">{t.name}</span>
-                <span className="block text-xs text-muted">{t.about}</span>
-              </span>
-            </button>
-          ))}
+          {TEMPLATES.map((t, i) => {
+            const { icon: Icon, color } = modeLook(t, i)
+            return (
+              <button
+                key={t.name}
+                onClick={() => void addFromTemplate(i).then((m) => setEditing({ ...m }))}
+                style={{ '--mode': color } as CSSProperties}
+                className="card focus-ring group flex items-start gap-3 p-3.5 text-left transition-colors hover:border-line-strong"
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_oklab,var(--mode)_16%,transparent)] text-[var(--mode)]">
+                  <Icon className="size-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">{t.name}</span>
+                  <span className="block text-xs text-muted">{t.about}</span>
+                </span>
+                <Plus className="ml-auto size-4 shrink-0 self-center text-faint transition-colors group-hover:text-text" />
+              </button>
+            )
+          })}
         </div>
       </section>
 
@@ -136,10 +155,7 @@ function SingleMotorChoice({ list }: { list: DeviceConfig[] }) {
   return (
     <section className="card mt-6 p-4">
       <h2 className="text-sm font-semibold">Single-motor mode</h2>
-      <p className="mt-0.5 text-sm text-muted">
-        Which motor keeps driving and braking when you pick Single on the dashboard. The other one rolls freely, which saves
-        battery on flat roads. You can only switch motors while stopped, because it changes braking too.
-      </p>
+      <p className="mt-0.5 text-sm text-muted">The motor that drives in Single. The other rolls freely. Switch while stopped.</p>
       <div role="radiogroup" aria-label="Motor that drives" className="mt-3 flex flex-wrap gap-2">
         {list.map((d) => (
           <button

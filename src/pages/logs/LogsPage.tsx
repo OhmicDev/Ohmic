@@ -68,7 +68,7 @@ export function LogsPage() {
       <BackLink to="/more">More</BackLink>
       <PageTitle
         title="Ride logs"
-        subtitle="Record rides with your route on a map, look back at power, battery and temperatures, and swap logs with VESC Tool."
+        subtitle="Your rides, routes and charts. Works with VESC Tool logs."
         actions={
           <Button onClick={() => void importFiles()} disabled={importing}>
             <FileUp className="size-4" /> {importing ? 'Importing…' : 'Import VESC Tool log'}

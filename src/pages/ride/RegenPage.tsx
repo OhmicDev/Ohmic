@@ -1,4 +1,4 @@
-import { BatteryCharging, Loader2 } from 'lucide-react'
+import { BatteryCharging, ChevronDown, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cx } from '../../lib/format'
 import { REGEN_LIMITS, regenSettingsProblem, STRENGTH_PCT, strengthPct, type RegenSettings, type RegenStrength } from '../../onboard/regen'
@@ -54,12 +54,12 @@ export function RegenPage() {
       <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="Regen"
-        subtitle="One-pedal riding: let go of the throttle and the motors slow you down, charging the battery, the way an electric car does."
+        subtitle="Let go of the throttle and the motors slow you down, charging the battery."
         actions={<DemoPark />}
       />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
-          <section className="card space-y-4 p-5" aria-label="Regen on or off">
+      <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="space-y-3 md:space-y-4">
+          <section className="card space-y-4 p-4 md:p-5" aria-label="Regen on or off">
             <div className="flex flex-wrap items-center gap-4">
               <span className={cx('flex size-12 items-center justify-center rounded-2xl', on ? 'bg-ok/15 text-ok' : 'bg-accent/10 text-accent')}>
                 {busy ? <Loader2 className="size-6 animate-spin" /> : <BatteryCharging className="size-6" />}
@@ -67,11 +67,7 @@ export function RegenPage() {
               <div className="min-w-0 flex-1">
                 <div className="text-lg font-semibold">{busy ? (step ?? 'Working…') : on ? 'Regen is on' : on === null && connected && armed ? 'Checking…' : 'Regen is off'}</div>
                 <div className="text-sm text-muted">
-                  {on
-                    ? total > 0
-                      ? `It has slowed you ${total} time${total === 1 ? '' : 's'} since it was turned on.`
-                      : 'Let go of the throttle while riding to feel it.'
-                    : 'It always starts off when the vehicle is switched on.'}
+                  {on ? (total > 0 ? `Slowed you ${total} time${total === 1 ? '' : 's'}` : 'Let go of the throttle to feel it.') : 'Off at every power-up.'}
                 </div>
               </div>
               <Button variant={on ? 'secondary' : 'primary'} className="h-11" disabled={busy || !connected || (!on && !!plan && 'problem' in plan)} onClick={press}>
@@ -80,36 +76,56 @@ export function RegenPage() {
             </div>
             {changed && (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3 py-2 text-sm">
-                <span>Your changes take effect once sent to the controller.</span>
+                <span>New settings are ready.</span>
                 <Button variant="primary" className="h-9" disabled={busy} onClick={() => void turnOn()}>
-                  Apply changes
+                  Apply
                 </Button>
               </div>
             )}
-            {!connected && <p className="text-sm text-muted">Connect to your vehicle to turn regen on.</p>}
+            {!connected && <p className="text-sm text-muted">Connect to turn regen on.</p>}
             {plan && 'problem' in plan && <p className="text-sm text-warn">{plan.problem}</p>}
             {plan && !('problem' in plan) && (
-              <p className="text-sm text-muted">
-                Runs on {plan.master.name}, which reads your {plan.source.label}
-                {plan.followers.length > 0 && <>, and brakes {plan.followers.map((d) => d.name).join(' and ')} with it</>}. Up to{' '}
-                <span className="num text-text">{plan.params.amps.toFixed(1)} A</span> of motor braking ({strengthPct(settings)} % of the motor braking limit).
-              </p>
+              <dl className="grid grid-cols-3 gap-2 rounded-xl border border-line p-3 text-sm">
+                <div className="min-w-0">
+                  <dt className="label text-[9.5px]">Runs on</dt>
+                  <dd className="mt-1 truncate">{plan.master.name}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="label text-[9.5px]">Reads</dt>
+                  <dd className="mt-1 truncate">{plan.source.label}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="label text-[9.5px]">Braking</dt>
+                  <dd className="num mt-1 truncate">
+                    {plan.params.amps.toFixed(1)} A <span className="text-xs text-muted">{strengthPct(settings)} %</span>
+                  </dd>
+                </div>
+                {plan.followers.length > 0 && (
+                  <div className="col-span-3 min-w-0">
+                    <dt className="label text-[9.5px]">Also brakes</dt>
+                    <dd className="mt-1 truncate">{plan.followers.map((d) => d.name).join(', ')}</dd>
+                  </div>
+                )}
+              </dl>
             )}
             {error && !busy && <p className="text-sm text-warn">{error}</p>}
           </section>
 
-          <section className="card p-5 text-sm text-muted" aria-label="How it works">
-            <h2 className="mb-2 text-sm font-semibold text-text">How it behaves</h2>
-            <ul className="space-y-1.5">
-              <li>• It starts once you let go of the throttle, and builds up smoothly rather than grabbing.</li>
-              <li>• Touch the throttle or pull the brake lever and you’re straight back in control.</li>
-              <li>• It fades out at low speed and never acts below 2 km/h, so you can always come to a stop.</li>
-              <li>• It only acts after you’ve used the throttle, so a wheel spun on the bench is never braked.</li>
-              <li>• With ABS on, a skidding wheel eases regen too.</li>
-              <li>• A full battery takes less charge: the controller’s battery regen limit still applies, so regen can feel weaker when fully charged.</li>
-              <li>• If the program on the controller ever stops, the throttle works normally again within 60 ms.</li>
+          <details className="group card">
+            <summary className="focus-ring flex cursor-pointer list-none items-center gap-2 rounded-[var(--radius-card)] px-4 py-3.5 text-sm font-medium md:px-5 [&::-webkit-details-marker]:hidden">
+              How it works
+              <ChevronDown className="ml-auto size-4 text-muted transition-transform group-open:rotate-180" />
+            </summary>
+            <ul className="space-y-1.5 border-t border-line px-4 py-3.5 text-[13px] leading-relaxed text-muted md:px-5">
+              <li>Builds up smoothly after you let go. Never grabs.</li>
+              <li>The throttle hands back at once; the brake lever within 30 ms.</li>
+              <li>A sensor blip is ridden out, so it doesn’t pulse.</li>
+              <li>Fades out at low speed. Never below 2 km/h.</li>
+              <li>Only after the throttle was used, so a bench spin is never braked.</li>
+              <li>Weaker on a full battery: the battery regen limit still applies.</li>
+              <li>If the program stops, the throttle works again within 60 ms.</li>
             </ul>
-          </section>
+          </details>
         </div>
 
         <RegenSettingsCard />
@@ -122,21 +138,20 @@ function RegenSettingsCard() {
   const settings = useSettings((s) => s.regen)
   const setRegen = useSettings((s) => s.setRegen)
   return (
-    <section className="card h-fit space-y-5 p-5" aria-label="Regen settings">
-      <h2 className="text-sm font-semibold">Settings</h2>
+    <section className="card h-fit space-y-5 p-4 md:p-5" aria-label="Regen settings">
       <div>
         <div className="label mb-1.5">Strength</div>
         <Segmented<RegenStrength> label="Strength" value={settings.strength} onChange={(strength) => setRegen({ strength })} options={STRENGTHS} />
         <p className="mt-1.5 text-xs text-muted">
           {settings.strength === 'custom'
-            ? 'Your own share of the motor braking current.'
-            : `${STRENGTH_PCT[settings.strength]} % of the motor braking current. ${settings.strength === 'high' ? 'Strong enough to ride with one pedal most of the time.' : settings.strength === 'low' ? 'Like rolling off a petrol engine.' : 'A gentle slow-down, close to an electric car’s standard setting.'}`}
+            ? 'Your own share of motor braking.'
+            : `${STRENGTH_PCT[settings.strength]} % of motor braking. ${settings.strength === 'high' ? 'Nearly one-pedal.' : settings.strength === 'low' ? 'Like rolling off a petrol engine.' : 'Like an electric car.'}`}
         </p>
-        {settings.strength === 'custom' && <SettingField field="customPct" label="Custom strength" unit="%" hint="Share of the motor braking current at full regen." />}
+        {settings.strength === 'custom' && <SettingField field="customPct" label="Custom strength" unit="%" hint="Share of motor braking at full regen." />}
       </div>
-      <SettingField field="rampS" label="Builds up over" unit="s" hint="How long it takes to reach full strength after you let go. Longer feels softer." />
-      <SettingField field="delayS" label="Starts after" unit="s" hint="A short pause after letting go, so a quick throttle blip doesn’t start it." />
-      <SettingField field="fadeKmh" label="Fades out below" unit="km/h" hint="Below this speed it weakens gradually until it stops at 2 km/h." />
+      <SettingField field="rampS" label="Builds up over" unit="s" hint="Longer feels softer." />
+      <SettingField field="delayS" label="Starts after" unit="s" hint="So a quick throttle blip doesn’t start it." />
+      <SettingField field="fadeKmh" label="Fades out below" unit="km/h" hint="Weakens gradually down to 2 km/h." />
     </section>
   )
 }

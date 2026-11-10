@@ -328,7 +328,7 @@ export function BackupsPage() {
       <BackLink to="/tune">Tune</BackLink>
       <PageTitle
         title="Backups"
-        subtitle="One is saved automatically before every write. They’re kept in this browser, on this device."
+        subtitle="Saved before every write, on this device."
         actions={
           <div className="flex flex-wrap gap-1.5">
             <Button variant="ghost" onClick={() => void importFile()}>

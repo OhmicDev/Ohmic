@@ -67,7 +67,7 @@ export function ExportDialog({
       open={open}
       onClose={onClose}
       title="Export live data"
-      subtitle="A CSV file you can open in a spreadsheet. Values are in the units shown on screen."
+      subtitle="A CSV for any spreadsheet, in the units on screen."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

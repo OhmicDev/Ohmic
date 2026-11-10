@@ -10,7 +10,7 @@ export function LiveLayout() {
   const activeFaults = useFaults((s) => Object.keys(s.active).length)
   return (
     <>
-      <PageTitle title="Live" subtitle="Every value the controllers report, their faults, and the VESC terminal." />
+      <PageTitle title="Live" subtitle="Every value, faults and the terminal." />
       <nav aria-label="Live sections" className="-mt-1 mb-5 flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--color-line)]">
         <Tab to="/live" icon={Activity} label="Signals" exact />
         <Tab to="/live/faults" icon={TriangleAlert} label="Faults" badge={activeFaults} />

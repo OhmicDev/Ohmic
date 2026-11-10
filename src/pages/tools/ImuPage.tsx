@@ -55,7 +55,7 @@ export function ImuPage() {
   return (
     <>
       <BackToMore />
-      <PageTitle title="IMU" subtitle="The controller’s motion sensor: which way it’s tilted, how it’s accelerating and turning. Calibrate it after mounting the controller." />
+      <PageTitle title="IMU" subtitle="Tilt, acceleration and turning. Calibrate after mounting." />
       <div className="mb-3">
         <TargetPicker devices={motors} value={key} onChange={setPick} label="IMU of" />
       </div>

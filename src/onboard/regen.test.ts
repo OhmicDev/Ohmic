@@ -61,20 +61,43 @@ describe('regen logic', () => {
     expect(run(s, P, 50)).toBeNull()
   })
 
-  it('hands back at once to the throttle or the brake lever', () => {
+  it('hands back at once to the throttle, and to the brake lever within 30 ms', () => {
     const s = regenInit()
     run(s, P, 5, { throttle: 0.6, lever: 0, erpm: 8000, outputDisabled: false })
     run(s, P, 100)
     expect(run(s, P, 1, { throttle: 0.2, lever: 0, erpm: 8000, outputDisabled: false })).toBeNull()
+    expect(s.level).toBe(0)
     run(s, P, 100)
-    expect(run(s, P, 1, { throttle: 0, lever: 0.3, erpm: 8000, outputDisabled: false })).toBeNull()
+    const lever = { throttle: 0, lever: 0.3, erpm: 8000, outputDisabled: false }
+    expect(run(s, P, 3, lever)).toBeCloseTo(20, 5)
+    expect(run(s, P, 1, lever)).toBeNull()
     expect(s.engagements).toBe(2)
     // PPM: pulling back on the stick is the brake.
     const ppm = { ...P, input: 1 as const, lever: false }
     const t = regenInit()
     run(t, ppm, 5, { throttle: 0.6, lever: 0, erpm: 8000, outputDisabled: false })
     expect(run(t, ppm, 30)).toBeGreaterThan(0)
-    expect(run(t, ppm, 1, { throttle: -0.4, lever: 0, erpm: 8000, outputDisabled: false })).toBeNull()
+    expect(run(t, ppm, 4, { throttle: -0.4, lever: 0, erpm: 8000, outputDisabled: false })).toBeNull()
+  })
+
+  it('rides out a short blip in the inputs at the same braking', () => {
+    const s = regenInit()
+    run(s, P, 5, { throttle: 0.6, lever: 0, erpm: 8000, outputDisabled: false })
+    const before = run(s, P, 30)!
+    expect(run(s, P, 2, { throttle: 0.07, lever: 0.08, erpm: 8000, outputDisabled: false })).toBe(before)
+    expect(run(s, P, 1)).toBeGreaterThan(before)
+    expect(s.engagements).toBe(1)
+  })
+
+  it('carries on from where it was after a short drop, without the delay', () => {
+    const s = regenInit()
+    run(s, P, 5, { throttle: 0.6, lever: 0, erpm: 8000, outputDisabled: false })
+    run(s, P, 100)
+    run(s, P, 6, { throttle: 0, lever: 0.3, erpm: 8000, outputDisabled: false })
+    const back = run(s, P, 1)!
+    expect(back).toBeGreaterThan(15)
+    expect(back).toBeLessThan(20)
+    expect(s.engagements).toBe(2)
   })
 
   it('leaves the motor alone while something else has taken over the input app', () => {

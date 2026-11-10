@@ -83,7 +83,7 @@ export function RideMap({ data, metric, units, index, onPick }: { data: RideData
     m.fitBounds(L.latLngBounds(track.latlngs), { padding: [24, 24], maxZoom: 17 })
     route.current = L.layerGroup().addTo(m)
     // Canvas can't read CSS variables, so the accent is passed in as a colour.
-    marker.current = L.circleMarker(track.latlngs[0], { radius: 7, color: '#191919', weight: 3, fillColor: accentRef.current, fillOpacity: 1 }).addTo(m)
+    marker.current = L.circleMarker(track.latlngs[0], { radius: 7, color: '#0a0b0f', weight: 3, fillColor: accentRef.current, fillOpacity: 1 }).addTo(m)
     // Tap near the route to jump there.
     m.on('click', (e: L.LeafletMouseEvent) => {
       const p = m.latLngToLayerPoint(e.latlng)
@@ -116,7 +116,7 @@ export function RideMap({ data, metric, units, index, onPick }: { data: RideData
     const g = route.current
     if (!g || track.latlngs.length < 2) return
     g.clearLayers()
-    L.polyline(track.latlngs, { color: '#191919', weight: 8, opacity: 0.55, interactive: false }).addTo(g)
+    L.polyline(track.latlngs, { color: '#0a0b0f', weight: 8, opacity: 0.55, interactive: false }).addTo(g)
     let start = 0
     let b = bucket(values[0], scale)
     for (let k = 1; k <= track.latlngs.length; k++) {
@@ -128,8 +128,8 @@ export function RideMap({ data, metric, units, index, onPick }: { data: RideData
       }
     }
     const end = track.latlngs[track.latlngs.length - 1]
-    L.circleMarker(track.latlngs[0], { radius: 6, color: '#191919', weight: 2, fillColor: '#ececec', fillOpacity: 1, interactive: false }).bindTooltip('Start').addTo(g)
-    L.circleMarker(end, { radius: 6, color: '#ececec', weight: 2, fillColor: '#191919', fillOpacity: 1, interactive: false }).bindTooltip('Finish').addTo(g)
+    L.circleMarker(track.latlngs[0], { radius: 6, color: '#0a0b0f', weight: 2, fillColor: '#ececec', fillOpacity: 1, interactive: false }).bindTooltip('Start').addTo(g)
+    L.circleMarker(end, { radius: 6, color: '#ececec', weight: 2, fillColor: '#0a0b0f', fillOpacity: 1, interactive: false }).bindTooltip('Finish').addTo(g)
     marker.current?.bringToFront()
   }, [track, values, scale])
 

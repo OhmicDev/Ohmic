@@ -416,7 +416,7 @@ function DashPreview() {
         <span className="ml-auto rounded-full bg-ok/15 px-2 py-0.5 text-[11px] font-semibold text-ok">Connected</span>
       </div>
       <div className="mt-5 flex items-end gap-2">
-        <span ref={speed} className="num wide text-[88px] leading-[0.85] font-bold tracking-[-0.04em]">
+        <span ref={speed} className="readout text-[96px] leading-[0.8]">
           27
         </span>
         <span className="mb-1.5 text-lg text-muted">km/h</span>
@@ -480,7 +480,7 @@ function Stat({ label, value, unit }: { label: string; value: string; unit: stri
   return (
     <div>
       <div className="label text-[10px]">{label}</div>
-      <div className="num mt-1 text-xl font-semibold">
+      <div className="num mt-1 text-xl">
         {value}
         <span className="ml-0.5 text-xs font-normal text-muted">{unit}</span>
       </div>

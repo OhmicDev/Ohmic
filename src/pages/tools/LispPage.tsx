@@ -78,7 +78,7 @@ export function LispPage() {
       <BackToMore />
       <PageTitle
         title="LispBM scripts"
-        subtitle="Scripts run on the controller itself, even when the app is closed. Write or open one, upload it, and watch what it prints."
+        subtitle="Scripts that run on the controller, even with the app closed."
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-3">

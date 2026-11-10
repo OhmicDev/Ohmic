@@ -17,7 +17,7 @@ const EVERY: LinkRowProps[] = [
 export function TuneHubPage() {
   return (
     <>
-      <PageTitle title="Tune" subtitle="Shape how it rides. Every change is shown before it’s written, and backed up first." />
+      <PageTitle title="Tune" subtitle="Shape how it rides. Every change is checked and backed up." />
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <RowGroup id="tune-riding" title="How it rides">
           {RIDING.map((item) => (

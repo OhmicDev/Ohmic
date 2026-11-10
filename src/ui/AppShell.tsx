@@ -113,7 +113,7 @@ export function AppShell() {
         <main
           id="main"
           tabIndex={-1}
-          className="relative isolate flex-1 px-4 pt-4 pb-[calc(72px+env(safe-area-inset-bottom))] outline-none md:px-6 md:pt-6 md:pb-10 lg:px-8"
+          className="relative isolate flex-1 px-4 pt-4 pb-[calc(80px+env(safe-area-inset-bottom))] outline-none md:px-6 md:pt-6 md:pb-10 lg:px-8"
         >
           <div className="mx-auto w-full max-w-[1200px]">
             <Outlet />
@@ -126,7 +126,7 @@ export function AppShell() {
       <ConnectSheet />
 
       <nav aria-label={t('nav.main')} className="glass fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[env(safe-area-inset-bottom)] md:hidden">
-        <div className="mx-auto grid h-14 max-w-lg grid-cols-5">
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
           {NAV.map((item) => (
             <TabLink key={item.to} item={item} />
           ))}
@@ -169,12 +169,19 @@ function TabLink({ item }: { item: NavItem }) {
       activeOptions={{ exact: item.to === '/' }}
       aria-current={under ? 'page' : undefined}
       className={cx(
-        'focus-ring flex flex-col items-center justify-center gap-0.5 text-faint transition-colors active:opacity-60 data-[status=active]:text-accent',
-        under && 'text-accent',
+        'group focus-ring flex flex-col items-center justify-center gap-1 text-faint transition-colors active:opacity-60 data-[status=active]:text-text',
+        under && 'text-text',
       )}
     >
-      <Icon className="size-[22px]" strokeWidth={1.9} aria-hidden />
-      <span className="text-[10px] font-medium">{t(item.label)}</span>
+      <span
+        className={cx(
+          'flex h-7 w-14 items-center justify-center rounded-full transition-colors group-data-[status=active]:bg-accent/18 group-data-[status=active]:text-accent',
+          under && 'bg-accent/18 text-accent',
+        )}
+      >
+        <Icon className="size-[21px]" strokeWidth={1.9} aria-hidden />
+      </span>
+      <span className="text-[10px] leading-none font-medium">{t(item.label)}</span>
     </Link>
   )
 }

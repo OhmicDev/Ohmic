@@ -133,8 +133,8 @@ describe('theme', () => {
 
   it('keeps every accent readable on the dark theme, as text and under the dark text of a button', () => {
     for (const a of ACCENTS) {
-      for (const surface of ['#191919', '#202020', '#262626']) expect(contrastRatio(a.value, surface)).toBeGreaterThanOrEqual(4.5)
-      expect(contrastRatio('#191919', a.value)).toBeGreaterThanOrEqual(4.5)
+      for (const surface of ['#0a0b0f', '#111318', '#171a20', '#1f232a']) expect(contrastRatio(a.value, surface)).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio('#0a0b0f', a.value)).toBeGreaterThanOrEqual(4.5)
     }
   })
 })

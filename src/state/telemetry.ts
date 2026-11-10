@@ -1,5 +1,6 @@
 // Live values from every polled controller, turned into the dashboard view,
-// plus trip stats and a short history for sparklines.
+// plus trip stats (peaks, averages and energy, like VESC Tool's statistics) and
+// a short history for sparklines.
 //
 // The dashboard follows the chosen view (all motor controllers combined, or
 // one). Trip, battery % and range always cover the whole vehicle.
@@ -38,14 +39,42 @@ export interface Dashboard {
 export interface Trip {
   startedAt: number
   distanceKm: number
+  /** Seconds moving faster than 1 km/h. */
   rideSeconds: number
+  /** Seconds with values coming in. */
+  seconds: number
   maxSpeed: number
+  /** W, battery side. */
   peakPower: number
+  /** W, negative. */
   peakRegenPower: number
+  /** Net Wh: used minus put back. */
   energyWh: number
+  whUsed: number
+  whCharged: number
+  ahUsed: number
+  ahCharged: number
   whPerKm: number | null
   peakTempMotor: number
   peakTempFet: number
+  /** Battery current, all controllers (A): highest drawn and most put back (negative). */
+  maxCurrentIn: number
+  minCurrentIn: number
+  /** Motor current, all controllers (A): most driving and most braking (negative). */
+  maxCurrentMotor: number
+  minCurrentMotor: number
+  /** 0..1, highest of any controller. */
+  maxDuty: number
+  /** Battery voltage range; null until the first reading. */
+  minVIn: number | null
+  maxVIn: number | null
+  maxErpm: number
+  /** Sums over time moving, for averages (W·s and A·s). */
+  powerWs: number
+  currentAs: number
+  /** Sums over all time, for averages (°C·s). */
+  tempMotorS: number
+  tempFetS: number
 }
 
 const HISTORY_KEYS = ['speed', 'vIn', 'currentIn', 'power', 'currentMotor', 'duty', 'erpm', 'tempMotor', 'tempFet'] as const
@@ -62,29 +91,49 @@ const emptyTrip = (now: number): Trip => ({
   startedAt: now,
   distanceKm: 0,
   rideSeconds: 0,
+  seconds: 0,
   maxSpeed: 0,
   peakPower: 0,
   peakRegenPower: 0,
   energyWh: 0,
+  whUsed: 0,
+  whCharged: 0,
+  ahUsed: 0,
+  ahCharged: 0,
   whPerKm: null,
   peakTempMotor: 0,
   peakTempFet: 0,
+  maxCurrentIn: 0,
+  minCurrentIn: 0,
+  maxCurrentMotor: 0,
+  minCurrentMotor: 0,
+  maxDuty: 0,
+  minVIn: null,
+  maxVIn: null,
+  maxErpm: 0,
+  powerWs: 0,
+  currentAs: 0,
+  tempMotorS: 0,
+  tempFetS: 0,
 })
 
+/** The controller's own counters, which only ever go up until it restarts. */
 interface CounterValues {
   tachoAbs: number
   wh: number
   whCharged: number
+  ah: number
+  ahCharged: number
 }
+
+const ENERGY = ['wh', 'whCharged', 'ah', 'ahCharged'] as const
 
 interface Counter {
   base: CounterValues
   last: CounterValues
-  carriedKm: number
-  carriedWh: number
+  /** Counted before the controller last restarted. */
+  carried: { km: number; wh: number; whCharged: number; ah: number; ahCharged: number }
 }
-
-const netWh = (now: CounterValues, base: CounterValues) => now.wh - base.wh - (now.whCharged - base.whCharged)
 
 interface IngestOptions {
   /** Motor controller that leads speed, voltage and distance. */
@@ -144,37 +193,62 @@ export const useTelemetry = create<TelemetryState>()((set, get) => ({
     // Trip: distance from the primary controller's tachometer, energy from all.
     const trip = { ...prev.trip }
     let distanceKm = 0
-    let energyWh = 0
+    const used = { wh: 0, whCharged: 0, ah: 0, ahCharged: 0 }
     for (const s of samples) {
       const k = targetKey(s.target)
       const cur: CounterValues = {
         tachoAbs: s.values.tachometerAbs,
         wh: s.values.wattHours,
         whCharged: s.values.wattHoursCharged,
+        ah: s.values.ampHours,
+        ahCharged: s.values.ampHoursCharged,
       }
       let c = counters.get(k)
       if (!c) {
-        c = { base: cur, last: cur, carriedKm: 0, carriedWh: 0 }
+        c = { base: cur, last: cur, carried: { km: 0, wh: 0, whCharged: 0, ah: 0, ahCharged: 0 } }
         counters.set(k, c)
-      } else if (cur.tachoAbs < c.last.tachoAbs || cur.wh < c.last.wh) {
+      } else if (cur.tachoAbs < c.last.tachoAbs || cur.wh < c.last.wh || cur.whCharged < c.last.whCharged) {
         // The controller rebooted and its counters restarted. Keep what this
         // trip already counted and continue from the new values.
-        c.carriedKm += tachoToKm(c.last.tachoAbs - c.base.tachoAbs, vehicle)
-        c.carriedWh += netWh(c.last, c.base)
+        c.carried.km += tachoToKm(c.last.tachoAbs - c.base.tachoAbs, vehicle)
+        for (const f of ENERGY) c.carried[f] += c.last[f] - c.base[f]
         c.base = cur
       }
       c.last = cur
-      if (s.target === primary) distanceKm = c.carriedKm + tachoToKm(cur.tachoAbs - c.base.tachoAbs, vehicle)
-      energyWh += c.carriedWh + netWh(cur, c.base)
+      if (s.target === primary) distanceKm = c.carried.km + tachoToKm(cur.tachoAbs - c.base.tachoAbs, vehicle)
+      for (const f of ENERGY) used[f] += c.carried[f] + cur[f] - c.base[f]
     }
+    const energyWh = used.wh - used.whCharged
+    const vehicleMotorCurrent = sum(all, (v) => v.currentMotor)
     trip.distanceKm = distanceKm
     trip.energyWh = energyWh
-    if (vehicleSpeed > 1) trip.rideSeconds += dt
+    trip.whUsed = used.wh
+    trip.whCharged = used.whCharged
+    trip.ahUsed = used.ah
+    trip.ahCharged = used.ahCharged
+    trip.seconds += dt
+    if (vehicleSpeed > 1) {
+      trip.rideSeconds += dt
+      trip.powerWs += vehiclePower * dt
+      trip.currentAs += vehicleCurrent * dt
+    }
     trip.maxSpeed = Math.max(trip.maxSpeed, vehicleSpeed)
     trip.peakPower = Math.max(trip.peakPower, vehiclePower)
     trip.peakRegenPower = Math.min(trip.peakRegenPower, vehiclePower)
-    trip.peakTempMotor = Math.max(trip.peakTempMotor, max(all, (v) => v.tempMotor))
-    trip.peakTempFet = Math.max(trip.peakTempFet, max(all, (v) => v.tempFet))
+    const hotMotor = max(all, (v) => v.tempMotor)
+    const hotFet = max(all, (v) => v.tempFet)
+    trip.peakTempMotor = Math.max(trip.peakTempMotor, hotMotor)
+    trip.peakTempFet = Math.max(trip.peakTempFet, hotFet)
+    trip.tempMotorS += hotMotor * dt
+    trip.tempFetS += hotFet * dt
+    trip.maxCurrentIn = Math.max(trip.maxCurrentIn, vehicleCurrent)
+    trip.minCurrentIn = Math.min(trip.minCurrentIn, vehicleCurrent)
+    trip.maxCurrentMotor = Math.max(trip.maxCurrentMotor, vehicleMotorCurrent)
+    trip.minCurrentMotor = Math.min(trip.minCurrentMotor, vehicleMotorCurrent)
+    trip.maxDuty = Math.max(trip.maxDuty, max(all, (v) => Math.abs(v.dutyNow)))
+    trip.minVIn = trip.minVIn === null ? lead.vIn : Math.min(trip.minVIn, lead.vIn)
+    trip.maxVIn = trip.maxVIn === null ? lead.vIn : Math.max(trip.maxVIn, lead.vIn)
+    trip.maxErpm = Math.max(trip.maxErpm, Math.abs(lead.rpm))
     trip.whPerKm = distanceKm >= MIN_DISTANCE_FOR_RANGE_KM ? Math.max(0, energyWh) / distanceKm : null
 
     const remainingWh = (packWh(vehicle) * socPct) / 100

@@ -38,6 +38,38 @@ test('the wheels in the dashboard corner turn with each motor’s speed', async 
   await expect(corner).toHaveCount(0)
 })
 
+test('on a phone the dashboard fits one screen, and the rider arranges it', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 700 }, isMobile: true, hasTouch: true })
+  const page = await ctx.newPage()
+  await connectDemo(page)
+  await go(page, '/')
+  await page.getByRole('button', { name: /already set up/ }).click()
+
+  // Every tile and the ride controls sit above the tab bar, without scrolling.
+  const controls = page.getByRole('region', { name: 'Ride controls' })
+  await expect(controls.getByRole('radio', { name: 'Eco' })).toBeVisible()
+  const tabBar = await page.getByRole('navigation', { name: 'Main' }).last().boundingBox()
+  const bottom = await controls.evaluate((el) => el.getBoundingClientRect().bottom)
+  expect(bottom).toBeLessThanOrEqual(tabBar!.y)
+  await expect(page.locator('[data-tile]')).toHaveCount(8)
+  for (const tile of await page.locator('[data-tile]').all()) expect((await tile.boundingBox())!.y).toBeLessThan(tabBar!.y)
+  // The wheels move into the grid instead of floating over it.
+  await expect(page.getByRole('complementary', { name: 'Wheel speeds' })).toHaveCSS('position', 'static')
+
+  // A tap on a tile while arranging offers to move, resize or remove it.
+  await page.getByRole('button', { name: 'Customize' }).click()
+  await page.locator('[data-tile="duty"]').click()
+  const sheet = page.getByRole('dialog', { name: 'Duty' })
+  await sheet.getByRole('button', { name: 'Remove' }).click()
+  await expect(page.locator('[data-tile]')).toHaveCount(7)
+
+  // The scrolling layout is still there for those who want it.
+  const panel = page.getByRole('region', { name: 'Customize the dashboard' })
+  await panel.getByRole('radio', { name: 'Scrolling' }).click()
+  await expect(page.getByRole('complementary', { name: 'Wheel speeds' })).toHaveCSS('position', 'fixed')
+  await ctx.close()
+})
+
 test('a settings write: refused while the wheel turns, then reviewed, backed up, written and verified', async ({ page }) => {
   await connectDemo(page)
   await go(page, '/config')

@@ -106,7 +106,7 @@ export function CalculatorsPage() {
   return (
     <>
       <BackToMore />
-      <PageTitle title="Calculators" subtitle="Quick answers for planning a build or a change. Starting values come from your vehicle setup and connected controller." />
+      <PageTitle title="Calculators" subtitle="Quick answers for planning a build, from your setup." />
       <div className="grid gap-4 lg:grid-cols-2">
         <PackCalc facts={facts} />
         <RangeCalc facts={facts} units={units} />

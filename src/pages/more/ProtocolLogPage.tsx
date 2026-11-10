@@ -31,7 +31,7 @@ export function ProtocolLogPage() {
       <BackLink to="/settings">Settings</BackLink>
       <PageTitle
         title="Protocol log"
-        subtitle="Every packet between Ohmic and the controllers, newest first. For finding out why something doesn’t work, and for bug reports."
+        subtitle="Every packet to and from the controllers, newest first."
         actions={
           <div className="flex flex-wrap gap-1">
             <Button variant="ghost" onClick={() => setFrozen(frozen ? null : live)} disabled={!on && !frozen} aria-pressed={!!frozen}>

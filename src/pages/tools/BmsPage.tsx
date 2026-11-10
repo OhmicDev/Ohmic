@@ -65,7 +65,7 @@ export function BmsPage() {
   return (
     <>
       <BackToMore />
-      <PageTitle title="Battery (BMS)" subtitle="Cell voltages, balancing, temperatures and charge, from a VESC-compatible BMS on the CAN bus." />
+      <PageTitle title="Battery (BMS)" subtitle="Cells, balancing and temperatures from a VESC BMS." />
       <div className="mb-3">
         <TargetPicker devices={sources} value={info ? targetKey(info.target) : pick} onChange={setPick} label="Read from" />
       </div>

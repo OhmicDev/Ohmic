@@ -24,7 +24,7 @@ export function SettingsPage() {
   return (
     <>
       <BackLink to="/more">More</BackLink>
-      <PageTitle title="Settings" subtitle="How the app looks and connects, your vehicle, and your data." />
+      <PageTitle title="Settings" subtitle="Look, connection, vehicle and data." />
       <nav aria-label="Settings sections" className="-mt-1 mb-4 flex flex-wrap gap-1.5">
         {jumps.map(([id, label]) => (
           <a

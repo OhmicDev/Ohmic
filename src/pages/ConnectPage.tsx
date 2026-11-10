@@ -40,7 +40,7 @@ export function ConnectPage() {
       <PageTitle
         title={live ? 'Connection' : 'Connect'}
         subtitle={
-          live ? 'The device you are connected to and everything else on its CAN bus.' : 'Bluetooth or a USB cable. Ohmic remembers your device for next time.'
+          live ? 'This device and everything on its CAN bus.' : 'Bluetooth or USB. Remembered for next time.'
         }
       />
       {live ? (

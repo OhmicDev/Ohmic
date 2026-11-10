@@ -43,9 +43,10 @@ const BASE = 0.9
 const BRAKE = -20 // A against the direction of travel
 
 /** Runs the ABS step against a speed profile (m/s per step) and returns what it set each step. */
-function run(speeds: number[], opts: { current?: number; base?: number } = {}) {
+function run(speeds: number[], opts: { current?: number; base?: number; p?: AbsParams } = {}) {
   const s = absInit(opts.base ?? BASE)
-  const out = speeds.map((v) => absStep(s, P, v / P.speedPerErpm, opts.current ?? BRAKE, s.set))
+  const p = opts.p ?? P
+  const out = speeds.map((v) => absStep(s, p, v / p.speedPerErpm, opts.current ?? BRAKE, s.set))
   return { s, out }
 }
 
@@ -87,6 +88,18 @@ describe('ABS controller', () => {
     const backAt = out.findIndex((x, i) => i > firstRelease && x === BASE)
     expect(backAt - firstRelease).toBeLessThanOrEqual(Math.round(P.maxReleaseS / 0.01) + 2)
     expect(out.slice(backAt, backAt + 150).every((x) => x === BASE)).toBe(true)
+  })
+
+  it('can wait until braking has been on for a moment before it acts', () => {
+    // A jolt right as the brakes come on: ignored with the wait, a release without it.
+    const jolt = [...falling(10, 40, 6), ...Array.from({ length: 40 }, () => 10 - 40 * 0.05)]
+    expect(run(jolt).s.interventions).toBe(1)
+    const waiting = { ...P, armS: 0.3 }
+    expect(run(jolt, { p: waiting }).s.interventions).toBe(0)
+    // A skid once braking has been on past the wait is still caught.
+    const late = [...falling(10, 6, 40), ...falling(10 - 6 * 0.4, 40, 6), ...Array.from({ length: 20 }, () => 5)]
+    expect(run(late, { p: waiting }).s.interventions).toBe(1)
+    expect(absStartCommands(waiting, 1).join(' ')).toContain('(def ohm-pa 30)')
   })
 
   it('treats an outside change of the limit (a ride mode switch) as the new normal', () => {

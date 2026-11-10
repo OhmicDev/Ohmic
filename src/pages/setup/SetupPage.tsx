@@ -20,7 +20,7 @@ export function SetupPage() {
     <>
       <PageTitle
         title="Setup"
-        subtitle="Get a new build riding, one step at a time. Every change is shown before it’s written, and backed up first."
+        subtitle="Get a new build riding, step by step."
       />
 
       {!connected && (
@@ -43,7 +43,7 @@ export function SetupPage() {
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-sm text-muted">Do these in order. Each one checks what it needs first and walks you through it.</p>
+        <p className="mt-0.5 text-sm text-muted">Do these in order.</p>
         <ol className="mt-3 space-y-2">
           {SETUP_ORDER.map((id, i) => {
             const s = STEPS[id]

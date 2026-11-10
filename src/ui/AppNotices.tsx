@@ -22,7 +22,7 @@ export function UpdateToast() {
   return (
     <div
       role="status"
-      className="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl border border-line-strong bg-surface-2 p-3.5 shadow-2xl md:right-6 md:bottom-6 md:left-auto"
+      className="fixed inset-x-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl border border-line-strong bg-surface-2 p-3.5 shadow-2xl md:right-6 md:bottom-6 md:left-auto"
     >
       <RefreshCw className="mt-0.5 size-4 shrink-0 text-accent" />
       <div className="min-w-0 flex-1 text-sm">
