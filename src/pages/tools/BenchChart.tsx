@@ -84,7 +84,7 @@ function Pane({ pane, rows }: { pane: PaneSpec; rows: Row[] }) {
         width: Math.max(200, el.clientWidth),
         height: 150,
         legend: { show: false },
-        padding: [10, 8, 0, 0],
+        padding: [10, 26, 0, 0], // Room on the right for the last time label, centred on its tick.
         cursor: { sync: { key: 'ohmic-bench', setSeries: false }, drag: { x: false, y: false }, points: { size: 8, width: 2 } },
         scales: { x: { time: true, auto: false } },
         axes: [

@@ -101,7 +101,7 @@ const atLeast = (fw: FwVersion, major: number, minor: number) => fw.major > majo
 const fwText = (major: number, minor: number) => `${major}.${String(minor).padStart(2, '0')}`
 
 /** Why on-controller programs can't run on this controller, or null. */
-function cantRun(d: DeviceConfig, minFw: [number, number], what: string): string | null {
+export function cantRun(d: DeviceConfig, minFw: [number, number], what: string): string | null {
   if (!atLeast(d.fw, ...minFw)) return `${what} needs firmware ${fwText(...minFw)} or newer; ${d.name} has ${fwText(d.fw.major, d.fw.minor)}.`
   if (d.mcconf.status === 'readonly') return `${d.name} runs firmware Ohmic only reads, so nothing is sent to it.`
   if (d.mcconf.status !== 'ready' || !d.mcconf.device) return `Still reading settings from ${d.name}.`

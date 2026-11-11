@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { ClosedError, VescClient, type Target } from '../client/VescClient'
 import type { FwVersion } from '../protocol/messages'
 import { demoPositionAt, type DemoFix } from '../sim/demoRoute'
+import type { DemoWheeliePose } from '../sim/demoWheelie'
 import { BleTransport } from '../transport/BleTransport'
 import type { MockTransport } from '../transport/MockTransport'
 import { SerialTransport } from '../transport/SerialTransport'
@@ -557,6 +558,17 @@ export function demoWheelDirection(target: Target): number | null {
   const device = target === 'local' ? bus.local : bus.remotes.get(target)
   if (!device || device.motorIndex === null) return null
   return bus.sim.physicalDirection(device.motorIndex)
+}
+
+/** Demo only: holds the simulated scooter for an auto-wheelie calibration step (null lets go). False when not on the demo. */
+export function demoWheeliePose(target: Target, pose: DemoWheeliePose): boolean {
+  if (active?.transport.kind !== 'mock') return false
+  const bus = (active.transport as MockTransport).bus
+  const device = target === 'local' ? bus.local : bus.remotes.get(target)
+  const w = device?.scripts.wheelie
+  if (!w) return false
+  w.setPose(pose)
+  return true
 }
 
 /** Demo only: what the next firmware installed on this simulated controller reports (a real image doesn't say). */

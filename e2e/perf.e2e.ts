@@ -10,7 +10,7 @@ test('Ride keeps 60 fps at 50 Hz updates with a phone-class CPU', async ({ page 
   await go(page, '/settings')
   await page.getByRole('radio', { name: '50 Hz' }).click()
   await go(page, '/')
-  await expect(page.getByRole('region', { name: 'Speed and power' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Gauges' })).toBeVisible()
 
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })

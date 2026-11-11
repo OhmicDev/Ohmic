@@ -52,6 +52,12 @@ const CURVES: Record<Chemistry, [number, number][]> = {
   ],
 }
 
+/** Cell voltage when empty and when full, by the curve above. */
+export function cellVoltageRange(chem: Chemistry): [number, number] {
+  const t = CURVES[chem]
+  return [t[0][0], t[t.length - 1][0]]
+}
+
 export function socFromCellVoltage(cellV: number, chem: Chemistry): number {
   const t = CURVES[chem]
   if (cellV <= t[0][0]) return 0

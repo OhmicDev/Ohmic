@@ -10,6 +10,7 @@ import { OfflineStrip, UpdateToast } from './AppNotices'
 import { ConnectionChip } from './ConnectionChip'
 import { ConnectSheet } from './ConnectSheet'
 import { DeviceSwitcher } from './DeviceSwitcher'
+import { haptic } from './haptics'
 import { Logo } from './Logo'
 import { Onboarding } from './Onboarding'
 import { TILE } from './rowStyles'
@@ -29,7 +30,7 @@ const NAV: NavItem[] = [
   { to: '/', label: 'nav.ride', icon: Gauge, tile: TILE.blue },
   { to: '/setup', label: 'nav.setup', icon: Wrench, tile: TILE.grey },
   { to: '/live', label: 'nav.live', icon: Activity, tile: TILE.green },
-  { to: '/tune', label: 'nav.tune', icon: SlidersHorizontal, tile: TILE.purple, owns: ['/config', '/modes', '/abs', '/regen'] },
+  { to: '/tune', label: 'nav.tune', icon: SlidersHorizontal, tile: TILE.purple, owns: ['/config', '/modes', '/abs', '/regen', '/wheelie'] },
   {
     to: '/more',
     label: 'nav.more',
@@ -71,7 +72,7 @@ export function AppShell() {
       </a>
 
       {/* Sidebar on wide screens (like macOS), an icon rail on tablets. */}
-      <aside className="glass sticky top-0 z-30 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-line md:flex lg:w-[232px]">
+      <aside className="glass sticky top-0 z-30 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-line pt-[env(safe-area-inset-top)] [view-transition-name:app-side] md:flex lg:w-[232px]">
         <Link
           to="/"
           className="focus-ring mx-auto mt-4 mb-5 flex items-center gap-2.5 rounded-[10px] lg:mx-4 lg:mt-5 lg:mb-6"
@@ -95,7 +96,8 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass sticky top-0 z-20 flex h-12 items-center gap-3 border-b border-line px-4 md:h-14 md:px-6 lg:px-8">
+        {/* Under the status bar when installed on a phone, so it reaches the top edge. */}
+        <header className="glass sticky top-0 z-20 flex h-[calc(3rem+env(safe-area-inset-top))] items-center gap-3 border-b border-line px-4 pt-[env(safe-area-inset-top)] [view-transition-name:app-header] md:h-[calc(3.5rem+env(safe-area-inset-top))] md:px-6 lg:px-8">
           <Link to="/" className="focus-ring flex items-center gap-2 rounded-lg lg:hidden">
             <span className="md:hidden">
               <Logo size={24} />
@@ -125,7 +127,10 @@ export function AppShell() {
       <Onboarding />
       <ConnectSheet />
 
-      <nav aria-label={t('nav.main')} className="glass fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav
+        aria-label={t('nav.main')}
+        className="glass fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[env(safe-area-inset-bottom)] [view-transition-name:app-tabs] md:hidden"
+      >
         <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
           {NAV.map((item) => (
             <TabLink key={item.to} item={item} />
@@ -168,6 +173,7 @@ function TabLink({ item }: { item: NavItem }) {
       to={item.to}
       activeOptions={{ exact: item.to === '/' }}
       aria-current={under ? 'page' : undefined}
+      onClick={() => haptic(5)}
       className={cx(
         'group focus-ring flex flex-col items-center justify-center gap-1 text-faint transition-colors active:opacity-60 data-[status=active]:text-text',
         under && 'text-text',

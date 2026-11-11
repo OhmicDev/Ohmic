@@ -61,7 +61,7 @@ function ChartPane({ pane, height, multiDevice }: { pane: ChartPaneSpec; height:
       width: Math.max(200, el.clientWidth),
       height,
       legend: { show: false },
-      padding: [10, 8, 0, 0],
+      padding: [10, 26, 0, 0], // Room on the right for the last time label, centred on its tick.
       cursor: {
         // Crosshairs follow each other across panes; drags (zoom) stay in the pane they started in.
         sync: { key: 'ohmic-live', setSeries: false, filters: { pub: (type) => type !== 'mousedown' && type !== 'mouseup' } },

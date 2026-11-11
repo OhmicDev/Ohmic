@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type CSSProperties } from 'react'
 import { fmt } from '../lib/format'
 import { prefersReducedMotion } from './reducedMotion'
 
@@ -6,7 +6,19 @@ import { prefersReducedMotion } from './reducedMotion'
  * A live number that glides to each new value instead of jumping. The animation writes the text
  * directly, so React renders once per new value rather than on every animation frame.
  */
-export function TweenNumber({ value, digits = 0, ms = 220, className }: { value: number | null; digits?: number; ms?: number; className?: string }) {
+export function TweenNumber({
+  value,
+  digits = 0,
+  ms = 220,
+  className,
+  style,
+}: {
+  value: number | null
+  digits?: number
+  ms?: number
+  className?: string
+  style?: CSSProperties
+}) {
   const ref = useRef<HTMLSpanElement>(null)
   const current = useRef(Number.NaN)
   const raf = useRef(0)
@@ -39,5 +51,5 @@ export function TweenNumber({ value, digits = 0, ms = 220, className }: { value:
   }, [value, digits, ms])
 
   // The text is owned by the effect above; React never writes it, so the two can't disagree.
-  return <span ref={ref} className={className} />
+  return <span ref={ref} className={className} style={style} />
 }

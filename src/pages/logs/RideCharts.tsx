@@ -130,7 +130,7 @@ function Chart({
         width: Math.max(200, el.clientWidth),
         height: HEIGHT,
         legend: { show: false },
-        padding: [10, 8, 0, 0],
+        padding: [10, 26, 0, 0], // Room on the right for the last time label, centred on its tick.
         cursor: { y: false, sync: { key: SYNC, setSeries: false }, drag: { x: false, y: false }, points: { size: 8, width: 2 } },
         scales: { x: { time: false } },
         axes: [

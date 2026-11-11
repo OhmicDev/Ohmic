@@ -6,6 +6,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { DEFAULT_VEHICLE, type Units, type VehicleSetup } from '../lib/vehicle'
 import type { AbsSensitivity } from '../onboard/abs'
 import { REGEN_DEFAULTS, type RegenSettings } from '../onboard/regen'
+import type { WheelieCalibration, WheelieSettings } from '../onboard/wheelie'
 import type { BleChunkSize } from '../transport/BleTransport'
 import type { View } from './devices'
 
@@ -99,6 +100,16 @@ interface SettingsState {
   logGps: boolean
   /** Record lean and acceleration (the controller's IMU, else the phone's). */
   logImu: boolean
+  /** Keep the screen from dimming or locking while the Ride dashboard is live. */
+  keepAwake: boolean
+  /** Auto-wheelie settings the rider changed from the program's defaults (the rest come from the program). */
+  wheelie: Partial<WheelieSettings>
+  /** IMU calibration for the wheelie, by the config key of the controller that runs it. */
+  wheelieCal: Record<string, WheelieCalibration>
+  /** Which wheel the controller that reads the throttle drives; null until the rider says. */
+  wheelieHostWheel: 'rear' | 'front' | null
+  /** The rider has read the wheelie safety notes. */
+  wheelieAcknowledged: boolean
   setAccent: (accent: string) => void
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: string) => void
@@ -130,6 +141,12 @@ interface SettingsState {
   setLogRateHz: (hz: LogRateHz) => void
   setLogGps: (on: boolean) => void
   setLogImu: (on: boolean) => void
+  setKeepAwake: (on: boolean) => void
+  setWheelie: (patch: Partial<WheelieSettings>) => void
+  resetWheelie: () => void
+  setWheelieCal: (key: string, cal: WheelieCalibration | null) => void
+  setWheelieHostWheel: (wheel: 'rear' | 'front') => void
+  acknowledgeWheelie: () => void
 }
 
 export const useSettings = create<SettingsState>()(
@@ -164,6 +181,11 @@ export const useSettings = create<SettingsState>()(
       logRateHz: 10,
       logGps: true,
       logImu: false,
+      keepAwake: true,
+      wheelie: {},
+      wheelieCal: {},
+      wheelieHostWheel: null,
+      wheelieAcknowledged: false,
       setAccent: (accent) => set({ accent }),
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
@@ -194,6 +216,18 @@ export const useSettings = create<SettingsState>()(
       setLogRateHz: (logRateHz) => set({ logRateHz }),
       setLogGps: (logGps) => set({ logGps }),
       setLogImu: (logImu) => set({ logImu }),
+      setKeepAwake: (keepAwake) => set({ keepAwake }),
+      setWheelie: (patch) => set((s) => ({ wheelie: { ...s.wheelie, ...patch } })),
+      resetWheelie: () => set({ wheelie: {} }),
+      setWheelieCal: (key, cal) =>
+        set((s) => {
+          const next = { ...s.wheelieCal }
+          if (cal) next[key] = cal
+          else delete next[key]
+          return { wheelieCal: next }
+        }),
+      setWheelieHostWheel: (wheelieHostWheel) => set({ wheelieHostWheel }),
+      acknowledgeWheelie: () => set({ wheelieAcknowledged: true }),
     }),
     {
       name: 'ohmic.settings',

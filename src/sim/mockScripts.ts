@@ -5,6 +5,8 @@
 // It can't run real LispBM. When a script starts it prints the top-level
 // (print "…") lines, keeps top-level (def name number) values as globals, and
 // repeats a (loopwhile t … (print (str-from-n (get-speed) "…")) (sleep n)) loop.
+// The one exception is Ohmic's auto-wheelie program, which runs for real in the
+// wheelie simulator (see demoWheelie.ts).
 
 import { convertParamXml } from '../config/paramXml'
 import { decodeConfig, encodeConfig, xmlDefaults } from '../config/codec'
@@ -13,6 +15,7 @@ import { qCompressStored } from '../lib/qcompress'
 import { BufferReader, BufferWriter } from '../protocol/buffer'
 import { COMM } from '../protocol/commands'
 import { encodeLispStats, parseLispStorage, unpackLispProgram } from '../protocol/lisp'
+import { DemoWheelie } from './demoWheelie'
 import { DEMO_CONFIG_MARKER, DEMO_LIGHTS_XML } from './demoPackageConfig'
 import type { MockReply } from './mockBus'
 
@@ -48,6 +51,8 @@ export class MockScripts {
   private customValues: ConfigValues | null = null
   /** Every erase, for tests. */
   erases: { kind: 'lisp' | 'qml'; size: number }[] = []
+  /** The auto-wheelie program, while it's the script running. */
+  wheelie: DemoWheelie | null = null
 
   constructor(host: ScriptHost) {
     this.host = host
@@ -85,6 +90,11 @@ export class MockScripts {
     this.code = code
     this.globals.clear()
     this.loop = null
+    this.wheelie = null
+    if (code.includes('(def wl-version ')) {
+      this.wheelie = new DemoWheelie(code, this.host.now)
+      return []
+    }
     const out: string[] = []
     // Only top-level forms count; a crude depth scan is enough for the examples.
     let depth = 0
@@ -131,6 +141,7 @@ export class MockScripts {
 
   /** Lines a running loop printed since last time. */
   pump(): MockReply[] {
+    if (this.running && this.wheelie) return this.wheelie.pump()
     const l = this.loop
     if (!this.running || !l) return []
     const now = this.host.now()
@@ -171,6 +182,7 @@ export class MockScripts {
             // The firmware stops the engine before erasing.
             this.running = false
             this.loop = null
+            this.wheelie = null
             this.lispArea = new Uint8Array(AREA_MAX).fill(0xff)
           } else this.qmlArea = new Uint8Array(AREA_MAX).fill(0xff)
           this.erases.push({ kind: cmd === COMM.LISP_ERASE_CODE ? 'lisp' : 'qml', size })
@@ -206,6 +218,7 @@ export class MockScripts {
         else {
           this.running = false
           this.loop = null
+          this.wheelie = null
         }
         const ok = !run || this.running
         return [Uint8Array.of(cmd, ok ? 1 : 0), ...out.map(lispPrint)]

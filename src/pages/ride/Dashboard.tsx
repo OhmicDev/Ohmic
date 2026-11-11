@@ -1,50 +1,58 @@
-// The Ride dashboard while connected: alerts, the big reading with the trip
-// under it, battery, ride controls, the rider's tiles and the ride stats.
-// The rider arranges it in Customize (state/dashboard.ts). On a phone it can
-// all sit on one screen, with the stats a scroll below.
+// The Ride dashboard while connected. It has pages the rider picks and puts in
+// order: Gauges, Tiles and Focus. On a phone they sit side by side and swipe like
+// a car's instrument cluster, all on one screen with the ride controls under them;
+// on a wider screen the tabs switch between them. In edit mode a tap on anything
+// changes it and a drag moves it; Customize (Customize.tsx) holds the rest.
 
 import { Link } from '@tanstack/react-router'
-import { LayoutGrid, TriangleAlert, WifiOff } from 'lucide-react'
-import { useState } from 'react'
-import { cx, fmt, fmtDuration } from '../../lib/format'
-import { convertDistance, convertPerDistance, convertSpeed, unitLabels } from '../../lib/vehicle'
+import { Check, SlidersHorizontal, TriangleAlert, WifiOff } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { cx } from '../../lib/format'
 import { faultInfo } from '../../protocol/faults'
-import { useDashLayout, type HeroId } from '../../state/dashboard'
+import { useDashLayout, type PageId } from '../../state/dashboard'
 import { targetLabel } from '../../state/devices'
 import { useSession } from '../../state/session'
 import { useSettings } from '../../state/settings'
-import { useTelemetry, type Dashboard as Dash, type Trip } from '../../state/telemetry'
-import { BatteryGauge } from '../../ui/Gauges'
+import { useTelemetry, type Dashboard as Dash } from '../../state/telemetry'
+import { haptic } from '../../ui/haptics'
 import { Badge, Button } from '../../ui/Primitives'
+import { prefersReducedMotion } from '../../ui/reducedMotion'
 import { ReconnectBanner } from '../../ui/ReconnectBanner'
-import { TweenNumber } from '../../ui/TweenNumber'
 import { useIsPhone } from '../../ui/useMediaQuery'
+import { useWakeLock } from '../../ui/useWakeLock'
 import { RecordButton } from '../logs/RecordControls'
 import { SetupPrompt } from '../setup/SetupSteps'
-import { CustomizePanel, FitTiles, TileGrid } from './DashTiles'
+import { CustomizeSheet } from './Customize'
+import { FocusPage } from './FocusPage'
+import { GaugesPage } from './GaugesPage'
+import { PAGES } from './pageInfo'
 import { RideControls } from './RideControls'
 import { RideStats } from './RideStats'
-import { avgSpeed } from './tiles'
+import { TilesPage } from './TilesPage'
 import { WheelSpeeds } from './WheelSpeeds'
 
 export function Dashboard() {
-  const show = useDashLayout((s) => s.show)
-  const fit = useDashLayout((s) => s.phone === 'fit')
   const phone = useIsPhone()
+  const show = useDashLayout((s) => s.show)
+  const keepAwake = useSettings((s) => s.keepAwake)
   const [editing, setEditing] = useState(false)
+  const [options, setOptions] = useState(false)
+  useWakeLock(keepAwake)
 
-  if (phone && fit)
+  const bar = <DashBar phone={phone} editing={editing} onEdit={setEditing} onOptions={() => setOptions(true)} />
+  const sheet = <CustomizeSheet open={options} onClose={() => setOptions(false)} phone={phone} />
+
+  if (phone)
     return (
       <>
         <h1 className="sr-only">Ride</h1>
         <div className="space-y-3">
-          {editing && <CustomizePanel phone onDone={() => setEditing(false)} />}
-          {/* One screen: the small viewport, less the header, the tab bar and the page's padding. */}
-          <div className="flex min-h-[calc(100svh_-_144px_-_env(safe-area-inset-bottom))] flex-col gap-2">
+          {/* One screen: the small viewport, less the header, the tab bar, the page's padding and the status bar when installed. */}
+          <div className="flex h-[calc(100svh_-_144px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] min-h-[460px] flex-col gap-2">
             <Alerts />
             <SetupPrompt compact />
-            <Hero compact onCustomize={editing ? undefined : () => setEditing(true)} />
-            <FitTiles editing={editing} />
+            {bar}
+            <Pager editing={editing} />
             {show.controls && <RideControls compact />}
           </div>
           {show.stats && (
@@ -54,6 +62,7 @@ export function Dashboard() {
             </>
           )}
         </div>
+        {sheet}
       </>
     )
 
@@ -63,34 +72,213 @@ export function Dashboard() {
       <div className="space-y-3">
         <Alerts />
         <SetupPrompt />
-
-        <div className={cx('grid gap-3', show.battery && 'lg:grid-cols-[1.55fr_1fr]')}>
-          <Hero />
-          {show.battery && <BatteryCard />}
-        </div>
-
+        {bar}
+        <SinglePage editing={editing} />
         {show.controls && <RideControls />}
-
-        {editing ? (
-          <CustomizePanel phone={phone} onDone={() => setEditing(false)} />
-        ) : (
-          <div className="flex items-center gap-2 px-1 pt-2">
-            <h2 className="label">Live</h2>
-            <Button variant="ghost" className="ml-auto h-8 px-2.5 text-xs" onClick={() => setEditing(true)}>
-              <LayoutGrid className="size-3.5" /> Customize
-            </Button>
-          </div>
-        )}
-        <TileGrid editing={editing} />
-
         {show.stats && <RideStats />}
-
         <VehicleNote />
         {/* Room to scroll the last row clear of the wheels in the corner. */}
         {show.wheels && <div aria-hidden className="h-16 md:h-24" />}
       </div>
       {show.wheels && <WheelSpeeds />}
+      {sheet}
     </>
+  )
+}
+
+function PageBody({ id, editing, phone }: { id: PageId; editing: boolean; phone: boolean }) {
+  if (id === 'gauges') return <GaugesPage editing={editing} phone={phone} />
+  if (id === 'focus') return <FocusPage editing={editing} phone={phone} />
+  return <TilesPage editing={editing} phone={phone} />
+}
+
+const tabId = (id: PageId) => `dash-tab-${id}`
+const panelId = (id: PageId) => `dash-page-${id}`
+
+/** The page tabs, and what applies to the whole dashboard: recording, and arranging it. */
+function DashBar({ phone, editing, onEdit, onOptions }: { phone: boolean; editing: boolean; onEdit: (on: boolean) => void; onOptions: () => void }) {
+  const pages = useDashLayout((s) => s.pages)
+  const page = useDashLayout((s) => s.page)
+  const view = useTelemetry((s) => s.dash?.view ?? 'all')
+  const tabs = useRef<HTMLDivElement>(null)
+  const go = (id: PageId) => useDashLayout.getState().setPage(id)
+  const onKey = (e: KeyboardEvent) => {
+    const at = pages.indexOf(page)
+    const to = e.key === 'ArrowRight' ? at + 1 : e.key === 'ArrowLeft' ? at - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? pages.length - 1 : null
+    if (to === null) return
+    e.preventDefault()
+    const next = pages[(to + pages.length) % pages.length]
+    go(next)
+    tabs.current?.querySelector<HTMLElement>(`#${tabId(next)}`)?.focus()
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex min-h-10 items-center gap-2">
+        <div ref={tabs} role="tablist" aria-label="Dashboard pages" onKeyDown={onKey} className="flex shrink-0 rounded-xl border border-line bg-surface-2 p-0.5">
+          {pages.map((id) => {
+            const p = PAGES[id]
+            const on = id === page
+            return (
+              <button
+                key={id}
+                id={tabId(id)}
+                role="tab"
+                aria-selected={on}
+                aria-controls={panelId(id)}
+                aria-label={p.label}
+                tabIndex={on ? 0 : -1}
+                onClick={() => go(id)}
+                className={cx(
+                  'focus-ring flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[13px] font-medium transition-[background-color,color,box-shadow] duration-200 md:px-3',
+                  on ? 'bg-surface-3 text-text shadow-[0_1px_2px_rgb(0_0_0/0.25),inset_0_0_0_1px_var(--color-line-strong)]' : 'text-muted hover:text-text',
+                )}
+              >
+                <p.icon className={cx('size-4', on && 'text-accent')} aria-hidden />
+                {/* On a phone only the page shown is named, to leave room. */}
+                {(!phone || on) && <span>{p.label}</span>}
+              </button>
+            )
+          })}
+        </div>
+        {view !== 'all' && <Badge>{phone ? targetLabel(view) : `${targetLabel(view)} only`}</Badge>}
+        <span className="ml-auto flex items-center gap-1">
+          {editing ? (
+            <>
+              <Button variant="ghost" aria-label="Options" className={cx('h-8 text-xs', phone ? 'w-8 px-0' : 'px-2.5')} onClick={onOptions}>
+                <SlidersHorizontal className="size-4" />
+                {!phone && 'Options'}
+              </Button>
+              <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => onEdit(false)}>
+                <Check className="size-3.5" /> Done
+              </Button>
+            </>
+          ) : (
+            <>
+              <RecordButton />
+              <Button variant="ghost" aria-label="Customize" className={cx('h-8 text-xs', phone ? 'w-8 px-0' : 'px-2.5')} onClick={() => onEdit(true)}>
+                <SlidersHorizontal className="size-4" />
+                {!phone && 'Customize'}
+              </Button>
+            </>
+          )}
+        </span>
+      </div>
+      {editing && (
+        <p role="status" className="px-1 text-xs text-muted">
+          Tap anything to change it. Drag to move it.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** A wider screen shows one page at a time; the tabs switch them. */
+function SinglePage({ editing }: { editing: boolean }) {
+  const page = useDashLayout((s) => s.page)
+  return (
+    <div key={page} id={panelId(page)} role="tabpanel" aria-labelledby={tabId(page)} className="page-in">
+      <PageBody id={page} editing={editing} phone={false} />
+    </div>
+  )
+}
+
+/**
+ * On a phone the pages sit side by side and snap into place as they're swiped. Only the pages
+ * in view are drawn, so the ones off to the side cost nothing while values stream in.
+ * While arranging, swiping is off so a drag moves what's under it instead; the tabs still work.
+ */
+function Pager({ editing }: { editing: boolean }) {
+  const pages = useDashLayout((s) => s.pages)
+  const page = useDashLayout((s) => s.page)
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState<ReadonlySet<PageId>>(() => new Set())
+  const index = Math.max(0, pages.indexOf(page))
+  const first = useRef(true)
+
+  // Go to the page when it's picked another way: a tab, or the pages changing.
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el || !el.clientWidth) return
+    const x = index * el.clientWidth
+    const jump = first.current || prefersReducedMotion()
+    first.current = false
+    if (Math.abs(el.scrollLeft - x) > 1) el.scrollTo({ left: x, behavior: jump ? 'instant' : 'smooth' })
+  }, [index, pages])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    // Once a swipe comes to rest, the page it rests on is the page shown.
+    let timer = 0
+    const onScroll = () => {
+      clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        const s = useDashLayout.getState()
+        const next = s.pages[Math.round(el.scrollLeft / el.clientWidth)]
+        if (next && next !== s.page) {
+          haptic()
+          s.setPage(next)
+        }
+      }, 100)
+    }
+    // A new width (turning the phone) keeps the same page in place.
+    const ro = new ResizeObserver(() => {
+      const s = useDashLayout.getState()
+      el.scrollTo({ left: Math.max(0, s.pages.indexOf(s.page)) * el.clientWidth, behavior: 'instant' })
+    })
+    el.addEventListener('scroll', onScroll, { passive: true })
+    ro.observe(el)
+    return () => {
+      clearTimeout(timer)
+      el.removeEventListener('scroll', onScroll)
+      ro.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      (entries) =>
+        setInView((prev) => {
+          const next = new Set(prev)
+          for (const e of entries) {
+            const id = (e.target as HTMLElement).dataset.page as PageId
+            if (e.isIntersecting) next.add(id)
+            else next.delete(id)
+          }
+          return next.size === prev.size && [...next].every((id) => prev.has(id)) ? prev : next
+        }),
+      // Pages that only touch the edge aren't in view.
+      { root: el, rootMargin: '0px -1px' },
+    )
+    for (const child of el.children) io.observe(child)
+    return () => io.disconnect()
+  }, [pages])
+
+  return (
+    <div
+      ref={ref}
+      className={cx(
+        // Edge to edge, so a page slides off the screen rather than being cut at the margin.
+        '-mx-4 flex min-h-0 flex-1 snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        editing ? 'overflow-x-hidden' : 'overflow-x-auto',
+      )}
+    >
+      {pages.map((id) => (
+        <div
+          key={id}
+          data-page={id}
+          id={panelId(id)}
+          role="tabpanel"
+          aria-labelledby={tabId(id)}
+          inert={id !== page}
+          className="h-full w-full shrink-0 snap-start snap-always px-4"
+        >
+          {(id === page || inView.has(id)) && <PageBody id={id} editing={editing} phone />}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -146,241 +334,5 @@ function Alerts() {
         )
       })}
     </>
-  )
-}
-
-const HERO: Record<
-  HeroId,
-  {
-    label: string
-    read: (d: Dash, units: 'metric' | 'imperial') => { value: number; digits: number; unit: string }
-  }
-> = {
-  speed: {
-    label: 'Speed',
-    read: (d, u) => ({
-      value: convertSpeed(d.speed, u),
-      digits: 0,
-      unit: unitLabels(u).speed,
-    }),
-  },
-  power: {
-    label: 'Power',
-    read: (d) => ({
-      value: d.power / 1000,
-      digits: Math.abs(d.power) < 10_000 ? 2 : 1,
-      unit: 'kW',
-    }),
-  },
-  battery: {
-    label: 'Battery',
-    read: (d) => ({ value: d.soc, digits: 0, unit: '%' }),
-  },
-}
-
-/** `compact` is the one-screen layout's: smaller, with the battery as a line of its own and the Customize button. */
-function Hero({ compact = false, onCustomize }: { compact?: boolean; onCustomize?: () => void }) {
-  const dash = useTelemetry((s) => s.dash)!
-  const trip = useTelemetry((s) => s.trip)
-  const units = useSettings((s) => s.units)
-  const hero = useDashLayout((s) => s.hero)
-  const showTrip = useDashLayout((s) => s.show.trip)
-  const showBattery = useDashLayout((s) => s.show.battery)
-  const isDemo = useSession((s) => s.transportKind === 'mock')
-  const big = HERO[hero].read(dash, units)
-  return (
-    <section className={cx('card relative overflow-hidden', compact ? 'p-3.5' : 'p-4 md:p-6')} aria-label="Speed and power">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: 'radial-gradient(90% 70% at 0% 0%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%)',
-        }}
-      />
-      <div className="relative flex items-center gap-2">
-        <span className="label">{HERO[hero].label}</span>
-        {isDemo && <Badge tone="accent">Demo</Badge>}
-        {dash.view !== 'all' ? (
-          <Badge>{targetLabel(dash.view)} only</Badge>
-        ) : (
-          dash.controllers > 1 && !compact && <Badge>{dash.controllers} motors</Badge>
-        )}
-        <span className="ml-auto -my-1 -mr-1.5 flex items-center">
-          <RecordButton />
-          {onCustomize && (
-            <button
-              aria-label="Customize"
-              onClick={onCustomize}
-              className="focus-ring flex size-8 items-center justify-center rounded-xl text-muted hover:bg-surface-3 hover:text-text"
-            >
-              <LayoutGrid className="size-4" />
-            </button>
-          )}
-        </span>
-      </div>
-      <div className={cx('relative flex items-stretch gap-4 md:gap-6', compact ? 'mt-1.5' : 'mt-2')}>
-        <div className="flex min-w-0 flex-1 items-end gap-2 md:gap-3">
-          {/* On one screen the number also gives way to a short viewport. */}
-          <span
-            className="readout leading-[0.8]"
-            style={{ fontSize: compact ? 'clamp(56px, min(24vw, 13svh), 120px)' : 'clamp(100px, 29vw, 188px)' }}
-            aria-live="off"
-          >
-            <TweenNumber value={big.value} digits={big.digits} ms={260} className="num" />
-          </span>
-          <span className="mb-1 text-lg font-medium text-muted md:mb-3 md:text-xl">{big.unit}</span>
-        </div>
-        <PowerColumn power={dash.power} peakDrive={trip.peakPower} peakRegen={trip.peakRegenPower} compact={compact} />
-      </div>
-      {compact && showBattery && <BatteryLine dash={dash} percent={hero !== 'battery'} />}
-      {showTrip && <TripStrip trip={trip} compact={compact} />}
-    </section>
-  )
-}
-
-/** Drive fills upward from the mark, regen downward. Scaled to this trip's peaks. */
-function PowerColumn({ power, peakDrive, peakRegen, compact }: { power: number; peakDrive: number; peakRegen: number; compact: boolean }) {
-  const drive = power > 0 ? Math.min(1, power / Math.max(1500, peakDrive)) : 0
-  const regen = power < 0 ? Math.min(1, -power / Math.max(600, -peakRegen)) : 0
-  return (
-    <div className="flex shrink-0 items-end gap-2.5" role="img" aria-label={`Power ${fmt(power / 1000, 2)} kilowatts`}>
-      <div className="pb-0.5 text-right leading-none">
-        <div className={cx('num text-[15px] font-medium md:text-base', power < -50 && 'text-regen')}>{fmt(Math.abs(power) / 1000, 1)}</div>
-        <div className="label mt-1 text-[9px]">{power < -50 ? 'kW in' : 'kW'}</div>
-      </div>
-      <div className={cx('flex h-full w-1.5 flex-col gap-[3px]', compact ? 'min-h-14' : 'min-h-20')}>
-        <div className="relative flex-[2.6] overflow-hidden rounded-full bg-surface-3">
-          <div
-            className="absolute inset-x-0 bottom-0 rounded-full bg-accent transition-[height] duration-150 ease-out"
-            style={{
-              height: `${drive * 100}%`,
-              boxShadow: drive ? '0 0 12px var(--accent)' : undefined,
-            }}
-          />
-        </div>
-        <div className="relative flex-1 overflow-hidden rounded-full bg-surface-3">
-          <div
-            className="absolute inset-x-0 top-0 rounded-full bg-regen transition-[height] duration-150 ease-out"
-            style={{
-              height: `${regen * 100}%`,
-              boxShadow: regen ? '0 0 12px var(--color-regen)' : undefined,
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** The battery in one line, for the one-screen layout. `percent` is off when the big reading already shows it. */
-function BatteryLine({ dash, percent }: { dash: Dash; percent: boolean }) {
-  const units = useSettings((s) => s.units)
-  return (
-    <div className="num relative mt-3 flex items-center gap-2.5 text-xs text-muted">
-      <div className="min-w-0 flex-1">
-        <BatteryGauge soc={dash.soc} slim />
-      </div>
-      {percent && (
-        <span className={cx('text-[13px] font-semibold', dash.soc < 10 ? 'text-danger' : dash.soc < 25 ? 'text-warn' : 'text-text')}>
-          {fmt(dash.soc, 0)} %
-        </span>
-      )}
-      <span>{fmt(dash.vIn, 1)} V</span>
-      {dash.rangeKm !== null && (
-        <span>
-          {fmt(convertDistance(dash.rangeKm, units), 0)} {unitLabels(units).distance}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function TripStrip({ trip, compact }: { trip: Trip; compact: boolean }) {
-  const units = useSettings((s) => s.units)
-  const u = unitLabels(units)
-  const avg = avgSpeed(trip)
-  const stats = [
-    {
-      label: 'Trip',
-      value: fmt(convertDistance(trip.distanceKm, units), 1),
-      unit: u.distance,
-    },
-    { label: 'Riding', value: fmtDuration(trip.rideSeconds) },
-    {
-      label: 'Average',
-      value: avg === null ? '—' : fmt(convertSpeed(avg, units), 0),
-      unit: u.speed,
-    },
-    {
-      label: 'Top',
-      value: fmt(convertSpeed(trip.maxSpeed, units), 0),
-      unit: u.speed,
-    },
-  ]
-  return (
-    <dl
-      className={cx(
-        'relative grid grid-cols-4 border-t border-line',
-        // On one screen the trip gives way first when the viewport is short.
-        compact ? 'mt-3 pt-2.5 [@media(max-height:600px)]:hidden' : 'mt-5 pt-3.5 md:mt-6 md:pt-4',
-      )}
-    >
-      {stats.map((s, i) => (
-        <div key={s.label} className={cx('min-w-0 px-2 md:px-4', i === 0 ? 'pl-0 md:pl-0' : 'border-l border-line')}>
-          <dt className="label text-[9.5px]">{s.label}</dt>
-          <dd className="num mt-1 truncate text-[15px] md:text-lg">
-            {s.value}
-            {s.unit && <span className="ml-1 text-[11px] text-muted">{s.unit}</span>}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-function BatteryCard() {
-  const dash = useTelemetry((s) => s.dash)!
-  const trip = useTelemetry((s) => s.trip)
-  const units = useSettings((s) => s.units)
-  const u = unitLabels(units)
-  return (
-    <section className="card flex flex-col justify-between gap-3 p-4 md:gap-5 md:p-6" aria-label="Battery">
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="label">Battery</span>
-          <span className="num text-xs text-muted">
-            {fmt(dash.vIn, 1)} V · {fmt(dash.cellV, 2)} V/cell
-          </span>
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <TweenNumber
-            value={dash.soc}
-            ms={400}
-            className={cx('readout text-[52px] leading-none md:text-[72px]', dash.soc < 10 ? 'text-danger' : dash.soc < 25 ? 'text-warn' : '')}
-          />
-          <span className="text-lg text-muted">%</span>
-        </div>
-        <div className="mt-3 md:mt-4">
-          <BatteryGauge soc={dash.soc} />
-        </div>
-      </div>
-      <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:pt-4">
-        <div>
-          <dt className="label text-[9.5px]">Range</dt>
-          <dd className="num mt-1 text-2xl">
-            {dash.rangeKm === null ? '—' : fmt(convertDistance(dash.rangeKm, units), 0)}
-            <span className="ml-1 text-sm text-muted">{u.distance}</span>
-          </dd>
-          {dash.rangeKm === null && <dd className="mt-0.5 text-[11px] text-faint">ride a little first</dd>}
-        </div>
-        <div>
-          <dt className="label text-[9.5px]">Using</dt>
-          <dd className="num mt-1 text-2xl">
-            {trip.whPerKm === null ? '—' : fmt(convertPerDistance(trip.whPerKm, units), 1)}
-            <span className="ml-1 text-sm text-muted">{u.perDistance}</span>
-          </dd>
-        </div>
-      </dl>
-    </section>
   )
 }

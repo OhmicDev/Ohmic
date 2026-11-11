@@ -2,7 +2,7 @@ import { CircleParking, CirclePlay } from 'lucide-react'
 import { useReducer } from 'react'
 import type { Target } from '../../client/VescClient'
 import { cx, fmt } from '../../lib/format'
-import { speedKmh } from '../../lib/vehicle'
+import { convertSpeed, convertTemp, speedKmh, unitLabels } from '../../lib/vehicle'
 import { targetKey, targetLabel } from '../../state/devices'
 import { useMotionBlock } from '../../state/motion'
 import { demoSim, setDemoParked, useSession } from '../../state/session'
@@ -49,20 +49,22 @@ export function DemoPark() {
 export function LiveStrip({ target }: { target: Target }) {
   const v = useTelemetry((s) => s.devices[targetKey(target)])
   const vehicle = useSettings((s) => s.vehicle)
+  const units = useSettings((s) => s.units)
+  const u = unitLabels(units)
   const block = useMotionBlock([target])
   const live = useSession((s) => s.status === 'connected')
 
   return (
     <div className="card flex flex-col gap-1 p-1 sm:p-1.5 xl:flex-row xl:items-center">
-      {/* One row that scrolls sideways on a phone, a grid on wider screens. */}
-      <div className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] sm:grid sm:grid-cols-7">
-        <Cell label="Speed" value={v ? fmt(Math.abs(speedKmh(v.rpm, vehicle)), 1) : '—'} unit="km/h" />
+      {/* One row that scrolls sideways on a phone, fading at the edge to show there's more; a grid on wider screens. */}
+      <div className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] max-sm:[mask-image:linear-gradient(to_right,black_82%,transparent)] max-sm:pr-8 sm:grid sm:grid-cols-7">
+        <Cell label="Speed" value={v ? fmt(convertSpeed(Math.abs(speedKmh(v.rpm, vehicle)), units), 1) : '—'} unit={u.speed} />
         <Cell label="ERPM" value={v ? fmt(v.rpm, 0) : '—'} />
         <Cell label="Battery" value={v ? fmt(v.vIn, 1) : '—'} unit="V" />
         <Cell label="Motor" value={v ? fmt(v.currentMotor, 1) : '—'} unit="A" />
         <Cell label="Batt. amps" value={v ? fmt(v.currentIn, 1) : '—'} unit="A" />
-        <Cell label="Ctrl temp" value={v ? fmt(v.tempFet, 0) : '—'} unit="°C" warn={!!v && v.tempFet > 80} />
-        <Cell label="Motor temp" value={v ? fmt(v.tempMotor, 0) : '—'} unit="°C" warn={!!v && v.tempMotor > 100} />
+        <Cell label="Ctrl temp" value={v ? fmt(convertTemp(v.tempFet, units), 0) : '—'} unit={u.temp} warn={!!v && v.tempFet > 80} />
+        <Cell label="Motor temp" value={v ? fmt(convertTemp(v.tempMotor, units), 0) : '—'} unit={u.temp} warn={!!v && v.tempMotor > 100} />
       </div>
       <div className="flex flex-wrap items-center gap-2 px-2 pb-1.5 xl:pb-0">
         <DemoPark />

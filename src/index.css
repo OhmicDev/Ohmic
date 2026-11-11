@@ -210,9 +210,68 @@ dialog.sheet[open] {
   }
 }
 
+/* Moving between pages: the old one fades out quickly and the new one rises in, while the
+   header, sidebar and tab bar (named in AppShell) stay put. */
+@keyframes route-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+::view-transition-old(root) {
+  animation: route-out 0.12s ease-in both;
+}
+::view-transition-new(root) {
+  animation: route-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+::view-transition-group(app-header),
+::view-transition-group(app-tabs),
+::view-transition-group(app-side) {
+  animation-duration: 0.12s;
+}
+
+/* Like an app, not a page: no rubber-band refresh, no double-tap zoom delay on controls, and
+   no text selection or long-press callout when a button is held. Text in the content still selects. */
+html,
+body {
+  overscroll-behavior: none;
+}
+button,
+a,
+summary,
+label,
+[role='tab'],
+[role='switch'],
+[role='radio'] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* A dashboard page fades up as the tabs switch to it. */
+@keyframes page-in {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+}
+.page-in {
+  animation: page-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 /* Less motion when the device asks for it: no pulsing, spinning or sliding. */
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
   dialog.sheet[open],
+  .page-in,
   .live-dot::after,
   .animate-spin,
   .animate-pulse {
@@ -283,49 +342,6 @@ input[type='number'] {
   accent-color: var(--accent);
 }
 
-/* One-screen phone dashboard. Its tiles share whatever height is left, and each shows more as
-   it gets taller: a bigger number, then the small print, then the graph. Heights are the tile's inside. */
-.fit-tile {
-  container-type: size;
-}
-.fit-value {
-  font-size: min(22px, 24cqw);
-}
-.fit-sub,
-.fit-spark {
-  display: none;
-}
-@container (min-height: 44px) {
-  .fit-value {
-    font-size: min(27px, 24cqw);
-  }
-}
-@container (min-height: 56px) {
-  .fit-sub {
-    display: block;
-  }
-}
-/* A narrow tile needs the icon's room for its label. */
-@container (max-width: 99px) {
-  .fit-icon {
-    display: none;
-  }
-}
-@container (min-height: 76px) {
-  .fit-spark {
-    display: block;
-  }
-}
-@container (min-height: 96px) {
-  .fit-value {
-    font-size: min(33px, 24cqw);
-  }
-}
-@container (min-height: 124px) {
-  .fit-value {
-    font-size: min(42px, 26cqw);
-  }
-}
 
 /* Code editor and consoles (LispBM, terminal). Light values are with the light theme above. */
 :root {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { emptyValues, type Values } from '../protocol/messages'
-import { cleanLayout, DEFAULT_LAYOUT, fitColumns, packTiles, useDashLayout } from './dashboard'
+import { cleanLayout, DEFAULT_LAYOUT, fitColumns, packTiles, setSlot, splitGauges, useDashLayout } from './dashboard'
 import { useTelemetry } from './telemetry'
 
 describe('dashboard layout', () => {
@@ -23,11 +23,89 @@ describe('dashboard layout', () => {
       { id: 'duty', wide: false },
     ])
     expect(l.show).toEqual({ ...DEFAULT_LAYOUT.show, stats: false })
-    expect(l.phone).toBe('fit')
     expect(l.fitCols).toBe('auto')
     expect(cleanLayout(undefined)).toEqual(DEFAULT_LAYOUT)
-    expect(cleanLayout({ phone: 'scroll', fitCols: 3 })).toMatchObject({ phone: 'scroll', fitCols: 3 })
-    expect(cleanLayout({ phone: 'big' as never, fitCols: 5 as never })).toMatchObject({ phone: 'fit', fitCols: 'auto' })
+    expect(cleanLayout({ fitCols: 3 })).toMatchObject({ fitCols: 3 })
+    expect(cleanLayout({ fitCols: 5 as never })).toMatchObject({ fitCols: 'auto' })
+  })
+
+  it('keeps pages, dials and readings this version knows', () => {
+    const l = cleanLayout({
+      pages: ['focus', 'nope' as never, 'focus', 'gauges'],
+      page: 'tiles',
+      gauges: {
+        center: 'range' as never,
+        under: 'power',
+        small: ['duty', 'distance' as never, 'duty', 'voltage', 'power', 'battery', 'fetTemp', 'motorTemp', 'efficiency'],
+        strip: ['range', 'range', 'gone' as never],
+      },
+      focus: { big: 'duty' as never, small: ['power'] },
+    })
+    expect(l.pages).toEqual(['focus', 'gauges'])
+    // The page last shown is gone, so the first one shows.
+    expect(l.page).toBe('focus')
+    // Range has no dial to sweep.
+    expect(l.gauges.center).toBe('speed')
+    expect(l.gauges.under).toBe('power')
+    expect(l.gauges.small).toEqual(['duty', 'voltage', 'power', 'battery', 'fetTemp', 'motorTemp'])
+    expect(l.gauges.strip).toEqual(['range'])
+    expect(l.focus).toEqual({ big: 'speed', small: ['power'] })
+    // No pages at all would leave nothing to show.
+    expect(cleanLayout({ pages: [] }).pages).toEqual(DEFAULT_LAYOUT.pages)
+  })
+
+  it('turns pages on and off, keeping one', () => {
+    const s = () => useDashLayout.getState()
+    s().setPage('focus')
+    s().showPage('focus', false)
+    expect(s().pages).toEqual(['gauges', 'tiles'])
+    expect(s().page).toBe('gauges')
+    s().showPage('tiles', false)
+    s().showPage('gauges', false)
+    expect(s().pages).toEqual(['gauges'])
+    s().showPage('focus', true)
+    s().nudgePage('focus', -1)
+    expect(s().pages).toEqual(['focus', 'gauges'])
+    // A page that's off can't be shown.
+    s().setPage('tiles')
+    expect(s().page).toBe('gauges')
+  })
+
+  it('changes, adds and moves dials without showing one twice', () => {
+    const s = () => useDashLayout.getState()
+    const small = [...s().gauges.small]
+    // Picking a dial that's already shown swaps the two.
+    s().setGauge(0, small[2])
+    expect(s().gauges.small.slice(0, 3)).toEqual([small[2], small[1], small[0]])
+    s().removeGauge(small[1])
+    s().addGauge('voltage')
+    s().addGauge('voltage')
+    expect(s().gauges.small.filter((g) => g === 'voltage')).toHaveLength(1)
+    s().addGauge('motorSpeed')
+    expect(s().gauges.small).toHaveLength(6)
+    s().moveGauge('voltage', small[2])
+    expect(s().gauges.small[0]).toBe('voltage')
+    s().setStrip(0, 'range')
+    expect(s().gauges.strip).toEqual(['range', 'rideTime', 'distance'])
+    s().nudgeStrip('range', 1)
+    expect(s().gauges.strip[1]).toBe('range')
+  })
+
+  it('swaps a tile for another', () => {
+    const s = () => useDashLayout.getState()
+    s().setTile('power', 'range')
+    expect(s().tiles[0].id).toBe('range')
+    // Already a tile: the two trade places.
+    s().setTile('range', 'duty')
+    expect(s().tiles[0].id).toBe('duty')
+    expect(s().tiles[3].id).toBe('range')
+  })
+
+  it('splits the small dials above and below the big one', () => {
+    expect(splitGauges([1, 2, 3])).toEqual({ top: [], bottom: [1, 2, 3] })
+    expect(splitGauges([1, 2, 3, 4])).toEqual({ top: [1, 2], bottom: [3, 4] })
+    expect(splitGauges([1, 2, 3, 4, 5])).toEqual({ top: [1, 2, 3], bottom: [4, 5] })
+    expect(setSlot(['a', 'b'], 5, 'c')).toEqual(['a', 'b'])
   })
 
   it('moves, resizes, adds and removes tiles', () => {

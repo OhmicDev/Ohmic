@@ -12,6 +12,7 @@ import { singleDriverKey, useRideModes, type MotorUse } from '../../state/rideMo
 import { useSettings } from '../../state/settings'
 import { useMotorDevices } from '../setup/helpers'
 import { AbsIntroDialog } from './AbsIntroDialog'
+import { haptic } from '../../ui/haptics'
 import { modeLook } from './modeLook'
 
 const QUICK = 'focus-ring flex h-12 flex-col items-center justify-center gap-1 rounded-xl border transition-colors'
@@ -33,6 +34,7 @@ export function RideControls({ compact = false }: { compact?: boolean }) {
   const driver = devices[singleDriverKey(list) ?? '']
 
   const pick = async (id: string | null, m = motors) => {
+    haptic()
     setPending({ id, motors: m })
     await apply(id, m)
     setPending(null)
@@ -61,7 +63,7 @@ export function RideControls({ compact = false }: { compact?: boolean }) {
                   style={{ '--mode': color } as CSSProperties}
                   className={cx(
                     QUICK,
-                    'min-w-[50px] flex-1 basis-0 px-1 text-[var(--mode)] disabled:opacity-40',
+                    'min-w-[44px] flex-1 basis-0 px-1 text-[var(--mode)] disabled:opacity-40',
                     on
                       ? 'border-[color-mix(in_oklab,var(--mode)_65%,transparent)] bg-[color-mix(in_oklab,var(--mode)_14%,transparent)]'
                       : 'border-line-strong bg-surface-2',
@@ -263,7 +265,10 @@ function AssistSwitch({
         role="switch"
         aria-checked={!!on}
         aria-label={label}
-        onClick={onPress}
+        onClick={() => {
+          haptic()
+          onPress()
+        }}
         disabled={busy}
         title={title}
         className={cx(
@@ -288,7 +293,10 @@ function AssistSwitch({
           role="switch"
           aria-checked={!!on}
           aria-label={label}
-          onClick={onPress}
+          onClick={() => {
+            haptic()
+            onPress()
+          }}
           disabled={busy}
           title={title}
           className="focus-ring flex min-w-0 flex-1 items-center gap-2.5 pr-2 pl-3 text-left disabled:cursor-progress sm:min-w-[150px]"

@@ -9,6 +9,11 @@ import { AppShell } from './ui/AppShell'
 
 let opened = false
 
+/** Opened from the home screen, as an installed app: the front page is for the browser. */
+const installed = () =>
+  typeof window !== 'undefined' &&
+  (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true)
+
 const rootRoute = createRootRoute({
   component: AppShell,
   notFoundComponent: NotFoundPage,
@@ -18,7 +23,7 @@ const rootRoute = createRootRoute({
     if (preload) return
     const first = !opened
     opened = true
-    if (first && location.pathname === '/' && !useSettings.getState().seenWelcome) throw redirect({ to: '/welcome' })
+    if (first && location.pathname === '/' && !useSettings.getState().seenWelcome && !installed()) throw redirect({ to: '/welcome' })
   },
 })
 
@@ -51,6 +56,7 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: '/modes', component: lazyRouteComponent(() => import('./pages/ride/RideModesPage'), 'RideModesPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/abs', component: lazyRouteComponent(() => import('./pages/ride/AbsPage'), 'AbsPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/regen', component: lazyRouteComponent(() => import('./pages/ride/RegenPage'), 'RegenPage') }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/wheelie', component: lazyRouteComponent(() => import('./pages/ride/WheeliePage'), 'WheeliePage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/sounds', component: lazyRouteComponent(() => import('./pages/ride/SoundsPage'), 'SoundsPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/control', component: lazyRouteComponent(() => import('./pages/tools/MotorControlPage'), 'MotorControlPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/firmware', component: lazyRouteComponent(() => import('./pages/tools/FirmwarePage'), 'FirmwarePage') }),
@@ -67,7 +73,8 @@ const routeTree = rootRoute.addChildren([
 ])
 
 // The app may live in a sub-folder (GitHub Pages); links and routes are relative to it.
-export const router = createRouter({ routeTree, defaultPreload: 'intent', basepath: import.meta.env.BASE_URL })
+// Moving between pages crossfades, where the browser can (see index.css).
+export const router = createRouter({ routeTree, defaultPreload: 'intent', defaultViewTransition: true, basepath: import.meta.env.BASE_URL })
 
 declare module '@tanstack/react-router' {
   interface Register {

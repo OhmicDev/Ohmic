@@ -116,6 +116,7 @@ class MockDevice {
     })
     this.lisp = new MockLisp({
       now: () => bus.now(),
+      wheelie: () => (this.scripts.running ? this.scripts.wheelie : null),
       startAbs: (p) => {
         sim.advanceTo(bus.now())
         sim.startAbs(i, p)

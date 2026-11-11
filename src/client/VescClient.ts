@@ -342,6 +342,13 @@ export class VescClient {
     })
   }
 
+  /** Data a script sends with send-data (COMM_CUSTOM_APP_DATA), without the command byte. */
+  onCustomAppData(cb: (data: Uint8Array) => void) {
+    return this.onUnsolicited((p) => {
+      if (p[0] === COMM.CUSTOM_APP_DATA) cb(p.subarray(1))
+    })
+  }
+
   /** Stops the script engine and erases its storage for a script this big. */
   async lispErase(size: number, target: Target = 'local'): Promise<boolean> {
     const r = await this.request(COMM.LISP_ERASE_CODE, encodeLispErase(size), { target, timeoutMs: 8000, retries: 0, priority: 'high' })

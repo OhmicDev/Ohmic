@@ -23,8 +23,9 @@ import {
 } from 'lucide-react'
 import { fmt, fmtDuration, fmtThousands } from '../../lib/format'
 import { convertDistance, convertPerDistance, convertSpeed, convertTemp, unitLabels, type Units, type VehicleSetup } from '../../lib/vehicle'
-import type { TileId } from '../../state/dashboard'
-import type { Dashboard, HistoryKey, Trip } from '../../state/telemetry'
+import type { HeroId, TileId } from '../../state/dashboard'
+import { useSettings } from '../../state/settings'
+import { useTelemetry, type Dashboard, type HistoryKey, type Trip } from '../../state/telemetry'
 
 export type Tone = 'normal' | 'warn' | 'danger'
 
@@ -33,6 +34,34 @@ export interface TileCtx {
   trip: Trip
   units: Units
   vehicle: VehicleSetup
+}
+
+/** What every reading is worked out from; null until the first values arrive. */
+export function useTileCtx(): TileCtx | null {
+  const dash = useTelemetry((s) => s.dash)
+  const trip = useTelemetry((s) => s.trip)
+  const units = useSettings((s) => s.units)
+  const vehicle = useSettings((s) => s.vehicle)
+  return dash ? { dash, trip, units, vehicle } : null
+}
+
+export const HERO_IDS = ['speed', 'power', 'battery'] as const satisfies readonly HeroId[]
+
+/** A big reading: power gets an extra digit while it's small. */
+export function heroReading(id: HeroId, c: TileCtx) {
+  const r = TILES[id].read(c)
+  return {
+    label: TILES[id].label,
+    value: r.value ?? 0,
+    digits: id === 'power' ? (Math.abs(c.dash.power) < 10_000 ? 2 : 1) : r.digits,
+    unit: r.unit ?? '',
+    tone: r.tone ?? 'normal',
+  }
+}
+
+/** A reading as text: its number (or time) and unit. */
+export function readingText(r: TileReading): { value: string; unit?: string } {
+  return { value: r.text ?? fmt(r.value, r.digits), unit: r.unit }
 }
 
 export interface TileReading {

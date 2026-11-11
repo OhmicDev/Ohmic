@@ -14,7 +14,7 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { sameOnWire } from '../../config/codec'
 import { curatedHelp } from '../../config/help'
 import { fwKey } from '../../config/registry'
@@ -25,8 +25,9 @@ import { downloadText, pickTextFile, safeFileName, stamp } from '../../lib/files
 import { cx, errorText } from '../../lib/format'
 import { pendingCount, useConfig, type DeviceConfig } from '../../state/config'
 import { useSession } from '../../state/session'
-import { BackLink, Button, PageTitle, Segmented } from '../../ui/Primitives'
+import { BackLink, Button, PageTitle } from '../../ui/Primitives'
 import { ReconnectBanner } from '../../ui/ReconnectBanner'
+import { Tabs } from '../../ui/Tabs'
 import { Toggle } from '../../ui/Toggle'
 import { BatteryHelper } from './BatteryHelper'
 import { sectionId, useConfigUi, type CompareWith } from './configUi'
@@ -53,6 +54,37 @@ function sectionsOf(defs: ConfigDefs): Section[] {
   const rest = defs.order.filter((n) => !grouped.has(n))
   if (rest.length) out.push({ id: sectionId('Other', 'Ungrouped'), group: 'Other', subgroup: 'Ungrouped', items: rest })
   return out
+}
+
+interface Group {
+  name: string
+  sections: Section[]
+}
+
+function groupsOf(sections: Section[]): Group[] {
+  const out: Group[] = []
+  for (const s of sections) {
+    const g = out.find((x) => x.name === s.group)
+    if (g) g.sections.push(s)
+    else out.push({ name: s.group, sections: [s] })
+  }
+  return out
+}
+
+const PANEL = 'config-panel'
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+const groupTabId = (name: string) => `config-group-${slug(name)}`
+const subTabId = (id: string) => `config-section-${slug(id)}`
+
+/** The tab last open in each group, and in each of motor and app, so going back lands where you were. */
+const lastIn = new Map<string, string>()
+
+function resultsText(n: number, query: string | null, changedOnly: boolean, compareLabel: string) {
+  const one = n === 1
+  const what = `${n} setting${one ? '' : 's'}`
+  if (query) return `${what} match${one ? 'es' : ''} “${query}”`
+  if (changedOnly) return `${what} changed`
+  return `${what} differ${one ? 's' : ''} from the ${compareLabel === 'Default' ? 'defaults' : 'backup'}`
 }
 
 function matcher(query: string) {
@@ -188,6 +220,8 @@ function Editor({
   const compareLabel = compareWith === 'defaults' ? 'Default' : compareBackup ? 'Backup' : ''
 
   const sections = useMemo(() => (defs ? sectionsOf(defs) : []), [defs])
+  const groups = useMemo(() => groupsOf(sections), [sections])
+  const card = useRef<HTMLElement>(null)
   const issues = useMemo(() => {
     const map = new Map<string, Issue[]>()
     if (!defs || !draft) return map
@@ -203,6 +237,26 @@ function Editor({
   const match = matcher(ui.query)
   const listMode = !!match || ui.changedOnly || (ui.differsOnly && !!compareValues)
   const section = sections.find((s) => s.id === ui.section) ?? sections[0]
+  const group = groups.find((g) => g.name === section?.group)
+
+  const show = (id: string) => {
+    const s = sections.find((x) => x.id === id)
+    if (!s) return
+    lastIn.set(kind, id)
+    lastIn.set(`${kind}/${s.group}`, id)
+    ui.set({ section: id, query: '', changedOnly: false, differsOnly: false })
+    // Scrolled down into the last tab: start the new one at its top.
+    const top = card.current?.getBoundingClientRect().top
+    const head = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0
+    if (top !== undefined && top < head) window.scrollTo({ top: window.scrollY + top - head - 8 })
+  }
+  const showGroup = (name: string) => {
+    const g = groups.find((x) => x.name === name)
+    if (!g) return
+    const last = lastIn.get(`${kind}/${name}`)
+    show(g.sections.some((s) => s.id === last) ? last! : g.sections[0].id)
+  }
+  const clearFilters = () => ui.set({ query: '', changedOnly: false, differsOnly: false })
 
   const visible = (name: string) => {
     if (!defs || !draft || name.startsWith(SEPARATOR) || !defs.params[name]) return false
@@ -267,6 +321,7 @@ function Editor({
     })
 
   const listSections = listMode ? sections.map((s) => ({ s, items: s.items.filter(visible) })).filter((x) => x.items.length) : []
+  const found = listSections.reduce((n, x) => n + x.items.length, 0)
   const showBattery = !listMode && kind === 'mcconf' && !!section?.items.includes('l_battery_cut_start') && !!draft
 
   return (
@@ -320,14 +375,13 @@ function Editor({
               <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" />
             </label>
           )}
-          <Segmented
+          <Tabs
+            look="segment"
             label="Settings"
+            tabs={KIND_OPTIONS.map((o) => ({ id: o.value, label: o.label, count: pendingCount(dev[o.value]), countLabel: 'unsaved' }))}
             value={kind}
-            onChange={(v) => ui.set({ kind: v, section: null })}
-            options={KIND_OPTIONS.map((o) => {
-              const n = pendingCount(dev[o.value])
-              return { ...o, label: n ? `${o.label} · ${n}` : o.label }
-            })}
+            onChange={(v) => ui.set({ kind: v, section: lastIn.get(v) ?? null })}
+            tabId={(v) => `config-kind-${v}`}
           />
           <Button
             variant="ghost"
@@ -417,94 +471,78 @@ function Editor({
               )}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-[230px_minmax(0,1fr)]">
-              {/* Groups: a list on wide screens, a menu on phones */}
-              <nav aria-label="Setting groups" className={cx('hidden md:block', listMode && 'opacity-50')}>
-                <div className="card sticky top-[72px] max-h-[calc(100dvh-96px)] overflow-y-auto p-2">
-                  {defs.groups.map((g) => (
-                    <div key={g.name} className="mb-1">
-                      <div className="label px-2.5 pt-2.5 pb-1 text-[9.5px]">{g.name}</div>
-                      {g.subgroups.map((sg) => {
-                        const id = sectionId(g.name, sg.name)
-                        const n = changedIn(sg.items)
-                        const active = !listMode && section?.id === id
-                        return (
-                          <button
-                            key={id}
-                            onClick={() => ui.set({ section: id, query: '', changedOnly: false, differsOnly: false })}
-                            aria-current={active ? 'true' : undefined}
-                            className={cx(
-                              'focus-ring flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13.5px] transition-colors',
-                              active ? 'bg-accent/12 text-text' : 'text-muted hover:bg-surface-3 hover:text-text',
-                            )}
-                          >
-                            <span className="truncate">{sg.name}</span>
-                            {n > 0 && <span className="num rounded-full bg-accent/20 px-1.5 text-[11px] text-accent">{n}</span>}
-                          </button>
-                        )
-                      })}
+            {group && section && (
+              <section ref={card} aria-label={`${kind === 'mcconf' ? 'Motor' : 'App'} settings`} className="card overflow-clip">
+                {/* The tabs stay under the header while the settings scroll past. */}
+                <div className="glass sticky top-[calc(3rem+env(safe-area-inset-top))] z-10 border-b border-line md:top-[calc(3.5rem+env(safe-area-inset-top))]">
+                  <Tabs
+                    label="Setting groups"
+                    tabs={groups.map((g) => ({
+                      id: g.name,
+                      label: g.name,
+                      count: g.sections.reduce((n, s) => n + changedIn(s.items), 0),
+                      countLabel: 'changed',
+                    }))}
+                    value={listMode ? null : group.name}
+                    onChange={showGroup}
+                    tabId={groupTabId}
+                    panelId={PANEL}
+                    className="px-1.5 md:px-2.5"
+                  />
+                  {listMode ? (
+                    <div className="flex min-h-12 items-center justify-between gap-3 border-t border-line/60 py-1.5 pr-2 pl-4 md:pl-5">
+                      <p role="status" className="min-w-0 truncate text-[13px] text-muted">
+                        {found === 0 ? 'Nothing to show' : resultsText(found, match ? ui.query.trim() : null, ui.changedOnly, compareLabel)}
+                      </p>
+                      <Button variant="ghost" className="h-8 shrink-0 px-2.5 text-xs" onClick={clearFilters}>
+                        <X className="size-3.5" /> Clear
+                      </Button>
                     </div>
-                  ))}
+                  ) : group.sections.length > 1 ? (
+                    <Tabs
+                      look="pill"
+                      label={`${group.name} sections`}
+                      tabs={group.sections.map((s) => ({ id: s.id, label: s.subgroup, count: changedIn(s.items), countLabel: 'changed' }))}
+                      value={section.id}
+                      onChange={show}
+                      tabId={subTabId}
+                      panelId={PANEL}
+                      className="border-t border-line/60 px-2 py-2 md:px-3"
+                    />
+                  ) : null}
                 </div>
-              </nav>
-
-              <div className="min-w-0">
-                {!listMode && (
-                  <label className="relative mb-3 block md:hidden">
-                    <span className="sr-only">Group</span>
-                    <select
-                      value={section?.id}
-                      onChange={(e) => ui.set({ section: e.target.value })}
-                      className="focus-ring h-11 w-full cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pr-9 pl-3 text-sm font-medium"
-                    >
-                      {defs.groups.map((g) => (
-                        <optgroup key={g.name} label={g.name}>
-                          {g.subgroups.map((sg) => {
-                            const n = changedIn(sg.items)
-                            return (
-                              <option key={sg.name} value={sectionId(g.name, sg.name)}>
-                                {sg.name}
-                                {n ? ` (${n} changed)` : ''}
-                              </option>
-                            )
-                          })}
-                        </optgroup>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" />
-                  </label>
-                )}
 
                 {listMode ? (
-                  listSections.length === 0 ? (
-                    <EmptyState>
-                      {ui.changedOnly && !match ? 'No unsaved changes.' : 'Nothing matches. Try another word, or clear the filters.'}
-                    </EmptyState>
-                  ) : (
-                    <div className="space-y-3">
-                      {listSections.map(({ s, items }) => (
-                        <section key={s.id} className="card overflow-hidden">
-                          <h2 className="border-b border-line px-4 py-2.5 text-[13px] font-semibold md:px-5">
-                            <span className="text-muted">{s.group} ›</span> {s.subgroup}
+                  <div id={PANEL} aria-label="Search results">
+                    {listSections.length === 0 ? (
+                      <p className="px-4 py-10 text-center text-sm text-muted md:px-5">
+                        {ui.changedOnly && !match ? 'No unsaved changes.' : 'Nothing matches. Try another word, or clear the filters.'}
+                      </p>
+                    ) : (
+                      listSections.map(({ s, items }) => (
+                        <div key={s.id}>
+                          <h2 className="border-b border-line bg-surface-2/40 px-4 py-2 text-[13px] font-semibold md:px-5">
+                            <span className="font-normal text-muted">{s.group} ›</span> {s.subgroup}
                           </h2>
                           {rows(items, false)}
-                        </section>
-                      ))}
-                    </div>
-                  )
-                ) : section ? (
-                  <section className="card overflow-hidden">
-                    <h2 className="flex items-baseline justify-between gap-3 border-b border-line px-4 py-3 md:px-5">
-                      <span className="wide text-base font-semibold">
-                        <span className="font-normal text-muted">{section.group} ›</span> {section.subgroup}
-                      </span>
-                    </h2>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    key={section.id}
+                    id={PANEL}
+                    role="tabpanel"
+                    aria-labelledby={group.sections.length > 1 ? subTabId(section.id) : groupTabId(group.name)}
+                    className="page-in"
+                  >
                     {showBattery && <BatteryHelper draft={draft} readOnly={readOnly} onApply={(patch) => cfg().edit(dev.key, kind, patch)} />}
                     {rows(section.items, true)}
-                  </section>
-                ) : null}
-              </div>
-            </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 md:bottom-4">
               <div

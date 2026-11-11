@@ -1,4 +1,4 @@
-import { Archive, BatteryCharging, Layers, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Archive, BatteryCharging, Layers, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react'
 import { PageTitle } from '../../ui/Primitives'
 import { LinkRow, RowGroup, type LinkRowProps } from '../../ui/RowList'
 
@@ -6,6 +6,7 @@ const RIDING: LinkRowProps[] = [
   { to: '/modes', icon: Layers, color: 'blue', title: 'Ride modes', hint: 'Eco, Normal, Sport and your own; single or dual motor.' },
   { to: '/regen', icon: BatteryCharging, color: 'green', title: 'Regen', hint: 'Slows you down when you let go of the throttle.' },
   { to: '/abs', icon: ShieldCheck, color: 'orange', title: 'ABS', hint: 'Eases motor braking when a wheel starts to skid.' },
+  { to: '/wheelie', icon: TrendingUp, color: 'purple', title: 'Auto-wheelie', hint: 'Pin the throttle and lean back; it holds the front up.' },
 ]
 
 const EVERY: LinkRowProps[] = [

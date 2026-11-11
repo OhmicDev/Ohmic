@@ -36,7 +36,7 @@ export function SettingsPage() {
           </a>
         ))}
       </nav>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <Section title="Look" id="look">
           <Row label={t('settings.theme')}>
             <Segmented<ThemePref>
@@ -89,6 +89,9 @@ export function SettingsPage() {
                 { value: 'imperial', label: 'mi · °F' },
               ]}
             />
+          </Row>
+          <Row label="Keep the screen on" hint="While the Ride dashboard is showing live values.">
+            <Toggle checked={s.keepAwake} onChange={s.setKeepAwake} label="Keep the screen on" />
           </Row>
         </Section>
 

@@ -15,6 +15,8 @@ interface LispHost {
   startRegen: (p: RegenParams) => void
   stopRegen: () => void
   regenStatus: () => { on: boolean; engagements: number; beat: number } | null
+  /** The auto-wheelie program running as the stored script, when it is: it answers its own commands. */
+  wheelie: () => { repl: (code: string) => string[] } | null
 }
 
 /** The firmware drops console commands closer together than this. */
@@ -39,6 +41,12 @@ export class MockLisp {
       return null
     }
     this.lastAt = now
+
+    if (/\bwl-/.test(code)) {
+      const w = this.host.wheelie()
+      if (w) return w.repl(code)
+      return ['***\tEval error: variable_not_bound', `***\tSymbol: ${/wl-[\w-]+/.exec(code)![0]}`]
+    }
 
     for (const m of code.matchAll(/\(def (ohm-[\w-]+) (-?\d+(?:\.\d+)?)\)/g)) this.globals.set(m[1], Number(m[2]))
     for (const m of code.matchAll(/\(def (ohm-m\d+) '\(([\d\s-]*)\)\)/g)) this.globals.set(m[1], m[2].trim().split(/\s+/).map(Number))
