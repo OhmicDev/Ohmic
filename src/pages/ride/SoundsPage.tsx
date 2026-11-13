@@ -60,7 +60,7 @@ export function SoundsPage() {
         subtitle="Tunes through the motor, without turning the wheel. Only while stopped."
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <section className="card space-y-4 p-5">
           {list.length > 1 && (
             <div>

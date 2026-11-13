@@ -116,7 +116,7 @@ test('light theme applies at once and survives a reload', async ({ page }) => {
 
 test('every page has one main heading, and every control a name', async ({ page }) => {
   await openApp(page)
-  const routes = ['/', '/live', '/live/faults', '/live/terminal', '/tune', '/welcome', '/config', '/config/backups', '/more', '/settings', '/connect', '/setup', '/setup/motor', '/setup/input', '/setup/direction', '/setup/battery', '/modes', '/abs', '/regen', '/wheelie', '/sounds', '/control', '/firmware', '/logs', '/lisp', '/packages', '/bms', '/imu', '/can', '/dev/protocol', '/calc']
+  const routes = ['/', '/live', '/live/faults', '/live/terminal', '/features', '/tune', '/welcome', '/config', '/config/backups', '/more', '/settings', '/connect', '/setup', '/setup/motor', '/setup/input', '/setup/direction', '/setup/battery', '/modes', '/abs', '/regen', '/wheelie', '/sounds', '/control', '/firmware', '/logs', '/lisp', '/packages', '/bms', '/imu', '/can', '/dev/protocol', '/calc']
   const problems: string[] = []
   for (const r of routes) {
     await page.evaluate((p) => {

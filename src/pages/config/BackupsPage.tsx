@@ -325,7 +325,7 @@ export function BackupsPage() {
 
   return (
     <>
-      <BackLink to="/tune">Tune</BackLink>
+      <BackLink to="/config">Tune</BackLink>
       <PageTitle
         title="Backups"
         subtitle="Saved before every write, on this device."

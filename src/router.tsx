@@ -44,7 +44,15 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: '/', component: RidePage }),
   createRoute({ getParentRoute: () => rootRoute, path: '/connect', component: ConnectPage }),
   createRoute({ getParentRoute: () => rootRoute, path: '/welcome', component: WelcomePage }),
-  createRoute({ getParentRoute: () => rootRoute, path: '/tune', component: lazyRouteComponent(() => import('./pages/tune/TuneHubPage'), 'TuneHubPage') }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/features', component: lazyRouteComponent(() => import('./pages/ride/FeaturesPage'), 'FeaturesPage') }),
+  // The Tune tab is every setting (Config); old links to /tune land there.
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/tune',
+    beforeLoad: () => {
+      throw redirect({ to: '/config', replace: true })
+    },
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: '/config', component: lazyRouteComponent(() => import('./pages/config/ConfigPage'), 'ConfigPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/config/backups', component: lazyRouteComponent(() => import('./pages/config/BackupsPage'), 'BackupsPage') }),
   createRoute({ getParentRoute: () => rootRoute, path: '/more', component: MorePage }),

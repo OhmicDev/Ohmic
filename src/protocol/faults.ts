@@ -39,7 +39,7 @@ export const FAULTS: FaultInfo[] = [
   F(2, 'UNDER_VOLTAGE', 'Battery voltage too low', 'warn',
     'The input voltage dropped below the minimum setting.',
     ['The battery is nearly empty.', 'Voltage sag under hard acceleration on a weak or cold pack.', 'A loose battery connector or thin wiring.', 'Minimum Input Voltage is set too high.'],
-    ['Charge the battery.', 'Lower the battery current limit so the pack sags less.', 'Use the battery cut-off helper in Config so power fades before this point.', 'Check the battery connectors.']),
+    ['Charge the battery.', 'Lower the battery current limit so the pack sags less.', 'Use the battery cut-off helper in Tune so power fades before this point.', 'Check the battery connectors.']),
   F(3, 'DRV', 'Gate driver fault', 'danger',
     'The power stage reported a problem and shut down.',
     ['A short between motor phase wires, or from a phase to the frame.', 'A damaged MOSFET.', 'Current limits too high for the hardware.'],

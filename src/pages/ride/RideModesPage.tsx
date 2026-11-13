@@ -37,7 +37,7 @@ export function RideModesPage() {
 
   return (
     <>
-      <BackLink to="/tune">Tune</BackLink>
+      <BackLink to="/features">Features</BackLink>
       <PageTitle title="Ride modes" subtitle="Switch instantly, even while riding. Your stored settings stay as they are." />
 
       {error && (
@@ -403,7 +403,7 @@ function MakePermanent({ mode, list, onClose }: { mode: RideMode; list: DeviceCo
     )
 
   const blocked = pending
-    ? 'You have motor-setting edits that aren’t written yet. Write or discard them in Config first.'
+    ? 'You have motor-setting edits that aren’t written yet. Write or discard them in Tune first.'
     : motion
   return (
     <Dialog

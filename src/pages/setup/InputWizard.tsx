@@ -209,7 +209,7 @@ function InputSteps({ list }: { list: DeviceConfig[] }) {
                 This writes two settings to {d.name}: the input to use, and its control mode set to Off. You’ll review them first.
               </p>
             )}
-            {pending && <p className="text-xs text-warn">{d.name} has app-setting edits that aren’t written yet. Write or discard them in Config first.</p>}
+            {pending && <p className="text-xs text-warn">{d.name} has app-setting edits that aren’t written yet. Write or discard them in Tune first.</p>}
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => go('choose')}>
                 Back

@@ -148,7 +148,7 @@ function BatteryForm({ list }: { list: DeviceConfig[] }) {
               battery before riding.
             </p>
           ))}
-          {pending && <p className="text-xs text-warn">You have motor-setting edits that aren’t written yet. Write or discard them in Config first.</p>}
+          {pending && <p className="text-xs text-warn">You have motor-setting edits that aren’t written yet. Write or discard them in Tune first.</p>}
           <Button variant="primary" className="w-full" disabled={issues.length > 0 || pending} onClick={review}>
             Review changes
           </Button>

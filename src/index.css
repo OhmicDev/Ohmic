@@ -2,18 +2,19 @@
 @import '@fontsource-variable/inter/opsz.css';
 @import '@fontsource-variable/jetbrains-mono';
 
-/* Design tokens. Near-black surfaces with a cool tint, hairline borders and flat status
-   colours, like an instrument panel at night. The accent is set at runtime from the user's choice. */
+/* Design tokens. Neutral near-black surfaces a step apart, hairline borders and flat status
+   colours, like an instrument panel at night. The accent is set at runtime from the user's choice;
+   the default is white, so the app reads in black and white with colour kept for status. */
 @theme {
-  --color-bg: #0a0b0f;
-  --color-surface: #111318;
-  --color-surface-2: #171a20;
-  --color-surface-3: #1f232a;
-  --color-line: rgb(255 255 255 / 0.065);
-  --color-line-strong: rgb(255 255 255 / 0.11);
-  --color-text: #eef0f4;
-  --color-muted: #9ba1ad;
-  --color-faint: #8b919c;
+  --color-bg: #050505;
+  --color-surface: #0e0e0f;
+  --color-surface-2: #151516;
+  --color-surface-3: #1d1d1f;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.12);
+  --color-text: #f5f5f6;
+  --color-muted: #a1a1a8;
+  --color-faint: #8e8e95;
   --color-ok: #2ecc71;
   --color-warn: #f39c12;
   --color-danger: #ef5b4c;
@@ -34,12 +35,12 @@
 }
 
 :root {
-  --accent: #4c9be8;
+  --accent: #f2f2f3;
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
-  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
-  --bar-bg: rgb(13 15 20 / 0.78);
-  --chart-axis: #9ba1ad;
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.035) inset;
+  --bar-bg: rgb(5 5 5 / 0.8);
+  --chart-axis: #a1a1a8;
   --chart-grid: rgb(255 255 255 / 0.06);
   --chart-tick: rgb(255 255 255 / 0.09);
   --chart-cursor: rgb(255 255 255 / 0.3);
@@ -345,7 +346,7 @@ input[type='number'] {
 
 /* Code editor and consoles (LispBM, terminal). Light values are with the light theme above. */
 :root {
-  --code-bg: #0d0f13;
+  --code-bg: #0b0b0c;
   --syn-comment: #5f6b79;
   --syn-string: #a6e3a1;
   --syn-number: #fab387;

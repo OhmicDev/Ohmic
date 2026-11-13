@@ -10,19 +10,20 @@ import type { WheelieCalibration, WheelieSettings } from '../onboard/wheelie'
 import type { BleChunkSize } from '../transport/BleTransport'
 import type { View } from './devices'
 
-/** Flat colours, each 4.5:1 or better as text on the dark surfaces and under dark text. */
+/** Flat colours, each 4.5:1 or better as text on the dark surfaces and under dark text. White
+    is the default: the light theme draws it near-black (see ui/theme.ts). */
 export const ACCENTS = [
+  { name: 'White', value: '#f2f2f3' },
   { name: 'Blue', value: '#4c9be8' },
   { name: 'Green', value: '#2ecc71' },
   { name: 'Orange', value: '#f39c12' },
   { name: 'Purple', value: '#b07ce6' },
   { name: 'Red', value: '#ef5b4c' },
   { name: 'Teal', value: '#1abc9c' },
-  { name: 'Graphite', value: '#c8c8c8' },
 ] as const
 
-/** The first theme's default accent: anyone still on it moves to the new default. */
-const OLD_DEFAULT_ACCENT = '#3ee6ff'
+/** Earlier defaults: anyone still on one moves to the current default. */
+const OLD_DEFAULT_ACCENTS = ['#3ee6ff', '#4c9be8']
 
 /** 'system' follows the device's light or dark setting. */
 export type ThemePref = 'system' | 'dark' | 'light'
@@ -102,6 +103,8 @@ interface SettingsState {
   logImu: boolean
   /** Keep the screen from dimming or locking while the Ride dashboard is live. */
   keepAwake: boolean
+  /** The sidebar is closed down to its icons (wide screens). */
+  sidebarClosed: boolean
   /** Auto-wheelie settings the rider changed from the program's defaults (the rest come from the program). */
   wheelie: Partial<WheelieSettings>
   /** IMU calibration for the wheelie, by the config key of the controller that runs it. */
@@ -142,6 +145,7 @@ interface SettingsState {
   setLogGps: (on: boolean) => void
   setLogImu: (on: boolean) => void
   setKeepAwake: (on: boolean) => void
+  setSidebarClosed: (closed: boolean) => void
   setWheelie: (patch: Partial<WheelieSettings>) => void
   resetWheelie: () => void
   setWheelieCal: (key: string, cal: WheelieCalibration | null) => void
@@ -182,6 +186,7 @@ export const useSettings = create<SettingsState>()(
       logGps: true,
       logImu: false,
       keepAwake: true,
+      sidebarClosed: false,
       wheelie: {},
       wheelieCal: {},
       wheelieHostWheel: null,
@@ -217,6 +222,7 @@ export const useSettings = create<SettingsState>()(
       setLogGps: (logGps) => set({ logGps }),
       setLogImu: (logImu) => set({ logImu }),
       setKeepAwake: (keepAwake) => set({ keepAwake }),
+      setSidebarClosed: (sidebarClosed) => set({ sidebarClosed }),
       setWheelie: (patch) => set((s) => ({ wheelie: { ...s.wheelie, ...patch } })),
       resetWheelie: () => set({ wheelie: {} }),
       setWheelieCal: (key, cal) =>
@@ -237,7 +243,7 @@ export const useSettings = create<SettingsState>()(
         const p = { ...((persisted ?? {}) as Partial<SettingsState> & { includeCanInTotals?: unknown; ai?: unknown }) }
         delete p.includeCanInTotals // replaced by the device switcher
         delete p.ai // the removed tuning assistant's settings
-        if (p.accent === OLD_DEFAULT_ACCENT) delete p.accent
+        if (p.accent && OLD_DEFAULT_ACCENTS.includes(p.accent)) delete p.accent
         if (persisted && p.onboarded === undefined) p.onboarded = true
         return {
           ...current,

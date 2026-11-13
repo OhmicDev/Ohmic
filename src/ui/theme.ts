@@ -3,15 +3,23 @@
 // doesn't flash dark on a light phone.
 
 import { useEffect, useSyncExternalStore } from 'react'
-import { darken } from '../lib/color'
+import { chroma, darken } from '../lib/color'
 import { useSettings, type ThemePref } from '../state/settings'
 
 type Theme = 'dark' | 'light'
 
 /** How much of the accent the light theme keeps: 4.5:1 or better on every light surface for all accents. */
-export const LIGHT_ACCENT_KEEP = 0.55
+const LIGHT_ACCENT_KEEP = 0.55
 
-const BG: Record<Theme, string> = { dark: '#0a0b0f', light: '#f5f5f7' }
+/** The light theme's ink: a white or grey accent becomes this, so it reads black on white. */
+const LIGHT_INK = '#1d1d1f'
+
+/** The accent as the light theme draws it: darker so it stays readable, and white or grey as near-black. */
+export function lightAccent(accent: string): string {
+  return chroma(accent) < 0.03 ? LIGHT_INK : darken(accent, LIGHT_ACCENT_KEEP)
+}
+
+const BG: Record<Theme, string> = { dark: '#050505', light: '#f5f5f7' }
 
 const query = () => (typeof window === 'undefined' ? null : window.matchMedia?.('(prefers-color-scheme: light)'))
 
@@ -41,7 +49,7 @@ export function useApplyTheme() {
     const root = document.documentElement
     root.dataset.theme = theme
     // The light theme draws the user's accent darker, so it stays readable.
-    root.style.setProperty('--accent', theme === 'light' ? darken(accent, LIGHT_ACCENT_KEEP) : accent)
+    root.style.setProperty('--accent', theme === 'light' ? lightAccent(accent) : accent)
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BG[theme])
   }, [theme, accent])
 }

@@ -179,7 +179,7 @@ export function refusedFrame(f: CanFrame): string | null {
     return 'This frame would drive a motor. Ohmic doesn’t send those by hand: use Motor control, which stops the motor when you let go.'
   if (type >= 5 && type <= 8) return 'This frame carries a command to another controller (VESC’s buffer packets). Ohmic doesn’t send those by hand.'
   if (SETTING_PACKETS.has(type))
-    return 'This frame changes a controller’s limits, power or bus speed without the review, backup and check that settings writes get. Change it in Config instead.'
+    return 'This frame changes a controller’s limits, power or bus speed without the review, backup and check that settings writes get. Change it in Tune instead.'
   return null
 }
 

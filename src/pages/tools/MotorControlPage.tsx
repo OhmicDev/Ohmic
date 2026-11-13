@@ -106,7 +106,7 @@ export function MotorControlPage() {
           )}
         </p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-4">
             <LiftedCard />
             <section className="card space-y-4 p-5" aria-label="What to drive">

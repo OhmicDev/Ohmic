@@ -158,3 +158,15 @@ test('a settings write: refused while the wheel turns, then reviewed, backed up,
   await go(page, '/config/backups')
   await expect(page.getByText(/Before writing/).first()).toBeVisible()
 })
+
+test('connected on a small phone, no page is wider than the screen', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 })
+  await connectDemo(page)
+  // The pages with live controller cards, which only show their widest rows when connected.
+  for (const path of ['/', '/setup', '/live', '/features', '/modes', '/regen', '/abs', '/wheelie', '/config', '/more', '/sounds', '/control', '/imu', '/can', '/bms']) {
+    await go(page, path)
+    await page.waitForTimeout(400)
+    const wider = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(wider, `${path} is ${wider}px wider than the screen`).toBeLessThanOrEqual(0)
+  }
+})

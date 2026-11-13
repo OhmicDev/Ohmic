@@ -48,14 +48,14 @@ export async function pickDemo(page: Page) {
 
 /**
  * In-app navigation. A full page load would drop the connection, the same as closing the tab,
- * so this goes through the router the way a link does.
+ * so this goes through the router the way a link does. `landsOn` is where a redirect should end up.
  */
-export async function go(page: Page, path: string) {
+export async function go(page: Page, path: string, landsOn = path) {
   await page.evaluate((p) => {
     history.pushState({}, '', p)
     dispatchEvent(new PopStateEvent('popstate'))
   }, path)
-  await expect(page).toHaveURL(new RegExp(`${path.replace(/[/$]/g, '\\$&')}$`))
+  await expect(page).toHaveURL(new RegExp(`${landsOn.replace(/[/$]/g, '\\$&')}$`))
 }
 
 /** The demo scooter rides a loop; most writes need it parked. */

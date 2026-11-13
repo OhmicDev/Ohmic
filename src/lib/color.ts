@@ -46,6 +46,14 @@ export function darken(hex: string, keep: number): string {
   return toHex(fromOklab([L * keep, a * keep, b * keep]))
 }
 
+/** How colourful a colour is (its OKLab chroma): about 0 for white, black and greys. */
+export function chroma(hex: string): number {
+  const rgb = parseHex(hex)
+  if (!rgb) return 0
+  const [, a, b] = toOklab(rgb)
+  return Math.hypot(a, b)
+}
+
 function relativeLuminance(hex: string): number {
   const rgb = parseHex(hex)
   if (!rgb) return 0

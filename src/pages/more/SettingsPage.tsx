@@ -148,7 +148,7 @@ export function SettingsPage() {
         >
           <p className="-mt-1 mb-2 text-xs leading-relaxed text-faint">
             Used for speed, distance and battery %. Filled in from the main controller’s settings each time you connect; change them on the
-            controller in Config.
+            controller in Tune.
           </p>
           <NumberRow label="Motor poles" k="motorPoles" step={2} min={2} max={120} />
           <NumberRow label="Wheel diameter" k="wheelDiameterMm" step={1} min={50} max={1000} unit="mm" />

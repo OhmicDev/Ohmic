@@ -146,7 +146,7 @@ function MotorCheck({ d, onAnswer }: { d: DeviceConfig; onAnswer: (forward: bool
             <p className="text-sm text-muted">
               Ohmic will {inverted ? 'set the direction back to normal' : 'invert the direction'} for {d.name}. Test again after writing.
             </p>
-            {pending && <p className="text-xs text-warn">This controller has motor-setting edits that aren’t written yet; they’d be written too. Write or discard them in Config first.</p>}
+            {pending && <p className="text-xs text-warn">This controller has motor-setting edits that aren’t written yet; they’d be written too. Write or discard them in Tune first.</p>}
             <Button variant="primary" disabled={pending} onClick={flip}>
               Review the change
             </Button>

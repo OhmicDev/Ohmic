@@ -27,7 +27,7 @@ import { useSettings } from '../state/settings'
 import { portName } from '../transport/SerialTransport'
 import { bluetoothHelp, detectSupport, supportMessage, type Help } from '../transport/support'
 import { Badge, Button, PageTitle } from '../ui/Primitives'
-import { ROW_FOCUS, TILE } from '../ui/rowStyles'
+import { ICON_TILE, ROW_FOCUS } from '../ui/rowStyles'
 import { buttonClass } from '../ui/buttonClass'
 import { ReconnectBanner } from '../ui/ReconnectBanner'
 import { useKnownDevices } from '../ui/useKnownDevices'
@@ -138,7 +138,6 @@ export function ConnectPanel() {
             <Choice
               key={`ble-${d.id}`}
               icon={Bluetooth}
-              tile={TILE.blue}
               title={d.name || 'Bluetooth device'}
               detail="Bluetooth · used before"
               onClick={pick(() => connectBleDevice(d))}
@@ -148,7 +147,6 @@ export function ConnectPanel() {
             <Choice
               key={`usb-${i}`}
               icon={Cable}
-              tile={TILE.green}
               title={portName(port)}
               detail="USB · plugged in"
               onClick={pick(() => connectPort(port))}
@@ -160,7 +158,6 @@ export function ConnectPanel() {
       <Group title={hasKnown ? 'Find another device' : 'Find your controller'}>
         <Choice
           icon={Bluetooth}
-          tile={TILE.blue}
           title="Bluetooth"
           detail={bleHelp ? 'Not in this browser' : 'VESC Express or a VESC Bluetooth module'}
           onClick={pick(() => connectBluetooth())}
@@ -170,7 +167,6 @@ export function ConnectPanel() {
         </Choice>
         <Choice
           icon={Cable}
-          tile={TILE.green}
           title="USB cable"
           detail={usbNote ?? 'Fastest. Best for setup and firmware updates.'}
           onClick={pick(() => connectUsb())}
@@ -179,7 +175,6 @@ export function ConnectPanel() {
         {demo && (
           <Choice
             icon={PlayCircle}
-            tile={TILE.grey}
             title="Demo scooter"
             detail="Simulated, for testing"
             onClick={pick(() => connectDemo())}
@@ -231,7 +226,6 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 
 function Choice({
   icon: Icon,
-  tile,
   title,
   detail,
   onClick,
@@ -239,8 +233,6 @@ function Choice({
   children,
 }: {
   icon: LucideIcon
-  /** The icon's coloured square, like macOS settings. */
-  tile: string
   title: string
   detail: string
   onClick: () => void
@@ -257,8 +249,8 @@ function Choice({
           ROW_FOCUS,
         )}
       >
-        <span className={cx('flex size-8 shrink-0 items-center justify-center rounded-lg text-white', tile, disabled && 'opacity-50')}>
-          <Icon className="size-[18px]" strokeWidth={2} aria-hidden />
+        <span className={cx(ICON_TILE, disabled && 'opacity-50')}>
+          <Icon className="size-[17px]" strokeWidth={1.8} aria-hidden />
         </span>
         <span className={cx('min-w-0 flex-1', disabled && 'opacity-60')}>
           <span className="block truncate text-[15px] font-medium">{title}</span>

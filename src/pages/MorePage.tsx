@@ -10,28 +10,28 @@ const GROUPS: { id: string; title: string; items: LinkRowProps[] }[] = [
     id: 'riding',
     title: 'Riding',
     items: [
-      { to: '/logs', icon: Route, color: 'green', title: 'Ride logs', hint: 'Record rides with GPS, maps and charts' },
-      { to: '/sounds', icon: Music, color: 'red', title: 'Motor sounds', hint: 'Tunes and effects through the motor' },
-      { to: '/calc', icon: Calculator, color: 'grey', title: 'Calculators', hint: 'Range, top speed, battery and charging' },
+      { to: '/logs', icon: Route, title: 'Ride logs', hint: 'Record rides with GPS, maps and charts' },
+      { to: '/sounds', icon: Music, title: 'Motor sounds', hint: 'Tunes and effects through the motor' },
+      { to: '/calc', icon: Calculator, title: 'Calculators', hint: 'Range, top speed, battery and charging' },
     ],
   },
   {
     id: 'controller',
     title: 'Controller tools',
     items: [
-      { to: '/control', icon: Gamepad2, color: 'orange', title: 'Motor control', hint: 'Drive a motor on the bench' },
-      { to: '/firmware', icon: Cpu, color: 'blue', title: 'Firmware', hint: 'Update controllers on USB and CAN' },
-      { to: '/lisp', icon: Code2, color: 'purple', title: 'LispBM scripts', hint: 'Write, upload and run scripts' },
-      { to: '/packages', icon: Boxes, color: 'teal', title: 'Packages', hint: 'Add features from the VESC package archive' },
+      { to: '/control', icon: Gamepad2, title: 'Motor control', hint: 'Drive a motor on the bench' },
+      { to: '/firmware', icon: Cpu, title: 'Firmware', hint: 'Update controllers on USB and CAN' },
+      { to: '/lisp', icon: Code2, title: 'LispBM scripts', hint: 'Write, upload and run scripts' },
+      { to: '/packages', icon: Boxes, title: 'Packages', hint: 'Add features from the VESC package archive' },
     ],
   },
   {
     id: 'sensors',
     title: 'Battery, sensors and CAN bus',
     items: [
-      { to: '/bms', icon: Battery, color: 'green', title: 'Battery (BMS)', hint: 'Cells, balancing, temperatures and charge' },
-      { to: '/imu', icon: Compass, color: 'blue', title: 'IMU', hint: 'Live orientation and calibration' },
-      { to: '/can', icon: Network, color: 'grey', title: 'CAN bus', hint: 'Devices on the bus and a traffic monitor' },
+      { to: '/bms', icon: Battery, title: 'Battery (BMS)', hint: 'Cells, balancing, temperatures and charge' },
+      { to: '/imu', icon: Compass, title: 'IMU', hint: 'Live orientation and calibration' },
+      { to: '/can', icon: Network, title: 'CAN bus', hint: 'Devices on the bus and a traffic monitor' },
     ],
   },
 ]

@@ -131,7 +131,7 @@ export function wheelieLimitsProblems(plan: WheeliePlan, s: WheelieSettings): st
     return { most: num(mc, 'l_current_max'), brake: Math.abs(num(mc, 'l_current_min')) }
   }
   const over = (what: string, amps: number, d: DeviceConfig, lim: number, kind: string) => {
-    if (amps > lim) out.push(`${what} (${amps} A) is more than ${d.name}’s ${kind} limit (${lim} A). Lower it, or raise the limit in Config.`)
+    if (amps > lim) out.push(`${what} (${amps} A) is more than ${d.name}’s ${kind} limit (${lim} A). Lower it, or raise the limit in Tune.`)
   }
   const r = limits(plan.rear)
   over('The kick', s.kick, plan.rear, r.most, 'motor current')

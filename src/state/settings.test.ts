@@ -2,11 +2,11 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { addCatalog, translate } from '../i18n'
-import { contrastRatio, darken } from '../lib/color'
+import { contrastRatio } from '../lib/color'
 import { ACCENTS, useSettings } from './settings'
 import { db } from './db'
 import { exportAll, importAll, readExport } from './dataTransfer'
-import { LIGHT_ACCENT_KEEP, resolveTheme } from '../ui/theme'
+import { lightAccent, resolveTheme } from '../ui/theme'
 
 // Settings saved by an older version, with the removed tuning assistant's settings. Node has no
 // localStorage, so this stands in for it before the settings store loads.
@@ -126,15 +126,15 @@ describe('theme', () => {
 
   it('keeps every accent readable on the light theme’s surfaces', () => {
     for (const a of ACCENTS) {
-      const c = darken(a.value, LIGHT_ACCENT_KEEP)
+      const c = lightAccent(a.value)
       for (const surface of ['#ffffff', '#f5f5f7', '#f2f2f4', '#e8e8ec']) expect(contrastRatio(c, surface)).toBeGreaterThanOrEqual(4.5)
     }
   })
 
   it('keeps every accent readable on the dark theme, as text and under the dark text of a button', () => {
     for (const a of ACCENTS) {
-      for (const surface of ['#0a0b0f', '#111318', '#171a20', '#1f232a']) expect(contrastRatio(a.value, surface)).toBeGreaterThanOrEqual(4.5)
-      expect(contrastRatio('#0a0b0f', a.value)).toBeGreaterThanOrEqual(4.5)
+      for (const surface of ['#050505', '#0e0e0f', '#151516', '#1d1d1f']) expect(contrastRatio(a.value, surface)).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio('#050505', a.value)).toBeGreaterThanOrEqual(4.5)
     }
   })
 })

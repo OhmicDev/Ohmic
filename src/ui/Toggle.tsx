@@ -26,8 +26,8 @@ export function Toggle({
     >
       <span
         className={cx(
-          'absolute top-[3px] size-5 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.35)] transition-[left] duration-200',
-          checked ? 'left-[21px]' : 'left-[3px]',
+          'absolute top-[3px] size-5 rounded-full shadow-[0_1px_3px_rgb(0_0_0/0.35)] transition-[left,background-color] duration-200',
+          checked ? 'left-[21px] bg-bg' : 'left-[3px] bg-white',
         )}
       />
     </button>

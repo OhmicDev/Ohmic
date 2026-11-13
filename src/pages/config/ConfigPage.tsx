@@ -25,7 +25,7 @@ import { downloadText, pickTextFile, safeFileName, stamp } from '../../lib/files
 import { cx, errorText } from '../../lib/format'
 import { pendingCount, useConfig, type DeviceConfig } from '../../state/config'
 import { useSession } from '../../state/session'
-import { BackLink, Button, PageTitle } from '../../ui/Primitives'
+import { Button, PageTitle } from '../../ui/Primitives'
 import { ReconnectBanner } from '../../ui/ReconnectBanner'
 import { Tabs } from '../../ui/Tabs'
 import { Toggle } from '../../ui/Toggle'
@@ -153,8 +153,7 @@ export function ConfigPage() {
     const busy = status === 'connecting' || (status === 'connected' && order.length === 0)
     return (
       <>
-        <BackLink to="/tune">Tune</BackLink>
-        <PageTitle title="Config" subtitle="Every setting, searchable, with help." actions={backupsLink} />
+        <PageTitle title="Tune" subtitle="Every motor and app setting, searchable, with help." actions={backupsLink} />
         {status === 'reconnecting' && <ReconnectBanner />}
         <EmptyState
           action={
@@ -326,9 +325,8 @@ function Editor({
 
   return (
     <>
-      <BackLink to="/tune">Tune</BackLink>
       <PageTitle
-        title="Config"
+        title="Tune"
         subtitle={
           <>
             {dev.name} · firmware {fwKey(dev.fw.major, dev.fw.minor)}

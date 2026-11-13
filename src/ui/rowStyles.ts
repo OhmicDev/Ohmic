@@ -1,14 +1,5 @@
-/** Flat colours for the small icon squares in lists and the sidebar, like macOS settings. */
-export const TILE = {
-  blue: 'bg-[#2f7fd6]',
-  green: 'bg-[#27ae60]',
-  orange: 'bg-[#e08a0b]',
-  purple: 'bg-[#8e5bd0]',
-  red: 'bg-[#e0493b]',
-  teal: 'bg-[#16a085]',
-  grey: 'bg-[#7a7a80]',
-} as const
-export type TileColor = keyof typeof TILE
+/** The small icon square in lists: one quiet neutral tile, so the icons read in black and white. */
+export const ICON_TILE = 'flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-3 text-text ring-1 ring-line ring-inset'
 
 /** Rows inside a card highlight from the inside, so the card's rounded edge doesn't cut the ring off. */
 export const ROW_FOCUS = 'outline-none focus-visible:bg-surface-2 focus-visible:shadow-[inset_0_0_0_2px_var(--accent)]'

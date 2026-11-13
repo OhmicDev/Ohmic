@@ -38,9 +38,12 @@ export function ConnectionChip() {
 
   if (status !== 'connected') {
     return (
-      <button onClick={show} className={cx(base, status === 'error' ? 'border-danger/40' : 'border-accent/40 bg-accent/10')}>
-        {status === 'error' ? <span className="size-2 rounded-full bg-danger" /> : <Plug className="size-3.5 text-accent" />}
-        <span className={status === 'error' ? 'text-danger' : 'font-medium text-accent'}>{status === 'error' ? 'Disconnected' : 'Connect'}</span>
+      <button
+        onClick={show}
+        className={cx(base, status === 'error' ? 'border-danger/40' : 'border-transparent bg-accent font-semibold text-bg hover:border-transparent hover:opacity-90')}
+      >
+        {status === 'error' ? <span className="size-2 rounded-full bg-danger" /> : <Plug className="size-3.5" />}
+        <span className={status === 'error' ? 'text-danger' : undefined}>{status === 'error' ? 'Disconnected' : 'Connect'}</span>
       </button>
     )
   }

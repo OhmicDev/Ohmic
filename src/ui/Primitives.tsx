@@ -9,7 +9,7 @@ export function Button({ variant = 'secondary', className, ...props }: ButtonHTM
 }
 
 /** Where a page sits: the section it belongs to, shown above its title. */
-type BackTo = '/setup' | '/tune' | '/more' | '/settings' | '/logs'
+type BackTo = '/setup' | '/features' | '/config' | '/more' | '/settings' | '/logs'
 
 export function BackLink({ to, children }: { to: BackTo; children: ReactNode }) {
   return (
@@ -25,7 +25,7 @@ export function PageTitle({ title, subtitle, actions }: { title: string; subtitl
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-x-3 gap-y-2 md:mb-5">
       <div className="min-w-0">
-        <h1 className="wide text-[26px] leading-tight font-bold md:text-[28px]">{title}</h1>
+        <h1 className="wide text-[26px] leading-tight font-semibold md:text-[28px]">{title}</h1>
         {subtitle && (
           <p
             className={cx('mt-1 max-w-2xl text-[13px] leading-relaxed text-muted md:text-sm', !open && 'max-md:line-clamp-2')}
@@ -80,7 +80,7 @@ export function Segmented<T extends string | number>({
           onClick={() => onChange(o.value)}
           className={cx(
             'focus-ring h-8 shrink-0 rounded-md px-2.5 text-[13px] font-medium whitespace-nowrap transition-colors md:h-7 md:px-3',
-            o.value === value ? 'bg-surface-3 text-text shadow-[0_1px_2px_rgb(0_0_0/0.25),inset_0_0_0_1px_var(--color-line-strong)]' : 'text-muted hover:text-text',
+            o.value === value ? 'bg-text text-bg' : 'text-muted hover:text-text',
           )}
         >
           {o.label}

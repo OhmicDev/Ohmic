@@ -40,8 +40,8 @@ const tabClass: Record<Look, string> = {
 
 const markClass: Record<Look, string> = {
   line: 'bottom-0 h-[2px] rounded-full bg-accent',
-  pill: 'inset-y-0 rounded-full bg-surface-3 shadow-[0_1px_2px_rgb(0_0_0/0.25),inset_0_0_0_1px_var(--color-line-strong)]',
-  segment: 'inset-y-0 rounded-md bg-surface-3 shadow-[0_1px_2px_rgb(0_0_0/0.25),inset_0_0_0_1px_var(--color-line-strong)]',
+  pill: 'inset-y-0 rounded-full bg-text',
+  segment: 'inset-y-0 rounded-md bg-text',
 }
 
 export function Tabs<T extends string>({ label, tabs, value, onChange, look = 'line', tabId, panelId, className }: Props<T>) {
@@ -153,12 +153,18 @@ export function Tabs<T extends string>({ label, tabs, value, onChange, look = 'l
                 'focus-visible:ring-2 focus-visible:ring-accent/80 focus-visible:ring-inset',
                 look === 'line' && 'rounded-md',
                 tabClass[look],
-                on ? 'text-text' : 'text-muted hover:text-text',
+                // On a pill or segment the chosen tab sits on the solid marker, so its text is the page colour.
+                on ? (look === 'line' ? 'text-text' : 'text-bg') : 'text-muted hover:text-text',
               )}
             >
               {t.label}
               {!!t.count && (
-                <span className="num min-w-[18px] rounded-full bg-accent/18 px-1.5 text-center text-[11px] leading-[18px] font-semibold text-accent">
+                <span
+                  className={cx(
+                    'num min-w-[18px] rounded-full px-1.5 text-center text-[11px] leading-[18px] font-semibold',
+                    on && look !== 'line' ? 'bg-bg/15 text-bg' : 'bg-accent/18 text-accent',
+                  )}
+                >
                   {t.count}
                   {t.countLabel && <span className="sr-only"> {t.countLabel}</span>}
                 </span>

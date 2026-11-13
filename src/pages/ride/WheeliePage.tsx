@@ -55,13 +55,14 @@ export function WheeliePage() {
 
   return (
     <>
-      <BackLink to="/tune">Tune</BackLink>
+      <BackLink to="/features">Features</BackLink>
       <PageTitle
         title="Auto-wheelie"
         subtitle="Pin the throttle and lean back: it lifts the front and holds it. Lean forward to go faster, back to slow down. Let go to land."
         actions={<DemoPark />}
       />
-      <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {/* minmax(0, …) so a long row inside can't widen the page past the screen. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="space-y-3 md:space-y-4">
           <StatusCard />
           <LiveCard />

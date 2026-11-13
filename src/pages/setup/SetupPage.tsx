@@ -100,8 +100,12 @@ export function SetupPage() {
       </section>
 
       <p className="mt-4 px-1 text-[13px] text-muted">
-        Ride modes, regen, ABS and every setting are in{' '}
-        <Link to="/tune" className="font-medium text-accent hover:underline">
+        Ride modes, regen and ABS are in{' '}
+        <Link to="/features" className="font-medium text-accent hover:underline">
+          Features
+        </Link>
+        ; every setting is in{' '}
+        <Link to="/config" className="font-medium text-accent hover:underline">
           Tune
         </Link>
         .

@@ -4,8 +4,8 @@ import { cx } from '../lib/format'
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const BUTTON_STYLES: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-bg font-semibold hover:brightness-110 active:brightness-95 shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_1px_2px_rgb(0_0_0/0.3)]',
-  secondary: 'bg-surface-3 text-text border border-line-strong shadow-[0_1px_1px_rgb(0_0_0/0.15)] hover:border-text/25',
+  primary: 'bg-accent text-bg font-semibold hover:opacity-90 active:opacity-80',
+  secondary: 'bg-surface-2 text-text border border-line-strong hover:bg-surface-3 hover:border-text/20',
   ghost: 'text-muted hover:text-text hover:bg-surface-3',
   danger: 'bg-danger/12 text-danger border border-danger/30 hover:bg-danger/20',
 }

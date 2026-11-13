@@ -27,8 +27,8 @@ The app has five tabs:
 - **Setup**: the four steps for a new build or new parts, in order, each leading to the next: motor detection,
   throttle and brake, motor direction, battery.
 - **Live**: every value the controllers report, charts, faults with what to do, and the VESC terminal.
-- **Tune**: how it rides (ride modes, regen, ABS), and **Config**: every motor and app setting VESC Tool has,
-  with search, undo, XML import and export, and backups.
+- **Features**: how it rides: ride modes, regen, ABS and the auto-wheelie.
+- **Tune**: every motor and app setting VESC Tool has, with search, undo, XML import and export, and backups.
 - **More**: ride logs with GPS, motor sounds, calculators, motor control on the bench, firmware updates,
   LispBM scripts, packages from the VESC package archive, BMS cells and balancing, IMU orientation and
   calibration, the CAN bus devices and traffic monitor, and the app's **Settings** (look, units, connection,

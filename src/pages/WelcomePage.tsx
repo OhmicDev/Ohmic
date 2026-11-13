@@ -22,46 +22,39 @@ import { Logo } from '../ui/Logo'
 import { Button } from '../ui/Primitives'
 import { prefersReducedMotion } from '../ui/reducedMotion'
 import { IconTile } from '../ui/RowList'
-import type { TileColor } from '../ui/rowStyles'
 
 const SOURCE_URL = 'https://github.com/OhmicDev/Ohmic'
 
-type Card = { icon: LucideIcon; color: TileColor; title: string; text: string }
+type Card = { icon: LucideIcon; title: string; text: string }
 
 const FEATURES: Card[] = [
   {
     icon: Bluetooth,
-    color: 'blue',
     title: 'Connect',
     text: 'Bluetooth through a VESC Bluetooth module or VESC Express, or a USB cable. It remembers your scooter and reconnects when it’s on.',
   },
   {
     icon: Gauge,
-    color: 'green',
     title: 'Ride',
     text: 'Speed, battery, power and temperatures, live. Every controller on the CAN bus, added up.',
   },
   {
     icon: Wrench,
-    color: 'grey',
     title: 'Setup',
     text: 'Four guided steps for a new build: motor detection, throttle and brake, direction, battery.',
   },
   {
     icon: SlidersHorizontal,
-    color: 'purple',
     title: 'Tune',
     text: 'Ride modes, regen and ABS, plus every motor and app setting with search and plain-language help.',
   },
   {
     icon: Activity,
-    color: 'orange',
     title: 'Live',
     text: 'Charts of every value the controllers report, faults with what to do, and the VESC terminal.',
   },
   {
     icon: Route,
-    color: 'teal',
     title: 'And more',
     text: 'Ride logs with GPS maps, firmware updates, LispBM scripts, packages, BMS, IMU and the CAN bus.',
   },
@@ -70,37 +63,31 @@ const FEATURES: Card[] = [
 const PERKS: Card[] = [
   {
     icon: Globe,
-    color: 'blue',
     title: 'Nothing to install',
     text: 'It’s a web page. Open it on a laptop or phone, add it to your home screen, and it works offline.',
   },
   {
     icon: Bluetooth,
-    color: 'teal',
     title: 'Connects like VESC Tool',
     text: 'The same Bluetooth link VESC Tool uses, so your VESC Bluetooth module or VESC Express just works. It reconnects by itself.',
   },
   {
     icon: ShieldCheck,
-    color: 'green',
     title: 'Hard to get wrong',
     text: 'Every change is checked, shown to you and backed up before it’s written, then read back. Nothing is written while a wheel turns.',
   },
   {
     icon: BookOpen,
-    color: 'orange',
     title: 'Plain language',
     text: 'Settings explained for riders, not just engineers, and guided setup in four steps.',
   },
   {
     icon: Layers,
-    color: 'purple',
     title: 'Made for dual motor',
     text: 'Sees every controller on the CAN bus, shows them together or one at a time, and writes to both at once.',
   },
   {
     icon: Route,
-    color: 'red',
     title: 'Ride logs',
     text: 'Record a ride with GPS, then see speed, power and temperatures along the route on a map.',
   },
@@ -311,7 +298,7 @@ function Section({
 function CardItem({ card, n, check }: { card: Card; n: number; check?: boolean }) {
   return (
     <div className="reveal card flex gap-3.5 p-4 md:p-5" style={stagger(n)}>
-      <IconTile icon={card.icon} color={card.color} />
+      <IconTile icon={card.icon} />
       <div className="min-w-0">
         <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
           {card.title}

@@ -101,7 +101,7 @@ function DetectSetup({ list }: { list: DeviceConfig[] }) {
   const blocker = issues.length
     ? null
     : pending
-      ? 'There are motor-setting edits that aren’t written yet. Write or discard them in Config first.'
+      ? 'There are motor-setting edits that aren’t written yet. Write or discard them in Tune first.'
       : absOn
         ? 'ABS is on. Turn it off first: it changes the braking settings while it runs.'
         : motion
@@ -386,7 +386,7 @@ function Result() {
           <div key={b.key}>
             <h2 className="mb-1.5 text-sm font-semibold">{d?.name ?? b.key}</h2>
             {!now ? (
-              <p className="text-sm text-muted">The new settings couldn’t be read back. Check the Config page before riding.</p>
+              <p className="text-sm text-muted">The new settings couldn’t be read back. Check them in Tune before riding.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[420px] text-sm">
@@ -417,7 +417,7 @@ function Result() {
           </div>
         ))}
 
-        {pending && <p className="text-xs text-warn">There are motor-setting edits waiting in Config; write or discard them before putting the old settings back.</p>}
+        {pending && <p className="text-xs text-warn">There are motor-setting edits waiting in Tune; write or discard them before putting the old settings back.</p>}
         {ok ? (
           <NextStep step="motor" />
         ) : (

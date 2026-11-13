@@ -6,7 +6,7 @@ It runs as a LispBM program on the motor controller (VESC firmware 6.05 or newer
 
 - The program: [`src/onboard/wheelie.lisp`](../src/onboard/wheelie.lisp), commented, with every tunable named at the top.
 - Settings, calibration math and the program builder: [`src/onboard/wheelie.ts`](../src/onboard/wheelie.ts).
-- Install, arm and calibrate: [`src/state/wheelie.ts`](../src/state/wheelie.ts). The page: Tune → Auto-wheelie.
+- Install, arm and calibrate: [`src/state/wheelie.ts`](../src/state/wheelie.ts). The page: Features → Auto-wheelie.
 - Tests: [`src/onboard/wheelie.test.ts`](../src/onboard/wheelie.test.ts) runs the real program in a LispBM interpreter ([`lispbm.ts`](../src/onboard/lispbm.ts)) against a scooter-and-rider simulation ([`wheelieSim.ts`](../src/sim/wheelieSim.ts)). [`wheelieFlow.test.ts`](../src/state/wheelieFlow.test.ts) runs the app side against the demo controller.
 
 > **It has only been tested in simulation.** Read [Safety](#safety) before you ride, and follow the [bench test](#bench-test) first.
@@ -136,15 +136,15 @@ The Ubox Dual is two controllers on one board, linked by an internal CAN bus. Th
 1. **Firmware 6.05 or newer on both halves.** Ohmic shows the version for each controller and refuses older firmware.
 2. **The IMU must be on the half that reads the throttle.** The program reads the IMU of the controller it runs on. Open More → IMU in Ohmic: the controller that reads the throttle must show live IMU data. If only the other half does, the throttle would need to be on that half. Don't rewire for this without checking with Spintend's documentation first.
 3. **Tell Ohmic which wheel that half drives** (Rear or Front, on the Auto-wheelie page). The program then knows which motor holds the wheelie and which one spins the airborne front wheel.
-4. **CAN status messages on the other half.** In Config → App → General, set *CAN Status Messages Mode* to include messages 1 and 4 (1 to 5 is simplest), at 50–100 Hz. The program reads the other motor's speed, current, battery current and temperature from them. If they stop for 50 ms, the wheelie ends safely (reason 16).
-5. **A short app timeout on the other half**: about 0.3 s (Config → App → General → *Timeout*). If the program stops, that motor then lets go quickly too. Its own half lets go within 50 ms whatever this is set to.
+4. **CAN status messages on the other half.** In Tune → App → General, set *CAN Status Messages Mode* to include messages 1 and 4 (1 to 5 is simplest), at 50–100 Hz. The program reads the other motor's speed, current, battery current and temperature from them. If they stop for 50 ms, the wheelie ends safely (reason 16).
+5. **A short app timeout on the other half**: about 0.3 s (Tune → App → General → *Timeout*). If the program stops, that motor then lets go quickly too. Its own half lets go within 50 ms whatever this is set to.
 6. **Throttle:** ADC, *Current* or *Current No Reverse Brake ADC2* control type, resting at zero (or PPM in a current mode). Ohmic refuses other modes. The ADC ramp-down time sets how long the program waits before handing back the throttle.
 7. **Motor limits.** In Ohmic, the kick, most push and landing cushion must fit under the rear motor's *Motor Current Max*, and most braking under its *Motor Current Min*. Ohmic refuses settings that don't fit rather than trimming them. The battery regen limit (*Battery Current Min*) still applies when braking the nose down, which is why a full battery is refused.
 8. **IMU rotation settings: set them, calibrate, then leave them.** The program reads the raw gyro and accelerometer and finds its own axes in calibration. If you change the IMU rotation in the controller's settings later, calibrate again.
 
 ### Install, calibrate, arm
 
-On the Auto-wheelie page (Tune → Auto-wheelie):
+On the Auto-wheelie page (Features → Auto-wheelie):
 
 1. **Install.** It's installed as the controller's stored script, which needs the whole script space. If another script is there, Ohmic asks first, keeps a copy, and puts it back when you remove the wheelie. The steps are: write → read back and compare → start → check it answers with the right version. Nothing is installed while a wheel turns.
 2. **Calibrate** (about a minute):
@@ -181,7 +181,7 @@ While it's armed, the page shows the program's own view at 20 Hz:
 Before your first real wheelie, check:
 
 - **Angle ≈ 0° rolling on flat ground,** within a degree or so. Lifting the front by hand (parked) makes it rise.
-- **Speed matches the dashboard.** If not, the wheel size or motor poles in Config are wrong, and the speed limits will be too.
+- **Speed matches the dashboard.** If not, the wheel size or motor poles in Tune are wrong, and the speed limits will be too.
 - **Loop time about 10 ms.** Above 60 ms in one go, it stops (reason 15).
 - **Last stop** explains every end. The reasons are listed in [`wheelie.ts`](../src/onboard/wheelie.ts) (`WHEELIE_REASONS`).
 

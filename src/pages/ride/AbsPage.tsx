@@ -69,7 +69,7 @@ export function AbsPage() {
 
   return (
     <>
-      <BackLink to="/tune">Tune</BackLink>
+      <BackLink to="/features">Features</BackLink>
       <PageTitle title="ABS" subtitle="Eases motor braking for a moment when a wheel skids." actions={isDemo ? <DemoPark /> : undefined} />
 
       <div className="grid gap-3 md:gap-4 lg:grid-cols-[1.2fr_1fr]">

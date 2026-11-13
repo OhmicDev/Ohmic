@@ -8,7 +8,6 @@ import { convertDistance, convertPerDistance, convertSpeed, convertTemp, unitLab
 import { useSettings } from '../../state/settings'
 import { useTelemetry, type Trip } from '../../state/telemetry'
 import { Button } from '../../ui/Primitives'
-import { TILE } from '../../ui/rowStyles'
 import { avgSpeed } from './tiles'
 
 interface Row {
@@ -22,7 +21,6 @@ interface Row {
 interface Group {
   title: string
   icon: LucideIcon
-  tile: string
   rows: Row[]
 }
 
@@ -40,7 +38,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Speed',
       icon: Navigation,
-      tile: TILE.blue,
       rows: [
         {
           label: 'Top speed',
@@ -64,7 +61,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Power',
       icon: Zap,
-      tile: TILE.orange,
       rows: [
         {
           label: 'Peak',
@@ -89,7 +85,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Current',
       icon: Activity,
-      tile: TILE.purple,
       rows: [
         { label: 'Battery peak', value: fmt(t.maxCurrentIn, 1), unit: 'A' },
         {
@@ -114,7 +109,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Battery',
       icon: Waves,
-      tile: TILE.green,
       rows: [
         {
           label: 'Lowest',
@@ -139,7 +133,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Temperature',
       icon: Thermometer,
-      tile: TILE.red,
       rows: [
         { label: 'Motor peak', value: temp(t.peakTempMotor), unit: u.temp },
         {
@@ -158,7 +151,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Energy',
       icon: Flame,
-      tile: TILE.teal,
       rows: [
         {
           label: 'Used',
@@ -188,7 +180,6 @@ function statGroups(t: Trip, units: Units, vehicle: VehicleSetup, soc: number | 
     {
       title: 'Trip',
       icon: Route,
-      tile: TILE.grey,
       rows: [
         {
           label: 'Distance',
@@ -262,7 +253,7 @@ function StatGroup({ group }: { group: Group }) {
   return (
     <div className="card mb-2.5 break-inside-avoid overflow-hidden md:mb-3">
       <div className="flex items-center gap-2.5 px-3.5 pt-3 pb-2 md:px-4">
-        <span className={`flex size-6 items-center justify-center rounded-md text-white ${group.tile}`}>
+        <span className="flex size-6 items-center justify-center rounded-md bg-surface-3 text-text ring-1 ring-line ring-inset">
           <Icon className="size-3.5" aria-hidden />
         </span>
         <h3 className="text-[13px] font-semibold">{group.title}</h3>

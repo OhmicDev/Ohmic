@@ -129,11 +129,11 @@ function DashBar({ phone, editing, onEdit, onOptions }: { phone: boolean; editin
                 tabIndex={on ? 0 : -1}
                 onClick={() => go(id)}
                 className={cx(
-                  'focus-ring flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[13px] font-medium transition-[background-color,color,box-shadow] duration-200 md:px-3',
-                  on ? 'bg-surface-3 text-text shadow-[0_1px_2px_rgb(0_0_0/0.25),inset_0_0_0_1px_var(--color-line-strong)]' : 'text-muted hover:text-text',
+                  'focus-ring flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[13px] font-medium transition-[background-color,color] duration-200 md:px-3',
+                  on ? 'bg-text text-bg' : 'text-muted hover:text-text',
                 )}
               >
-                <p.icon className={cx('size-4', on && 'text-accent')} aria-hidden />
+                <p.icon className="size-4" aria-hidden />
                 {/* On a phone only the page shown is named, to leave room. */}
                 {(!phone || on) && <span>{p.label}</span>}
               </button>
